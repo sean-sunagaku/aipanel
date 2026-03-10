@@ -29,6 +29,7 @@ export interface ConsultationInput {
   diffs?: string[];
   logs?: string[];
   providerName: string;
+  model?: string;
   timeoutMs: number;
   cwd: string;
 }
@@ -39,6 +40,7 @@ export interface ConsultationResult {
   runId: string;
   answer: string;
   provider: string;
+  model: string;
   status: "completed" | "partial";
   validationStatus: string;
 }
@@ -79,6 +81,7 @@ export class ConsultUseCase {
   }
 
   async execute(input: ConsultationInput): Promise<ConsultationResult> {
+    const model = input.model ?? "sonnet";
     const session = await this.sessionManager.startOrResume({
       title: input.title ?? input.question.slice(0, 80),
       ...(input.sessionId ? { sessionId: input.sessionId } : {}),
@@ -133,6 +136,7 @@ export class ConsultUseCase {
       provider: input.providerName,
       prompt,
       cwd: input.cwd,
+      model,
       timeoutMs: input.timeoutMs,
     });
 
@@ -154,6 +158,7 @@ export class ConsultUseCase {
     this.runCoordinator.createProviderResponse(run, {
       taskId: task.taskId,
       provider: adapterResult.provider,
+      model: adapterResult.model,
       rawTextRef: rawTextArtifact.path,
       rawJsonRef: rawJsonArtifact.path,
       usage: adapterResult.usage ?? null,
@@ -215,6 +220,7 @@ export class ConsultUseCase {
       runId: run.runId,
       answer: adapterResult.rawText,
       provider: input.providerName,
+      model: adapterResult.model,
       status: isError ? "partial" : "completed",
       validationStatus: run.validationStatus ?? "validated",
     };

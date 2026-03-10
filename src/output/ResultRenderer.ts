@@ -29,6 +29,7 @@ export class ResultRenderer {
               `session: ${result.sessionId}`,
               `run: ${result.runId}`,
               `provider: ${result.provider}`,
+              `model: ${result.model}`,
               `status: ${result.status}`,
               "",
               result.answer,
@@ -40,6 +41,8 @@ export class ResultRenderer {
             text: [
               `session: ${result.sessionId}`,
               `run: ${result.runId}`,
+              `provider: ${result.provider}`,
+              `model: ${result.model}`,
               `status: ${result.status}`,
               "",
               `summary: ${result.summary}`,

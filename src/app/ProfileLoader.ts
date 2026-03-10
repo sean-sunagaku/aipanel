@@ -4,6 +4,7 @@ import { pathExists, readText } from "../shared/file-system.js";
 
 export interface Profile {
   defaultProvider: string;
+  defaultModel: string;
   defaultTimeoutMs: number;
 }
 
@@ -26,6 +27,10 @@ function parseSimpleYaml(text: string): Partial<Profile> {
 
     if (key === "defaultProvider") {
       profile.defaultProvider = value;
+    }
+
+    if (key === "defaultModel") {
+      profile.defaultModel = value;
     }
 
     if (key === "defaultTimeoutMs") {
@@ -53,6 +58,7 @@ export class ProfileLoader {
   async load(): Promise<Profile> {
     const defaults: Profile = {
       defaultProvider: "claude-code",
+      defaultModel: "sonnet",
       defaultTimeoutMs: 120000,
     };
 

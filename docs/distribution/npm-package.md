@@ -64,8 +64,8 @@ npm install --prefix "$tmpdir" aipanel-cli
 
 2026-03-10 JST 時点の公開済み version:
 
-- package: `aipanel-cli@0.1.2`
-- tarball: `https://registry.npmjs.org/aipanel-cli/-/aipanel-cli-0.1.2.tgz`
+- package: `aipanel-cli@0.1.3`
+- tarball: `https://registry.npmjs.org/aipanel-cli/-/aipanel-cli-0.1.3.tgz`
 
 ## Notes
 
@@ -74,3 +74,4 @@ npm install --prefix "$tmpdir" aipanel-cli
 - `dist/` は git ignore するが、npm package には `prepack` + `files` allowlist で含める
 - publish 後、tarball URL は先に到達可能になり、その後 `npm install aipanel-cli` も確認できた
 - publish 前チェックでは、packaged CLI 実行に加えて `import("aipanel-cli")` と `import("aipanel-cli/domain")` も確認する
+- `0.1.3` では `claude-code` 向けの `--model` 指定と `.aipanel/profile.yml` `defaultModel` fallback を追加した

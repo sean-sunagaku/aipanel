@@ -30,6 +30,8 @@ export interface DebugResult {
   kind: "debug";
   sessionId: string;
   runId: string;
+  provider: string;
+  model: string;
   summary: string;
   details: string[];
   status: "completed" | "partial";
@@ -82,6 +84,7 @@ export class DebugUseCase {
     diffs = [],
     logs = [],
     providerName,
+    model,
     timeoutMs,
     cwd,
   }: {
@@ -92,9 +95,11 @@ export class DebugUseCase {
     diffs?: string[];
     logs?: string[];
     providerName: string;
+    model?: string;
     timeoutMs: number;
     cwd: string;
   }): Promise<DebugResult> {
+    const requestedModel = model ?? "sonnet";
     const session = await this.sessionManager.startOrResume({
       title: title ?? `Debug: ${question.slice(0, 60)}`,
       ...(sessionId ? { sessionId } : {}),
@@ -131,6 +136,7 @@ export class DebugUseCase {
     const contextText = this.contextCollector.formatForPrompt(rawContext);
     const normalizedResponses: NormalizedResponseLike[] = [];
     const details: string[] = [];
+    let resolvedModel = requestedModel;
     let hasError = false;
 
     for (const taskSpec of DEBUG_TASKS) {
@@ -160,8 +166,10 @@ export class DebugUseCase {
         provider: providerName,
         prompt,
         cwd,
+        model: requestedModel,
         timeoutMs,
       });
+      resolvedModel = providerCall.model;
       hasError ||= providerCall.isError ?? false;
 
       const jsonArtifact = await this.artifactRepository.writeJsonArtifact({
@@ -182,6 +190,7 @@ export class DebugUseCase {
       this.runCoordinator.createProviderResponse(run, {
         taskId: task.taskId,
         provider: providerName,
+        model: providerCall.model,
         rawTextRef: textArtifact.path,
         rawJsonRef: jsonArtifact.path,
         usage: providerCall.usage ?? null,
@@ -244,6 +253,8 @@ export class DebugUseCase {
       kind: "debug",
       sessionId: session.sessionId,
       runId: run.runId,
+      provider: providerName,
+      model: resolvedModel,
       summary: recommendation,
       details,
       status: hasError ? "partial" : "completed",

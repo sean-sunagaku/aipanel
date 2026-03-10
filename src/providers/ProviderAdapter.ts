@@ -8,6 +8,7 @@ export interface ProviderCallPlan {
 
 export interface ProviderCallResult {
   provider: string;
+  model: string;
   rawText: string;
   rawJson: unknown;
   usage: {

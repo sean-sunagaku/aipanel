@@ -19,6 +19,7 @@ interface ConsultationPayload {
   runId: string;
   answer: string;
   provider: string;
+  model: string;
   status: "completed" | "partial";
   validationStatus: string;
 }
@@ -27,6 +28,8 @@ interface DebugPayload {
   kind: "debug";
   sessionId: string;
   runId: string;
+  provider: string;
+  model: string;
   summary: string;
   details: string[];
   status: "completed" | "partial";
@@ -71,6 +74,8 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
         "context.md",
         "--log",
         "error.log",
+        "--model",
+        "claude-sonnet-4-5",
       ],
       {
         cwd: REPO_ROOT,
@@ -81,6 +86,7 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     const consultPayload = JSON.parse(consult.stdout) as ConsultationPayload;
     assert.equal(consultPayload.status, "completed");
     assert.equal(consultPayload.provider, "claude-code");
+    assert.equal(consultPayload.model, "claude-sonnet-4-5");
 
     const followup = await runCli(
       process.execPath,
@@ -93,6 +99,8 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
         "--json",
         "--cwd",
         workspace,
+        "--model",
+        "claude-sonnet-4-5",
       ],
       {
         cwd: REPO_ROOT,
@@ -103,6 +111,7 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     const followupPayload = JSON.parse(followup.stdout) as ConsultationPayload;
     assert.equal(followupPayload.sessionId, consultPayload.sessionId);
     assert.equal(followupPayload.status, "completed");
+    assert.equal(followupPayload.model, "claude-sonnet-4-5");
 
     const debug = await runCli(
       process.execPath,
@@ -117,6 +126,8 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
         "context.md",
         "--log",
         "error.log",
+        "--model",
+        "claude-opus-4-1",
       ],
       {
         cwd: REPO_ROOT,
@@ -126,6 +137,8 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     assert.equal(debug.exitCode, 0, debug.stderr);
     const debugPayload = JSON.parse(debug.stdout) as DebugPayload;
     assert.equal(debugPayload.status, "completed");
+    assert.equal(debugPayload.provider, "claude-code");
+    assert.equal(debugPayload.model, "claude-opus-4-1");
     assert.equal(debugPayload.details.length, 3);
 
     const sessionDocument = JSON.parse(
@@ -142,12 +155,17 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     ) as {
       run: {
         tasks: Array<{ role: string }>;
+        providerResponses: Array<{ model: string }>;
         comparisonReports: Array<{ topic: string }>;
       };
     };
     assert.deepEqual(
       debugRunDocument.run.tasks.map((task) => task.role),
       ["planner", "reviewer", "validator"],
+    );
+    assert.deepEqual(
+      debugRunDocument.run.providerResponses.map((response) => response.model),
+      ["claude-opus-4-1", "claude-opus-4-1", "claude-opus-4-1"],
     );
     assert.equal(
       debugRunDocument.run.comparisonReports[0]?.topic,

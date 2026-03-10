@@ -1,6 +1,6 @@
 ---
 name: aipanel
-description: Use this skill when the user wants operational guidance for the aipanel CLI in this repository. Triggers include requests to learn how to run providers, consult, followup, or debug, how to use --cwd or AIPANEL_STORAGE_ROOT, how to inspect sessions/runs/artifacts, how to verify the tool with tests or E2E checks, or how to troubleshoot tool usage safely. Do not use this skill for implementing aipanel itself.
+description: Use this skill when the user wants operational guidance for the aipanel CLI in this repository. Triggers include requests to learn how to run providers, consult, followup, or debug, how to use --model, --cwd, or AIPANEL_STORAGE_ROOT, how to inspect sessions/runs/artifacts, how to verify the tool with tests or E2E checks, or how to troubleshoot tool usage safely. Do not use this skill for implementing aipanel itself.
 ---
 
 # AIPanel
@@ -41,6 +41,7 @@ This skill is the operating guide for the `aipanel` CLI in this repository. Use 
 - `compare` is not a public phase 1 command; it remains a phase 2 placeholder
 - `followup` uses `aipanel` session history as the source of truth, not Claude native resume as the canonical state
 - `debug` is orchestrated mode and is slower than `consult`; use explicit `--timeout` when needed
+- `--model` is passed through to `claude-code`; if omitted, `aipanel` falls back to `.aipanel/profile.yml` `defaultModel`, then `sonnet`
 - When validating context collection, remember that `--cwd` affects both provider execution and relative path resolution for `--file`, `--diff`, and `--log`
 
 ## Quick Prompts

@@ -14,6 +14,7 @@ interface ConsultationPayload {
   runId: string;
   answer: string;
   provider: string;
+  model: string;
   status: "completed" | "partial";
   validationStatus: string;
 }
@@ -22,6 +23,8 @@ interface DebugPayload {
   kind: "debug";
   sessionId: string;
   runId: string;
+  provider: string;
+  model: string;
   summary: string;
   details: string[];
   status: "completed" | "partial";
@@ -38,6 +41,8 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
   await writeFile(path.join(workspace, "change.diff"), "--- a\n+++ b\n@@\n-cache\n+fresh cache\n", "utf8");
   await writeFile(path.join(workspace, "app.log"), "ERROR cache refresh skipped\n", "utf8");
   await createFakeClaudeBinary(fakeBin);
+  await mkdir(storageRoot, { recursive: true });
+  await writeFile(path.join(storageRoot, "profile.yml"), "defaultModel: claude-sonnet-4-5\n", "utf8");
 
   const env = {
     ...process.env,
@@ -81,8 +86,10 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     const consultation = JSON.parse(consultResult.stdout) as ConsultationPayload;
     assert.equal(consultation.kind, "consultation");
     assert.equal(consultation.provider, "claude-code");
+    assert.equal(consultation.model, "claude-sonnet-4-5");
     assert.equal(consultation.status, "completed");
     assert.match(consultation.answer, /Practical answer/);
+    assert.match(consultation.answer, /Model used: claude-sonnet-4-5/);
 
     const sessionDocument = JSON.parse(
       await readFile(path.join(storageRoot, "sessions", `${consultation.sessionId}.json`), "utf8"),
@@ -104,12 +111,13 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
           files: Array<{ path: string }>;
           metadata: { artifactId?: string; artifactPath?: string };
         }>;
-        providerResponses: Array<{ provider: string }>;
+        providerResponses: Array<{ provider: string; model: string }>;
       };
     };
     assert.equal(consultRunDocument.run.mode, "direct");
     assert.equal(consultRunDocument.run.contextBundles[0]?.files[0]?.path, "note.txt");
     assert.equal(consultRunDocument.run.providerResponses[0]?.provider, "claude-code");
+    assert.equal(consultRunDocument.run.providerResponses[0]?.model, "claude-sonnet-4-5");
     await access(consultRunDocument.run.contextBundles[0]?.metadata.artifactPath ?? "");
 
     const followupResult = await runCli(
@@ -132,6 +140,7 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     assert.equal(followupResult.exitCode, 0, followupResult.stderr);
     const followup = JSON.parse(followupResult.stdout) as ConsultationPayload;
     assert.equal(followup.sessionId, consultation.sessionId);
+    assert.equal(followup.model, "claude-sonnet-4-5");
 
     const followedSessionDocument = JSON.parse(
       await readFile(path.join(storageRoot, "sessions", `${consultation.sessionId}.json`), "utf8"),
@@ -155,6 +164,8 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
         "note.txt",
         "--log",
         "app.log",
+        "--model",
+        "claude-opus-4-1",
       ],
       {
         cwd: REPO_ROOT,
@@ -164,8 +175,11 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     assert.equal(debugResult.exitCode, 0, debugResult.stderr);
     const debugPayload = JSON.parse(debugResult.stdout) as DebugPayload;
     assert.equal(debugPayload.kind, "debug");
+    assert.equal(debugPayload.provider, "claude-code");
+    assert.equal(debugPayload.model, "claude-opus-4-1");
     assert.equal(debugPayload.status, "completed");
     assert.equal(debugPayload.details.length, 3);
+    assert.match(debugPayload.details[0] ?? "", /Model used: claude-opus-4-1/);
 
     const debugRunDocument = JSON.parse(
       await readFile(path.join(storageRoot, "runs", `${debugPayload.runId}.json`), "utf8"),
@@ -173,6 +187,7 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       run: {
         mode: string;
         tasks: Array<{ role: string }>;
+        providerResponses: Array<{ model: string }>;
         comparisonReports: Array<{ topic: string }>;
         contextBundles: Array<{ metadata: { artifactPath?: string } }>;
       };
@@ -181,6 +196,10 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     assert.deepEqual(
       debugRunDocument.run.tasks.map((task) => task.role),
       ["planner", "reviewer", "validator"],
+    );
+    assert.deepEqual(
+      debugRunDocument.run.providerResponses.map((response) => response.model),
+      ["claude-opus-4-1", "claude-opus-4-1", "claude-opus-4-1"],
     );
     assert.equal(debugRunDocument.run.comparisonReports[0]?.topic, "Why is the build red?");
     await access(debugRunDocument.run.contextBundles[0]?.metadata.artifactPath ?? "");

@@ -4,6 +4,7 @@ import type { ProviderAdapter, ProviderCallPlan, ProviderCallResult } from "./Pr
 
 interface ClaudeJsonResponse {
   result?: string;
+  model?: string;
   session_id?: string;
   subtype?: string;
   is_error?: boolean;
@@ -93,6 +94,7 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
   async call(input: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runClaude(input);
     const parsed = JSON.parse(stdout) as ClaudeJsonResponse;
+    const model = parsed.model ?? input.model ?? "sonnet";
     const subtype = parsed.subtype ?? null;
     const isError = parsed.is_error === true || !isSuccessSubtype(parsed.subtype);
     const externalRefs = parsed.session_id
@@ -107,6 +109,7 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
 
     return {
       provider: this.name,
+      model,
       rawText: parsed.result ?? "",
       rawJson: parsed,
       usage: {

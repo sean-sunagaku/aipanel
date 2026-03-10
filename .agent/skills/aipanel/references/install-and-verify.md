@@ -61,25 +61,26 @@ make test
 Use isolated storage unless the user wants shared history:
 
 ```bash
-AIPANEL_STORAGE_ROOT="$(mktemp -d)" node dist/bin/aipanel.js consult "Reply with exactly: ready" --json --timeout 30000
+AIPANEL_STORAGE_ROOT="$(mktemp -d)" node dist/bin/aipanel.js consult "Reply with exactly: ready" --model sonnet --json --timeout 30000
 ```
 
 If that succeeds, a safe next verification is:
 
 ```bash
-AIPANEL_STORAGE_ROOT="<same-dir>" node dist/bin/aipanel.js followup --session "<sessionId>" "Reply with exactly: still ready" --json --timeout 30000
+AIPANEL_STORAGE_ROOT="<same-dir>" node dist/bin/aipanel.js followup --session "<sessionId>" "Reply with exactly: still ready" --model sonnet --json --timeout 30000
 ```
 
 For orchestrated mode:
 
 ```bash
-AIPANEL_STORAGE_ROOT="$(mktemp -d)" node dist/bin/aipanel.js debug "Diagnose in one short sentence." --json --timeout 30000
+AIPANEL_STORAGE_ROOT="$(mktemp -d)" node dist/bin/aipanel.js debug "Diagnose in one short sentence." --model sonnet --json --timeout 30000
 ```
 
 ## Notes
 
 - `consult` is the cheapest real smoke for actual tool usage
 - `debug` fans out into multiple provider calls, so it is slower and costlier
+- if the user needs stable model selection, suggest `.aipanel/profile.yml` `defaultModel` or an explicit `--model`
 - if real Claude Code is not configured, fall back to `npm test` and say that provider wiring was validated only with the fake `claude` binary
 
 ## Package Verification

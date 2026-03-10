@@ -104,9 +104,9 @@ make publish
 ## Commands
 ```bash
 node dist/bin/aipanel.js providers [--json]
-node dist/bin/aipanel.js consult "<question>" [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--cwd <dir>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js debug "<question>" [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js consult "<question>" [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--cwd <dir>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js debug "<question>" [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
 ```
 
 repo からのショートカット:
@@ -121,20 +121,31 @@ make run ARGS='debug "この不具合の根本原因は？" --json --timeout 600
 
 ```bash
 node dist/bin/aipanel.js consult "この設計どう？" --json
-node dist/bin/aipanel.js consult "このログから原因わかる？" --cwd ./repo --log logs/app.log --file src/server.ts --json
-node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --json
-node dist/bin/aipanel.js debug "この不具合の根本原因は？" --cwd ./repo --file src/cache.ts --log logs/error.log --json
+node dist/bin/aipanel.js consult "このログから原因わかる？" --cwd ./repo --log logs/app.log --file src/server.ts --model sonnet --json
+node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --model sonnet --json
+node dist/bin/aipanel.js debug "この不具合の根本原因は？" --cwd ./repo --file src/cache.ts --log logs/error.log --model sonnet --json
 ```
 
 ## Runtime Notes
 - `--cwd` は provider 実行ディレクトリだけでなく、`--file`, `--diff`, `--log` の相対パス解決にも使われます
+- `--model` は `claude-code` provider にそのまま渡されます。未指定時は `.aipanel/profile.yml` の `defaultModel`、さらに未設定なら `sonnet` を使います
 - `AIPANEL_STORAGE_ROOT` を指定すると、session / run / artifact の保存先を切り替えられます
 - `followup` は Claude Code の native resume を正本にせず、`aipanel` 側の session 履歴再構築を基本にしています
+- `debug` の `--timeout` は orchestrated mode の各 provider call に適用されるので、合計所要時間は 3 倍近くになることがあります
 
 例:
 
 ```bash
 AIPANEL_STORAGE_ROOT="$(mktemp -d)" node dist/bin/aipanel.js consult "Reply with exactly: ready" --json --timeout 30000
+```
+
+profile で既定 model を固定したい場合:
+
+```yaml
+# .aipanel/profile.yml
+defaultProvider: claude-code
+defaultModel: sonnet
+defaultTimeoutMs: 120000
 ```
 
 ## Storage Layout
@@ -179,6 +190,7 @@ make test
 - `test:unit`: `ResponseNormalizer`, `ContextCollector`, `SessionManager`
 - `test:integration`: built CLI + fake Claude provider で `providers/consult/followup/debug`
 - `test:e2e`: built CLI の永続化込みフルフロー確認
+- integration / E2E では `defaultModel` fallback と `--model` override の両方を確認
 
 ## Verified Smoke Checks
 2026-03-10 JST 時点で、以下を実行確認済みです。
@@ -197,6 +209,7 @@ make test
 - 実 Claude Code を使った `consult`
 - 実 Claude Code を使った `followup`
 - 実 Claude Code を使った `debug`
+- 実 Claude Code を使った `consult --model sonnet`
 
 ## Repo Skill
 - repo-local Codex skill は [.agent/skills/aipanel/SKILL.md](./.agent/skills/aipanel/SKILL.md) にあります
@@ -216,3 +229,4 @@ make test
 - [Data Flow](./docs/rearchitecture/content_rearchitecture_2026-03-10/09_data-flow/09_data-flow.md)
 - [Broker + Orchestrator Internal Design](./docs/rearchitecture/broker_orchestrator_design_2026-03-10/00_overview/00_overview.md)
 - [NPM Package Distribution](./docs/distribution/npm-package.md)
+- [Usage Improvement Notes](./docs/usage-review/aipanel-usage-improvements_2026-03-10.md)

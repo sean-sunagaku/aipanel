@@ -6,6 +6,7 @@ interface ParsedArgs {
   outputFormat: "text" | "json";
   sessionId?: string;
   providerName?: string;
+  model?: string;
   timeoutMs?: number;
   cwd?: string;
   files: string[];
@@ -65,6 +66,12 @@ function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
+    if (token === "--model") {
+      parsed.model = readFlagValue(rest, index + 1, "--model");
+      index += 1;
+      continue;
+    }
+
     if (token === "--timeout") {
       const timeout = Number(readFlagValue(rest, index + 1, "--timeout"));
       index += 1;
@@ -115,6 +122,7 @@ export class CommandRouter {
     const parsed = parseArgs(argv);
     const profile = await this.app.profileLoader.load();
     const providerName = parsed.providerName ?? profile.defaultProvider;
+    const model = parsed.model ?? profile.defaultModel;
     const timeoutMs = parsed.timeoutMs ?? profile.defaultTimeoutMs;
 
     switch (parsed.command) {
@@ -131,6 +139,7 @@ export class CommandRouter {
           diffs: parsed.diffs,
           logs: parsed.logs,
           providerName,
+          model,
           timeoutMs,
           cwd: parsed.cwd ?? process.cwd(),
           ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
@@ -150,6 +159,7 @@ export class CommandRouter {
           diffs: parsed.diffs,
           logs: parsed.logs,
           providerName,
+          model,
           timeoutMs,
           cwd: parsed.cwd ?? process.cwd(),
         });
@@ -163,6 +173,7 @@ export class CommandRouter {
           diffs: parsed.diffs,
           logs: parsed.logs,
           providerName,
+          model,
           timeoutMs,
           cwd: parsed.cwd ?? process.cwd(),
           ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
@@ -176,9 +187,9 @@ export class CommandRouter {
           output: [
             "Usage:",
             "  aipanel providers [--json]",
-            "  aipanel consult <question> [--provider <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
-            "  aipanel followup --session <id> <question> [--provider <name>] [--json]",
-            "  aipanel debug <question> [--provider <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
+            "  aipanel consult <question> [--provider <name>] [--model <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
+            "  aipanel followup --session <id> <question> [--provider <name>] [--model <name>] [--json]",
+            "  aipanel debug <question> [--provider <name>] [--model <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
           ].join("\n"),
           exitCode: parsed.command === "help" ? 0 : 1,
         };

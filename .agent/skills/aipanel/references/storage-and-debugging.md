@@ -18,7 +18,7 @@ Default root:
 Override root:
 
 ```bash
-AIPANEL_STORAGE_ROOT=/tmp/aipanel-check node dist/bin/aipanel.js consult "Reply with exactly: ready" --json
+AIPANEL_STORAGE_ROOT=/tmp/aipanel-check node dist/bin/aipanel.js consult "Reply with exactly: ready" --model sonnet --json
 ```
 
 ## What Lives Where
@@ -33,7 +33,7 @@ AIPANEL_STORAGE_ROOT=/tmp/aipanel-check node dist/bin/aipanel.js consult "Reply 
   - `RunTask[]`
   - `TaskResult[]`
   - `ContextBundle[]`
-  - `ProviderResponse[]`
+  - `ProviderResponse[]` including `provider` and `model`
   - `NormalizedResponse[]`
   - `ComparisonReport[]`
 
@@ -84,6 +84,10 @@ Use the smallest useful scope:
 - `providers` works but `consult` fails:
   - verify `claude` is installed and authenticated
   - retry with `--timeout 30000`
+
+- selected model does not look right:
+  - inspect `runs/<runId>.json` and check `providerResponses[].model`
+  - verify whether `--model` was passed explicitly or inherited from `.aipanel/profile.yml`
 
 - file or log not found:
   - check whether `--cwd` points at the intended repo

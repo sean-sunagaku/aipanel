@@ -70,6 +70,7 @@ export interface ContextBundleData {
 export interface ProviderCallPlan {
   provider: string;
   prompt: string;
+  model?: string;
   sessionHint?: ProviderRef | null;
   timeoutMs?: number;
   mode: RunMode;
@@ -92,6 +93,7 @@ export interface ProviderResponseData {
   responseId: string;
   taskId: string;
   provider: string;
+  model: string;
   rawText?: string;
   rawJson?: unknown;
   rawTextRef?: string | null;
