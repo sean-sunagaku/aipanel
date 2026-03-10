@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "title": "Current Implementation Diagrams",
+  "runtimeScope": "phase 1 の現行 TypeScript 実装。provider は claude-code 単独で、Session / Run / Artifact を aipanel 側が canonical state として保持する。",
+  "indexFileName": "12_current-implementation-diagrams.md",
+  "diagrams": [
+    {
+      "filename": "architecture-overview",
+      "summary": "CLI entrypoint から use case, provider, persistence までの全体構成",
+      "diagram": {
+        "id": "current-implementation-overview",
+        "title": "Current Implementation Overview",
+        "width": 1600,
+        "height": 1000,
+        "nodes": [
+          {
+            "id": "example-node",
+            "x": 40,
+            "y": 40,
+            "width": 220,
+            "height": 80,
+            "label": "Example",
+            "styleType": "app"
+          }
+        ],
+        "edges": [
+          {
+            "id": "example-edge",
+            "source": "example-node",
+            "target": "example-node"
+          }
+        ]
+      }
+    }
+  ],
+  "readingGuide": [
+    {
+      "filename": "architecture-overview",
+      "points": [
+        "この図で何を伝えるか",
+        "どの境界が重要か"
+      ]
+    }
+  ],
+  "dataStructureNotes": [
+    "Session は aggregate root",
+    "Run は aggregate root",
+    "Artifact は raw payload の保存先"
+  ]
+}

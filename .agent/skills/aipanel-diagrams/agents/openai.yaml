@@ -1,0 +1,4 @@
+interface:
+  display_name: "AIPanel Diagrams"
+  short_description: "Generate draw.io diagrams with a Codex sub-agent"
+  default_prompt: "Use $aipanel-diagrams to delegate diagram-spec generation to the drawio-diagrammer sub-agent and render the current aipanel implementation diagrams."
