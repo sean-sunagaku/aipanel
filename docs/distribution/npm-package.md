@@ -51,10 +51,21 @@ npm install -g aipanel-cli
 aipanel providers --json
 ```
 
+import 利用確認:
+
+```bash
+tmpdir="$(mktemp -d)"
+npm install --prefix "$tmpdir" aipanel-cli
+(
+  cd "$tmpdir"
+  node --input-type=module -e 'const root = await import("aipanel-cli"); const domain = await import("aipanel-cli/domain"); console.log(Boolean(root.AipanelApp), Boolean(domain.Session));'
+)
+```
+
 2026-03-10 JST 時点の公開済み version:
 
-- package: `aipanel-cli@0.1.1`
-- tarball: `https://registry.npmjs.org/aipanel-cli/-/aipanel-cli-0.1.1.tgz`
+- package: `aipanel-cli@0.1.2`
+- tarball: `https://registry.npmjs.org/aipanel-cli/-/aipanel-cli-0.1.2.tgz`
 
 ## Notes
 
@@ -62,3 +73,4 @@ aipanel providers --json
 - 実 publish 前には npm account と access policy を確認する
 - `dist/` は git ignore するが、npm package には `prepack` + `files` allowlist で含める
 - publish 後、tarball URL は先に到達可能になり、その後 `npm install aipanel-cli` も確認できた
+- publish 前チェックでは、packaged CLI 実行に加えて `import("aipanel-cli")` と `import("aipanel-cli/domain")` も確認する

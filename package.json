@@ -1,6 +1,6 @@
 {
   "name": "aipanel-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CLI broker and orchestrator for consult, followup, and debug workflows with Claude Code.",
   "private": false,
   "license": "MIT",
@@ -20,8 +20,69 @@
   },
   "homepage": "https://github.com/sean-sunagaku/aipanel#readme",
   "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "bin": {
     "aipanel": "dist/bin/aipanel.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    },
+    "./app": {
+      "types": "./dist/src/app/index.d.ts",
+      "import": "./dist/src/app/index.js"
+    },
+    "./artifact": {
+      "types": "./dist/src/artifact/index.d.ts",
+      "import": "./dist/src/artifact/index.js"
+    },
+    "./cli": {
+      "types": "./dist/src/cli/aipanel.d.ts",
+      "import": "./dist/src/cli/aipanel.js"
+    },
+    "./compare": {
+      "types": "./dist/src/compare/index.d.ts",
+      "import": "./dist/src/compare/index.js"
+    },
+    "./context": {
+      "types": "./dist/src/context/index.d.ts",
+      "import": "./dist/src/context/index.js"
+    },
+    "./domain": {
+      "types": "./dist/src/domain/index.d.ts",
+      "import": "./dist/src/domain/index.js"
+    },
+    "./orchestrator": {
+      "types": "./dist/src/orchestrator/index.d.ts",
+      "import": "./dist/src/orchestrator/index.js"
+    },
+    "./output": {
+      "types": "./dist/src/output/index.d.ts",
+      "import": "./dist/src/output/index.js"
+    },
+    "./providers": {
+      "types": "./dist/src/providers/index.d.ts",
+      "import": "./dist/src/providers/index.js"
+    },
+    "./run": {
+      "types": "./dist/src/run/index.d.ts",
+      "import": "./dist/src/run/index.js"
+    },
+    "./session": {
+      "types": "./dist/src/session/index.d.ts",
+      "import": "./dist/src/session/index.js"
+    },
+    "./shared": {
+      "types": "./dist/src/shared/index.d.ts",
+      "import": "./dist/src/shared/index.js"
+    },
+    "./usecases": {
+      "types": "./dist/src/usecases/index.d.ts",
+      "import": "./dist/src/usecases/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

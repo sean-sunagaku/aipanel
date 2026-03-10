@@ -49,6 +49,33 @@ aipanel providers --json
 
 2026-03-10 JST 時点で、registry 経由の `npm install aipanel-cli` と `aipanel providers --json` まで確認済みです。
 
+## Import Usage
+
+CLI だけでなく、package として import できます。
+
+```ts
+import { AipanelApp, Session, runCli } from "aipanel-cli";
+import { Run } from "aipanel-cli/domain";
+
+const app = new AipanelApp();
+const providers = await app.listProvidersUseCase.execute();
+console.log(providers.providers);
+
+await runCli(["providers", "--json"]);
+
+const session = Session.create({ title: "Imported session" });
+const run = Run.create({
+  sessionId: session.sessionId,
+  command: "consult",
+  mode: "direct",
+});
+```
+
+現時点で確認している import surface:
+
+- root import: `AipanelApp`, `CommandRouter`, `runCli`, domain entity 群
+- subpath import: `aipanel-cli/domain`, `aipanel-cli/providers`, `aipanel-cli/usecases`, `aipanel-cli/shared`
+
 公開前のローカル確認は tarball か `Makefile` で行えます。
 
 ```bash
@@ -164,6 +191,8 @@ make test
 - `npm start -- providers --json`
 - `make smoke`
 - `npm install --prefix "$tmpdir" aipanel-cli`
+- `import("aipanel-cli")`
+- `import("aipanel-cli/domain")`
 - `node dist/bin/aipanel.js providers --json`
 - 実 Claude Code を使った `consult`
 - 実 Claude Code を使った `followup`

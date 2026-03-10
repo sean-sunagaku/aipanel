@@ -101,6 +101,17 @@ npm install --prefix "$tmpdir" aipanel-cli
 "$tmpdir/node_modules/.bin/aipanel" providers --json
 ```
 
+For import verification:
+
+```bash
+tmpdir="$(mktemp -d)"
+npm install --prefix "$tmpdir" aipanel-cli
+(
+  cd "$tmpdir"
+  node --input-type=module -e 'const root = await import("aipanel-cli"); const domain = await import("aipanel-cli/domain"); console.log(Boolean(root.AipanelApp), Boolean(domain.Session));'
+)
+```
+
 Preferred shortcut:
 
 ```bash
@@ -112,3 +123,5 @@ Expected result:
 - the tarball is created
 - install succeeds
 - the packaged binary responds to `providers --json`
+- package root can be imported
+- `aipanel-cli/domain` can be imported
