@@ -113,9 +113,9 @@
     "publish:check": "npm run typecheck && npm test && npm run pack:dry-run && npm run verify:package",
     "publish:public": "npm run publish:check && npm publish --access public",
     "prepack": "npm run build",
-    "test:unit": "tsx --test test/unit/**/*.test.ts",
-    "test:integration": "npm run build && tsx --test test/integration/**/*.test.ts",
-    "test:e2e": "npm run build && tsx --test test/e2e/**/*.test.ts",
+    "test:unit": "tsx --test $(find test/unit -name '*.test.ts' -print)",
+    "test:integration": "npm run build && tsx --test $(find test/integration -name '*.test.ts' -print)",
+    "test:e2e": "npm run build && tsx --test $(find test/e2e -name '*.test.ts' -print)",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e"
   },
   "devDependencies": {
