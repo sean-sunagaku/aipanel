@@ -7,7 +7,9 @@ export class FollowupUseCase {
     this.consultUseCase = consultUseCase;
   }
 
-  async execute(input: Omit<Parameters<ConsultUseCase["execute"]>[0], "command">): Promise<ConsultationResult> {
+  async execute(
+    input: Omit<Parameters<ConsultUseCase["execute"]>[0], "command">,
+  ): Promise<ConsultationResult> {
     return this.consultUseCase.execute({
       ...input,
       command: "followup",

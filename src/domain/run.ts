@@ -4,7 +4,6 @@ import {
   defaultClock,
   defaultIdGenerator,
   ensureArray,
-  optionalProp,
   type Clock,
   type IdGenerator,
   type IsoDateString,
@@ -29,23 +28,23 @@ import {
 } from "./value-objects.js";
 
 export type RunStatus =
-  | 'created'
-  | 'planned'
-  | 'running'
-  | 'merged'
-  | 'validated'
-  | 'completed'
-  | 'failed'
-  | 'partial';
+  | "created"
+  | "planned"
+  | "running"
+  | "merged"
+  | "validated"
+  | "completed"
+  | "failed"
+  | "partial";
 
 export type TaskStatus =
-  | 'created'
-  | 'queued'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'skipped'
-  | 'partial';
+  | "created"
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "partial";
 
 export interface RunTaskProps {
   taskId: string;
@@ -78,7 +77,9 @@ export class RunTask {
     this.taskKind = props.taskKind;
     this.role = props.role;
     this.provider = props.provider ?? null;
-    this.dependsOn = ensureArray(props.dependsOn).map((item) => TaskDependency.from(item));
+    this.dependsOn = ensureArray(props.dependsOn).map((item) =>
+      TaskDependency.from(item),
+    );
     this.status = props.status;
     this.input = props.input ?? {};
     this.createdAt = props.createdAt;
@@ -86,7 +87,7 @@ export class RunTask {
   }
 
   static create(
-    params: Omit<RunTaskProps, 'taskId' | 'createdAt' | 'updatedAt'> & {
+    params: Omit<RunTaskProps, "taskId" | "createdAt" | "updatedAt"> & {
       taskId?: string;
       createdAt?: IsoDateString;
       updatedAt?: IsoDateString;
@@ -100,7 +101,7 @@ export class RunTask {
     const updatedAt = params.updatedAt ?? createdAt;
 
     return new RunTask({
-      taskId: params.taskId ?? idGenerator('task'),
+      taskId: params.taskId ?? idGenerator("task"),
       runId: params.runId,
       taskKind: params.taskKind,
       role: params.role,
@@ -108,7 +109,9 @@ export class RunTask {
       createdAt,
       updatedAt,
       ...(params.provider !== undefined ? { provider: params.provider } : {}),
-      ...(params.dependsOn !== undefined ? { dependsOn: params.dependsOn } : {}),
+      ...(params.dependsOn !== undefined
+        ? { dependsOn: params.dependsOn }
+        : {}),
       ...(params.input !== undefined ? { input: params.input } : {}),
     });
   }
@@ -117,7 +120,10 @@ export class RunTask {
     return new RunTask(input);
   }
 
-  transition(status: TaskStatus, updatedAt: IsoDateString = defaultClock()): void {
+  transition(
+    status: TaskStatus,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     this.status = status;
     this.updatedAt = updatedAt;
   }
@@ -164,14 +170,16 @@ export class TaskResult {
     this.taskId = props.taskId;
     this.summary = props.summary;
     this.findings = ensureArray(props.findings);
-    this.citations = ensureArray(props.citations).map((item) => Citation.from(item));
+    this.citations = ensureArray(props.citations).map((item) =>
+      Citation.from(item),
+    );
     this.confidence = ConfidenceScore.from(props.confidence);
     this.sourceArtifactIds = ensureArray(props.sourceArtifactIds);
     this.createdAt = props.createdAt;
   }
 
   static create(
-    params: Omit<TaskResultProps, 'resultId' | 'createdAt'> & {
+    params: Omit<TaskResultProps, "resultId" | "createdAt"> & {
       resultId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -182,14 +190,20 @@ export class TaskResult {
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
     return new TaskResult({
-      resultId: params.resultId ?? idGenerator('result'),
+      resultId: params.resultId ?? idGenerator("result"),
       taskId: params.taskId,
       summary: params.summary,
       createdAt: params.createdAt ?? clock(),
       ...(params.findings !== undefined ? { findings: params.findings } : {}),
-      ...(params.citations !== undefined ? { citations: params.citations } : {}),
-      ...(params.confidence !== undefined ? { confidence: params.confidence } : {}),
-      ...(params.sourceArtifactIds !== undefined ? { sourceArtifactIds: params.sourceArtifactIds } : {}),
+      ...(params.citations !== undefined
+        ? { citations: params.citations }
+        : {}),
+      ...(params.confidence !== undefined
+        ? { confidence: params.confidence }
+        : {}),
+      ...(params.sourceArtifactIds !== undefined
+        ? { sourceArtifactIds: params.sourceArtifactIds }
+        : {}),
     });
   }
 
@@ -244,7 +258,7 @@ export class ContextBundle {
   }
 
   static create(
-    params: Omit<ContextBundleProps, 'contextId' | 'createdAt'> & {
+    params: Omit<ContextBundleProps, "contextId" | "createdAt"> & {
       contextId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -255,7 +269,7 @@ export class ContextBundle {
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
     return new ContextBundle({
-      contextId: params.contextId ?? idGenerator('context'),
+      contextId: params.contextId ?? idGenerator("context"),
       runId: params.runId,
       summary: params.summary,
       createdAt: params.createdAt ?? clock(),
@@ -318,12 +332,14 @@ export class ProviderResponse {
     this.rawJsonRef = props.rawJsonRef ?? null;
     this.usage = Usage.from(props.usage);
     this.latencyMs = props.latencyMs ?? null;
-    this.externalRefs = ensureArray(props.externalRefs).map((item) => ExternalRef.from(item));
+    this.externalRefs = ensureArray(props.externalRefs).map((item) =>
+      ExternalRef.from(item),
+    );
     this.createdAt = props.createdAt;
   }
 
   static create(
-    params: Omit<ProviderResponseProps, 'responseId' | 'createdAt'> & {
+    params: Omit<ProviderResponseProps, "responseId" | "createdAt"> & {
       responseId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -334,16 +350,24 @@ export class ProviderResponse {
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
     return new ProviderResponse({
-      responseId: params.responseId ?? idGenerator('provider_response'),
+      responseId: params.responseId ?? idGenerator("provider_response"),
       taskId: params.taskId,
       provider: params.provider,
       model: params.model,
       createdAt: params.createdAt ?? clock(),
-      ...(params.rawTextRef !== undefined ? { rawTextRef: params.rawTextRef } : {}),
-      ...(params.rawJsonRef !== undefined ? { rawJsonRef: params.rawJsonRef } : {}),
+      ...(params.rawTextRef !== undefined
+        ? { rawTextRef: params.rawTextRef }
+        : {}),
+      ...(params.rawJsonRef !== undefined
+        ? { rawJsonRef: params.rawJsonRef }
+        : {}),
       ...(params.usage !== undefined ? { usage: params.usage } : {}),
-      ...(params.latencyMs !== undefined ? { latencyMs: params.latencyMs } : {}),
-      ...(params.externalRefs !== undefined ? { externalRefs: params.externalRefs } : {}),
+      ...(params.latencyMs !== undefined
+        ? { latencyMs: params.latencyMs }
+        : {}),
+      ...(params.externalRefs !== undefined
+        ? { externalRefs: params.externalRefs }
+        : {}),
     });
   }
 
@@ -397,13 +421,18 @@ export class NormalizedResponse {
     this.summary = props.summary;
     this.findings = ensureArray(props.findings);
     this.suggestions = ensureArray(props.suggestions);
-    this.citations = ensureArray(props.citations).map((item) => Citation.from(item));
+    this.citations = ensureArray(props.citations).map((item) =>
+      Citation.from(item),
+    );
     this.confidence = ConfidenceScore.from(props.confidence);
     this.createdAt = props.createdAt;
   }
 
   static create(
-    params: Omit<NormalizedResponseProps, 'normalizedResponseId' | 'createdAt'> & {
+    params: Omit<
+      NormalizedResponseProps,
+      "normalizedResponseId" | "createdAt"
+    > & {
       normalizedResponseId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -414,15 +443,22 @@ export class NormalizedResponse {
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
     return new NormalizedResponse({
-      normalizedResponseId: params.normalizedResponseId ?? idGenerator('normalized_response'),
+      normalizedResponseId:
+        params.normalizedResponseId ?? idGenerator("normalized_response"),
       taskId: params.taskId,
       provider: params.provider,
       summary: params.summary,
       createdAt: params.createdAt ?? clock(),
       ...(params.findings !== undefined ? { findings: params.findings } : {}),
-      ...(params.suggestions !== undefined ? { suggestions: params.suggestions } : {}),
-      ...(params.citations !== undefined ? { citations: params.citations } : {}),
-      ...(params.confidence !== undefined ? { confidence: params.confidence } : {}),
+      ...(params.suggestions !== undefined
+        ? { suggestions: params.suggestions }
+        : {}),
+      ...(params.citations !== undefined
+        ? { citations: params.citations }
+        : {}),
+      ...(params.confidence !== undefined
+        ? { confidence: params.confidence }
+        : {}),
     });
   }
 
@@ -478,7 +514,7 @@ export class ComparisonReport {
   }
 
   static create(
-    params: Omit<ComparisonReportProps, 'reportId' | 'createdAt'> & {
+    params: Omit<ComparisonReportProps, "reportId" | "createdAt"> & {
       reportId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -489,14 +525,22 @@ export class ComparisonReport {
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
     return new ComparisonReport({
-      reportId: params.reportId ?? idGenerator('comparison_report'),
+      reportId: params.reportId ?? idGenerator("comparison_report"),
       runId: params.runId,
       topic: params.topic,
       createdAt: params.createdAt ?? clock(),
-      ...(params.responseIds !== undefined ? { responseIds: params.responseIds } : {}),
-      ...(params.agreements !== undefined ? { agreements: params.agreements } : {}),
-      ...(params.differences !== undefined ? { differences: params.differences } : {}),
-      ...(params.recommendation !== undefined ? { recommendation: params.recommendation } : {}),
+      ...(params.responseIds !== undefined
+        ? { responseIds: params.responseIds }
+        : {}),
+      ...(params.agreements !== undefined
+        ? { agreements: params.agreements }
+        : {}),
+      ...(params.differences !== undefined
+        ? { differences: params.differences }
+        : {}),
+      ...(params.recommendation !== undefined
+        ? { recommendation: params.recommendation }
+        : {}),
     });
   }
 
@@ -576,42 +620,48 @@ export class Run {
     this.validationStatus = props.validationStatus ?? null;
     this.errorMessage = props.errorMessage ?? null;
     this.tasks = ensureArray(props.tasks).map((item) => RunTask.fromJSON(item));
-    this.taskResults = ensureArray(props.taskResults).map((item) => TaskResult.fromJSON(item));
-    this.contextBundles = ensureArray(props.contextBundles).map((item) => ContextBundle.fromJSON(item));
-    this.providerResponses = ensureArray(props.providerResponses).map((item) => ProviderResponse.fromJSON(item));
-    this.normalizedResponses = ensureArray(props.normalizedResponses).map((item) =>
-      NormalizedResponse.fromJSON(item),
+    this.taskResults = ensureArray(props.taskResults).map((item) =>
+      TaskResult.fromJSON(item),
     );
-    this.comparisonReports = ensureArray(props.comparisonReports).map((item) => ComparisonReport.fromJSON(item));
+    this.contextBundles = ensureArray(props.contextBundles).map((item) =>
+      ContextBundle.fromJSON(item),
+    );
+    this.providerResponses = ensureArray(props.providerResponses).map((item) =>
+      ProviderResponse.fromJSON(item),
+    );
+    this.normalizedResponses = ensureArray(props.normalizedResponses).map(
+      (item) => NormalizedResponse.fromJSON(item),
+    );
+    this.comparisonReports = ensureArray(props.comparisonReports).map((item) =>
+      ComparisonReport.fromJSON(item),
+    );
   }
 
-  static create(
-    params: {
-      runId?: string;
-      sessionId?: string | null;
-      command: string;
-      mode?: string;
-      status?: RunStatus;
-      planVersion?: string;
-      plan?: Record<string, unknown> | null;
-      createdAt?: IsoDateString;
-      updatedAt?: IsoDateString;
-      clock?: Clock;
-      idGenerator?: IdGenerator;
-    },
-  ): Run {
+  static create(params: {
+    runId?: string;
+    sessionId?: string | null;
+    command: string;
+    mode?: string;
+    status?: RunStatus;
+    planVersion?: string;
+    plan?: Record<string, unknown> | null;
+    createdAt?: IsoDateString;
+    updatedAt?: IsoDateString;
+    clock?: Clock;
+    idGenerator?: IdGenerator;
+  }): Run {
     const clock = params.clock ?? defaultClock;
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
     const createdAt = params.createdAt ?? clock();
     const updatedAt = params.updatedAt ?? createdAt;
 
     return new Run({
-      runId: params.runId ?? idGenerator('run'),
+      runId: params.runId ?? idGenerator("run"),
       sessionId: params.sessionId ?? null,
       command: params.command,
-      mode: params.mode ?? 'direct',
-      status: params.status ?? 'created',
-      planVersion: params.planVersion ?? 'phase1',
+      mode: params.mode ?? "direct",
+      status: params.status ?? "created",
+      planVersion: params.planVersion ?? "phase1",
       plan: params.plan ?? null,
       createdAt,
       updatedAt,
@@ -622,52 +672,79 @@ export class Run {
     return new Run(input);
   }
 
-  setPlan(plan: Record<string, unknown> | null, updatedAt: IsoDateString = defaultClock()): void {
+  setPlan(
+    plan: Record<string, unknown> | null,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     this.plan = plan;
     this.updatedAt = updatedAt;
   }
 
-  transition(status: RunStatus, updatedAt: IsoDateString = defaultClock()): void {
+  transition(
+    status: RunStatus,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     this.status = status;
     this.updatedAt = updatedAt;
   }
 
   addTask(task: RunTask, updatedAt: IsoDateString = defaultClock()): void {
     if (task.runId !== this.runId) {
-      throw new Error(`Run task ${task.taskId} does not belong to run ${this.runId}`);
+      throw new Error(
+        `Run task ${task.taskId} does not belong to run ${this.runId}`,
+      );
     }
 
     this.tasks.push(task);
     this.updatedAt = updatedAt;
   }
 
-  addTaskResult(taskResult: TaskResult, updatedAt: IsoDateString = defaultClock()): void {
+  addTaskResult(
+    taskResult: TaskResult,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     this.taskResults.push(taskResult);
     this.updatedAt = updatedAt;
   }
 
-  addContextBundle(contextBundle: ContextBundle, updatedAt: IsoDateString = defaultClock()): void {
+  addContextBundle(
+    contextBundle: ContextBundle,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     if (contextBundle.runId !== this.runId) {
-      throw new Error(`Context bundle ${contextBundle.contextId} does not belong to run ${this.runId}`);
+      throw new Error(
+        `Context bundle ${contextBundle.contextId} does not belong to run ${this.runId}`,
+      );
     }
 
     this.contextBundles.push(contextBundle);
     this.updatedAt = updatedAt;
   }
 
-  addProviderResponse(providerResponse: ProviderResponse, updatedAt: IsoDateString = defaultClock()): void {
+  addProviderResponse(
+    providerResponse: ProviderResponse,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     this.providerResponses.push(providerResponse);
     this.updatedAt = updatedAt;
   }
 
-  addNormalizedResponse(normalizedResponse: NormalizedResponse, updatedAt: IsoDateString = defaultClock()): void {
+  addNormalizedResponse(
+    normalizedResponse: NormalizedResponse,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     this.normalizedResponses.push(normalizedResponse);
     this.updatedAt = updatedAt;
   }
 
-  addComparisonReport(comparisonReport: ComparisonReport, updatedAt: IsoDateString = defaultClock()): void {
+  addComparisonReport(
+    comparisonReport: ComparisonReport,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     if (comparisonReport.runId !== this.runId) {
-      throw new Error(`Comparison report ${comparisonReport.reportId} does not belong to run ${this.runId}`);
+      throw new Error(
+        `Comparison report ${comparisonReport.reportId} does not belong to run ${this.runId}`,
+      );
     }
 
     this.comparisonReports.push(comparisonReport);
@@ -683,11 +760,15 @@ export class Run {
   ): void {
     this.finalSummary = params.finalSummary ?? this.finalSummary;
     this.validationStatus = params.validationStatus ?? this.validationStatus;
-    this.status = 'completed';
+    this.status = "completed";
     this.updatedAt = params.updatedAt ?? defaultClock();
   }
 
-  fail(message: string, status: RunStatus = 'failed', updatedAt: IsoDateString = defaultClock()): void {
+  fail(
+    message: string,
+    status: RunStatus = "failed",
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     this.errorMessage = message;
     this.status = status;
     this.updatedAt = updatedAt;
@@ -712,7 +793,9 @@ export class Run {
       taskResults: this.taskResults.map((item) => item.toJSON()),
       contextBundles: this.contextBundles.map((item) => item.toJSON()),
       providerResponses: this.providerResponses.map((item) => item.toJSON()),
-      normalizedResponses: this.normalizedResponses.map((item) => item.toJSON()),
+      normalizedResponses: this.normalizedResponses.map((item) =>
+        item.toJSON(),
+      ),
       comparisonReports: this.comparisonReports.map((item) => item.toJSON()),
     });
   }

@@ -42,8 +42,16 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
   const fakeBin = path.join(sandboxRoot, "fake-bin");
 
   await mkdir(workspace, { recursive: true });
-  await writeFile(path.join(workspace, "context.md"), "# Context\n\nSomething is failing.\n", "utf8");
-  await writeFile(path.join(workspace, "error.log"), "ERROR dependency graph is stale\n", "utf8");
+  await writeFile(
+    path.join(workspace, "context.md"),
+    "# Context\n\nSomething is failing.\n",
+    "utf8",
+  );
+  await writeFile(
+    path.join(workspace, "error.log"),
+    "ERROR dependency graph is stale\n",
+    "utf8",
+  );
   await createFakeClaudeBinary(fakeBin);
 
   const env = {
@@ -53,10 +61,14 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
   };
 
   try {
-    const providers = await runCli(process.execPath, [BUILT_CLI_PATH, "providers", "--json"], {
-      cwd: REPO_ROOT,
-      env,
-    });
+    const providers = await runCli(
+      process.execPath,
+      [BUILT_CLI_PATH, "providers", "--json"],
+      {
+        cwd: REPO_ROOT,
+        env,
+      },
+    );
     assert.equal(providers.exitCode, 0, providers.stderr);
     const providersPayload = JSON.parse(providers.stdout) as ProvidersPayload;
     assert.deepEqual(providersPayload.providers, ["claude-code"]);
@@ -142,7 +154,10 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     assert.equal(debugPayload.details.length, 3);
 
     const sessionDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "sessions", `${consultPayload.sessionId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "sessions", `${consultPayload.sessionId}.json`),
+        "utf8",
+      ),
     ) as {
       session: {
         turns: Array<{ role: string }>;
@@ -151,7 +166,10 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     assert.equal(sessionDocument.session.turns.length, 4);
 
     const debugRunDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "runs", `${debugPayload.runId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "runs", `${debugPayload.runId}.json`),
+        "utf8",
+      ),
     ) as {
       run: {
         tasks: Array<{ role: string }>;
@@ -177,17 +195,27 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
 });
 
 test("E2E: built CLI honors profile defaultModel and explicit --model override", async () => {
-  const sandboxRoot = await mkdtemp(path.join(os.tmpdir(), "aipanel-e2e-model-"));
+  const sandboxRoot = await mkdtemp(
+    path.join(os.tmpdir(), "aipanel-e2e-model-"),
+  );
   const workspace = path.join(sandboxRoot, "workspace");
   const storageRoot = path.join(sandboxRoot, "storage");
   const fakeBin = path.join(sandboxRoot, "fake-bin");
 
   await mkdir(workspace, { recursive: true });
   await mkdir(storageRoot, { recursive: true });
-  await writeFile(path.join(workspace, "context.md"), "# Context\n\nModel routing check.\n", "utf8");
+  await writeFile(
+    path.join(workspace, "context.md"),
+    "# Context\n\nModel routing check.\n",
+    "utf8",
+  );
   await writeFile(
     path.join(storageRoot, "profile.yml"),
-    ["defaultProvider: claude-code", "defaultModel: claude-sonnet-4-5", "defaultTimeoutMs: 120000"].join("\n"),
+    [
+      "defaultProvider: claude-code",
+      "defaultModel: claude-sonnet-4-5",
+      "defaultTimeoutMs: 120000",
+    ].join("\n"),
     "utf8",
   );
   await createFakeClaudeBinary(fakeBin);
@@ -222,14 +250,19 @@ test("E2E: built CLI honors profile defaultModel and explicit --model override",
     assert.match(consultPayload.answer, /Model used: claude-sonnet-4-5/);
 
     const consultRunDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "runs", `${consultPayload.runId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "runs", `${consultPayload.runId}.json`),
+        "utf8",
+      ),
     ) as {
       run: {
         providerResponses: Array<{ model: string }>;
       };
     };
     assert.deepEqual(
-      consultRunDocument.run.providerResponses.map((response) => response.model),
+      consultRunDocument.run.providerResponses.map(
+        (response) => response.model,
+      ),
       ["claude-sonnet-4-5"],
     );
 
@@ -258,7 +291,10 @@ test("E2E: built CLI honors profile defaultModel and explicit --model override",
     assert.match(debugPayload.details[0] ?? "", /Model used: claude-opus-4-1/);
 
     const debugRunDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "runs", `${debugPayload.runId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "runs", `${debugPayload.runId}.json`),
+        "utf8",
+      ),
     ) as {
       run: {
         providerResponses: Array<{ model: string }>;

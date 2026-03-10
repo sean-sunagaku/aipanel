@@ -12,11 +12,18 @@ export class ResultMerger {
     this.#comparisonEngine = comparisonEngine;
   }
 
-  merge(topic: string, run: RunData, normalizedResponses: NormalizedResponseData[]): {
+  merge(
+    topic: string,
+    run: RunData,
+    normalizedResponses: NormalizedResponseData[],
+  ): {
     finalSummary: string;
     comparisonReport: ComparisonReportData;
   } {
-    const comparisonReport = this.#comparisonEngine.compare(topic, normalizedResponses);
+    const comparisonReport = this.#comparisonEngine.compare(
+      topic,
+      normalizedResponses,
+    );
     comparisonReport.runId = run.runId;
 
     const parts = normalizedResponses.map((response) => {

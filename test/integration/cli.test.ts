@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -37,12 +44,28 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
   const fakeBin = path.join(sandboxRoot, "fake-bin");
 
   await mkdir(workspace, { recursive: true });
-  await writeFile(path.join(workspace, "note.txt"), "cache invalidation notes\n", "utf8");
-  await writeFile(path.join(workspace, "change.diff"), "--- a\n+++ b\n@@\n-cache\n+fresh cache\n", "utf8");
-  await writeFile(path.join(workspace, "app.log"), "ERROR cache refresh skipped\n", "utf8");
+  await writeFile(
+    path.join(workspace, "note.txt"),
+    "cache invalidation notes\n",
+    "utf8",
+  );
+  await writeFile(
+    path.join(workspace, "change.diff"),
+    "--- a\n+++ b\n@@\n-cache\n+fresh cache\n",
+    "utf8",
+  );
+  await writeFile(
+    path.join(workspace, "app.log"),
+    "ERROR cache refresh skipped\n",
+    "utf8",
+  );
   await createFakeClaudeBinary(fakeBin);
   await mkdir(storageRoot, { recursive: true });
-  await writeFile(path.join(storageRoot, "profile.yml"), "defaultModel: claude-sonnet-4-5\n", "utf8");
+  await writeFile(
+    path.join(storageRoot, "profile.yml"),
+    "defaultModel: claude-sonnet-4-5\n",
+    "utf8",
+  );
 
   const env = {
     ...process.env,
@@ -51,10 +74,14 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
   };
 
   try {
-    const providersResult = await runCli(process.execPath, [BUILT_CLI_PATH, "providers", "--json"], {
-      cwd: REPO_ROOT,
-      env,
-    });
+    const providersResult = await runCli(
+      process.execPath,
+      [BUILT_CLI_PATH, "providers", "--json"],
+      {
+        cwd: REPO_ROOT,
+        env,
+      },
+    );
     assert.equal(providersResult.exitCode, 0, providersResult.stderr);
     assert.deepEqual(JSON.parse(providersResult.stdout), {
       kind: "providers",
@@ -83,7 +110,9 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       },
     );
     assert.equal(consultResult.exitCode, 0, consultResult.stderr);
-    const consultation = JSON.parse(consultResult.stdout) as ConsultationPayload;
+    const consultation = JSON.parse(
+      consultResult.stdout,
+    ) as ConsultationPayload;
     assert.equal(consultation.kind, "consultation");
     assert.equal(consultation.provider, "claude-code");
     assert.equal(consultation.model, "claude-sonnet-4-5");
@@ -92,7 +121,10 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     assert.match(consultation.answer, /Model used: claude-sonnet-4-5/);
 
     const sessionDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "sessions", `${consultation.sessionId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "sessions", `${consultation.sessionId}.json`),
+        "utf8",
+      ),
     ) as {
       session: {
         turns: Array<{ role: string }>;
@@ -100,10 +132,16 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       };
     };
     assert.equal(sessionDocument.session.turns.length, 2);
-    assert.equal(sessionDocument.session.providerRefs[0]?.providerSessionId, "fake-claude-session");
+    assert.equal(
+      sessionDocument.session.providerRefs[0]?.providerSessionId,
+      "fake-claude-session",
+    );
 
     const consultRunDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "runs", `${consultation.runId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "runs", `${consultation.runId}.json`),
+        "utf8",
+      ),
     ) as {
       run: {
         mode: string;
@@ -115,10 +153,21 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       };
     };
     assert.equal(consultRunDocument.run.mode, "direct");
-    assert.equal(consultRunDocument.run.contextBundles[0]?.files[0]?.path, "note.txt");
-    assert.equal(consultRunDocument.run.providerResponses[0]?.provider, "claude-code");
-    assert.equal(consultRunDocument.run.providerResponses[0]?.model, "claude-sonnet-4-5");
-    await access(consultRunDocument.run.contextBundles[0]?.metadata.artifactPath ?? "");
+    assert.equal(
+      consultRunDocument.run.contextBundles[0]?.files[0]?.path,
+      "note.txt",
+    );
+    assert.equal(
+      consultRunDocument.run.providerResponses[0]?.provider,
+      "claude-code",
+    );
+    assert.equal(
+      consultRunDocument.run.providerResponses[0]?.model,
+      "claude-sonnet-4-5",
+    );
+    await access(
+      consultRunDocument.run.contextBundles[0]?.metadata.artifactPath ?? "",
+    );
 
     const followupResult = await runCli(
       process.execPath,
@@ -143,7 +192,10 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     assert.equal(followup.model, "claude-sonnet-4-5");
 
     const followedSessionDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "sessions", `${consultation.sessionId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "sessions", `${consultation.sessionId}.json`),
+        "utf8",
+      ),
     ) as {
       session: {
         turns: Array<{ role: string }>;
@@ -182,7 +234,10 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     assert.match(debugPayload.details[0] ?? "", /Model used: claude-opus-4-1/);
 
     const debugRunDocument = JSON.parse(
-      await readFile(path.join(storageRoot, "runs", `${debugPayload.runId}.json`), "utf8"),
+      await readFile(
+        path.join(storageRoot, "runs", `${debugPayload.runId}.json`),
+        "utf8",
+      ),
     ) as {
       run: {
         mode: string;
@@ -201,8 +256,13 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       debugRunDocument.run.providerResponses.map((response) => response.model),
       ["claude-opus-4-1", "claude-opus-4-1", "claude-opus-4-1"],
     );
-    assert.equal(debugRunDocument.run.comparisonReports[0]?.topic, "Why is the build red?");
-    await access(debugRunDocument.run.contextBundles[0]?.metadata.artifactPath ?? "");
+    assert.equal(
+      debugRunDocument.run.comparisonReports[0]?.topic,
+      "Why is the build red?",
+    );
+    await access(
+      debugRunDocument.run.contextBundles[0]?.metadata.artifactPath ?? "",
+    );
   } finally {
     await rm(sandboxRoot, { recursive: true, force: true });
   }

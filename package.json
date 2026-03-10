@@ -100,8 +100,13 @@
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "dev": "tsx bin/aipanel.ts",
     "start": "node dist/bin/aipanel.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "fmt": "prettier . --write",
+    "fmt:check": "prettier . --check",
     "smoke": "npm run build && node dist/bin/aipanel.js providers --json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "audit": "npm audit --audit-level=low",
     "render:diagrams": "node scripts/architecture/render-diagram-bundle.mjs docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams/source/current-implementation-diagrams.spec.json docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams",
     "pack:dry-run": "npm pack --dry-run",
     "verify:package": "node scripts/verify-package-install.mjs",
@@ -114,8 +119,13 @@
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e"
   },
   "devDependencies": {
+    "@eslint/js": "^9.22.0",
     "@types/node": "^24.0.0",
+    "eslint": "^9.22.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
     "tsx": "^4.19.0",
+    "typescript-eslint": "^8.26.1",
     "typescript": "^5.8.0"
   }
 }

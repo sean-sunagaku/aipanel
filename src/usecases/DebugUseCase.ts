@@ -6,7 +6,10 @@ import type {
   ExternalRefProps,
   UsageProps,
 } from "../domain/index.js";
-import type { ContextBundleLike, ContextCollector } from "../context/ContextCollector.js";
+import type {
+  ContextBundleLike,
+  ContextCollector,
+} from "../context/ContextCollector.js";
 import type { ArtifactRepository } from "../artifact/ArtifactRepository.js";
 import type { ProviderRegistry } from "../providers/ProviderRegistry.js";
 import type { ProviderCallResult } from "../providers/ProviderAdapter.js";
@@ -21,9 +24,23 @@ type AdapterCallResult = ProviderCallResult & {
 };
 
 const DEBUG_TASKS = [
-  { role: "planner", label: "root-cause", instruction: "Analyze the most likely root cause." },
-  { role: "reviewer", label: "evidence", instruction: "List the strongest evidence, logs, or code paths supporting the diagnosis." },
-  { role: "validator", label: "fix-plan", instruction: "Propose the safest next steps or fixes and call out regression risks." },
+  {
+    role: "planner",
+    label: "root-cause",
+    instruction: "Analyze the most likely root cause.",
+  },
+  {
+    role: "reviewer",
+    label: "evidence",
+    instruction:
+      "List the strongest evidence, logs, or code paths supporting the diagnosis.",
+  },
+  {
+    role: "validator",
+    label: "fix-plan",
+    instruction:
+      "Propose the safest next steps or fixes and call out regression risks.",
+  },
 ] as const;
 
 export interface DebugResult {
@@ -207,7 +224,7 @@ export class DebugUseCase {
           isError: providerCall.isError ?? false,
         },
       });
-      const normalizedEntity = this.runCoordinator.createNormalizedResponse(run, {
+      this.runCoordinator.createNormalizedResponse(run, {
         taskId: task.taskId,
         provider: providerName,
         summary: normalized.summary,
@@ -226,13 +243,19 @@ export class DebugUseCase {
         confidence: normalized.confidence,
         sourceArtifactIds: [jsonArtifact.artifactId, textArtifact.artifactId],
       });
-      task.transition(providerCall.isError ? "failed" : "completed", this.clock.nowIso());
+      task.transition(
+        providerCall.isError ? "failed" : "completed",
+        this.clock.nowIso(),
+      );
       await this.runCoordinator.save(run);
 
       details.push(`[${taskSpec.label}] ${providerCall.rawText}`);
     }
 
-    const reportDraft = this.comparisonEngine.compare(question, normalizedResponses);
+    const reportDraft = this.comparisonEngine.compare(
+      question,
+      normalizedResponses,
+    );
     this.runCoordinator.createComparisonReport(run, {
       topic: question,
       responseIds: reportDraft.responseIds,
@@ -241,13 +264,17 @@ export class DebugUseCase {
       recommendation: reportDraft.recommendation,
     });
 
-    const recommendation = reportDraft.recommendation ?? "No recommendation available.";
+    const recommendation =
+      reportDraft.recommendation ?? "No recommendation available.";
     run.finalSummary = recommendation;
     run.validationStatus = hasError ? "needs-review" : "validated";
     run.transition(hasError ? "partial" : "completed", this.clock.nowIso());
     await this.runCoordinator.save(run);
 
-    await this.sessionManager.appendAssistantTurn(session, details.join("\n\n"));
+    await this.sessionManager.appendAssistantTurn(
+      session,
+      details.join("\n\n"),
+    );
 
     return {
       kind: "debug",

@@ -21,10 +21,14 @@ let tarballPath;
 try {
   const packOutput = run("npm", ["pack", "--json"]);
   const packResult = JSON.parse(packOutput);
-  const tarballFileName = Array.isArray(packResult) ? packResult[0]?.filename : undefined;
+  const tarballFileName = Array.isArray(packResult)
+    ? packResult[0]?.filename
+    : undefined;
 
   if (!tarballFileName) {
-    throw new Error("Could not determine tarball filename from `npm pack --json`.");
+    throw new Error(
+      "Could not determine tarball filename from `npm pack --json`.",
+    );
   }
 
   tarballPath = path.resolve(tarballFileName);
@@ -34,10 +38,17 @@ try {
   const binaryPath = path.join(installRoot, "node_modules", ".bin", "aipanel");
   const providersOutput = run(binaryPath, ["providers", "--json"]);
   const providersPayload = JSON.parse(providersOutput);
-  const providers = Array.isArray(providersPayload.providers) ? providersPayload.providers : [];
+  const providers = Array.isArray(providersPayload.providers)
+    ? providersPayload.providers
+    : [];
 
-  if (providersPayload.kind !== "providers" || !providers.includes("claude-code")) {
-    throw new Error("Packaged CLI did not return the expected provider payload.");
+  if (
+    providersPayload.kind !== "providers" ||
+    !providers.includes("claude-code")
+  ) {
+    throw new Error(
+      "Packaged CLI did not return the expected provider payload.",
+    );
   }
 
   const importCheckOutput = run(
@@ -63,13 +74,19 @@ try {
   );
   const importCheck = JSON.parse(importCheckOutput);
 
-  process.stdout.write(`${JSON.stringify({
-    packageName,
-    tarball: path.basename(tarballPath),
-    installedInto: installRoot,
-    providers,
-    importCheck,
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        packageName,
+        tarball: path.basename(tarballPath),
+        installedInto: installRoot,
+        providers,
+        importCheck,
+      },
+      null,
+      2,
+    )}\n`,
+  );
 } finally {
   if (tarballPath) {
     rmSync(tarballPath, { force: true });

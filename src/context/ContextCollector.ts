@@ -44,12 +44,18 @@ function hashContent(content: string): string {
   return createHash("sha1").update(content).digest("hex");
 }
 
-function summarizeCollection(files: ContextEntry[], diffs: ContextEntry[], logs: ContextEntry[]): string {
+function summarizeCollection(
+  files: ContextEntry[],
+  diffs: ContextEntry[],
+  logs: ContextEntry[],
+): string {
   const parts = [];
   if (files.length > 0) parts.push(`${files.length} files`);
   if (diffs.length > 0) parts.push(`${diffs.length} diffs`);
   if (logs.length > 0) parts.push(`${logs.length} logs`);
-  return parts.length > 0 ? `Collected ${parts.join(", ")}.` : "No external context was collected.";
+  return parts.length > 0
+    ? `Collected ${parts.join(", ")}.`
+    : "No external context was collected.";
 }
 
 export class ContextCollector {
@@ -57,7 +63,10 @@ export class ContextCollector {
 
   readonly clock: typeof systemClock;
 
-  constructor({ cwd = process.cwd(), clock = systemClock }: { cwd?: string; clock?: typeof systemClock } = {}) {
+  constructor({
+    cwd = process.cwd(),
+    clock = systemClock,
+  }: { cwd?: string; clock?: typeof systemClock } = {}) {
     this.cwd = cwd;
     this.clock = clock;
   }
@@ -112,7 +121,11 @@ export class ContextCollector {
     return sections.join("\n\n").trim();
   }
 
-  async #readEntries(paths: string[], kind: ContextEntryKind, cwd: string): Promise<ContextEntry[]> {
+  async #readEntries(
+    paths: string[],
+    kind: ContextEntryKind,
+    cwd: string,
+  ): Promise<ContextEntry[]> {
     const entries: ContextEntry[] = [];
 
     for (const rawPath of paths) {

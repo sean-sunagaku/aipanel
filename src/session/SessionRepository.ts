@@ -1,5 +1,5 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { Session, type SessionProps } from "../domain/index.js";
 
 export interface SessionRepositoryOptions {
@@ -14,11 +14,12 @@ export class SessionRepository {
   private readonly storageRoot: string;
 
   constructor(options: SessionRepositoryOptions = {}) {
-    this.storageRoot = options.storageRoot ?? path.join(process.cwd(), '.aipanel');
+    this.storageRoot =
+      options.storageRoot ?? path.join(process.cwd(), ".aipanel");
   }
 
   get sessionsDirectory(): string {
-    return path.join(this.storageRoot, 'sessions');
+    return path.join(this.storageRoot, "sessions");
   }
 
   filePathFor(sessionId: string): string {
@@ -28,17 +29,21 @@ export class SessionRepository {
   async save(session: Session): Promise<Session> {
     await mkdir(this.sessionsDirectory, { recursive: true });
     const document: SessionDocument = { session: session.toJSON() };
-    await writeFile(this.filePathFor(session.sessionId), JSON.stringify(document, null, 2), 'utf8');
+    await writeFile(
+      this.filePathFor(session.sessionId),
+      JSON.stringify(document, null, 2),
+      "utf8",
+    );
     return session;
   }
 
   async get(sessionId: string): Promise<Session | null> {
     try {
-      const raw = await readFile(this.filePathFor(sessionId), 'utf8');
+      const raw = await readFile(this.filePathFor(sessionId), "utf8");
       const parsed = JSON.parse(raw) as SessionDocument | SessionProps;
-      return Session.fromJSON('session' in parsed ? parsed.session : parsed);
+      return Session.fromJSON("session" in parsed ? parsed.session : parsed);
     } catch (error: unknown) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return null;
       }
 
@@ -58,12 +63,14 @@ export class SessionRepository {
 
   async list(): Promise<Session[]> {
     await mkdir(this.sessionsDirectory, { recursive: true });
-    const entries = await readdir(this.sessionsDirectory, { withFileTypes: true });
+    const entries = await readdir(this.sessionsDirectory, {
+      withFileTypes: true,
+    });
     const sessions = await Promise.all(
       entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
         .map(async (entry) => {
-          const sessionId = entry.name.replace(/\.json$/u, '');
+          const sessionId = entry.name.replace(/\.json$/u, "");
           return this.get(sessionId);
         }),
     );

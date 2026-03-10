@@ -12,7 +12,10 @@ export type RenderableResult =
   | DebugResult;
 
 export class ResultRenderer {
-  render(result: RenderableResult, outputFormat: "text" | "json" = "text"): RenderedOutput {
+  render(
+    result: RenderableResult,
+    outputFormat: "text" | "json" = "text",
+  ): RenderedOutput {
     const rendered = (() => {
       switch (result.kind) {
         case "providers":

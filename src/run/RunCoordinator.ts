@@ -48,7 +48,9 @@ export class RunCoordinator {
       command: params.command,
       clock: this.clock,
       idGenerator: this.idGenerator,
-      ...(params.sessionId !== undefined ? { sessionId: params.sessionId } : {}),
+      ...(params.sessionId !== undefined
+        ? { sessionId: params.sessionId }
+        : {}),
       ...(params.mode ? { mode: params.mode } : {}),
       ...(params.planVersion ? { planVersion: params.planVersion } : {}),
       ...(params.plan !== undefined ? { plan: params.plan } : {}),
@@ -57,7 +59,10 @@ export class RunCoordinator {
     return this.repository.save(run);
   }
 
-  createTask(run: Run, params: Omit<RunTaskProps, 'taskId' | 'runId' | 'createdAt' | 'updatedAt'>): RunTask {
+  createTask(
+    run: Run,
+    params: Omit<RunTaskProps, "taskId" | "runId" | "createdAt" | "updatedAt">,
+  ): RunTask {
     const task = RunTask.create({
       ...params,
       runId: run.runId,
@@ -69,7 +74,10 @@ export class RunCoordinator {
     return task;
   }
 
-  createContextBundle(run: Run, params: Omit<ContextBundleProps, 'contextId' | 'runId' | 'createdAt'>): ContextBundle {
+  createContextBundle(
+    run: Run,
+    params: Omit<ContextBundleProps, "contextId" | "runId" | "createdAt">,
+  ): ContextBundle {
     const contextBundle = ContextBundle.create({
       ...params,
       runId: run.runId,
@@ -83,7 +91,7 @@ export class RunCoordinator {
 
   createProviderResponse(
     run: Run,
-    params: Omit<ProviderResponseProps, 'responseId' | 'createdAt'>,
+    params: Omit<ProviderResponseProps, "responseId" | "createdAt">,
   ): ProviderResponse {
     const providerResponse = ProviderResponse.create({
       ...params,
@@ -97,7 +105,7 @@ export class RunCoordinator {
 
   createNormalizedResponse(
     run: Run,
-    params: Omit<NormalizedResponseProps, 'normalizedResponseId' | 'createdAt'>,
+    params: Omit<NormalizedResponseProps, "normalizedResponseId" | "createdAt">,
   ): NormalizedResponse {
     const normalizedResponse = NormalizedResponse.create({
       ...params,
@@ -109,7 +117,10 @@ export class RunCoordinator {
     return normalizedResponse;
   }
 
-  createTaskResult(run: Run, params: Omit<TaskResultProps, 'resultId' | 'createdAt'>): TaskResult {
+  createTaskResult(
+    run: Run,
+    params: Omit<TaskResultProps, "resultId" | "createdAt">,
+  ): TaskResult {
     const taskResult = TaskResult.create({
       ...params,
       clock: this.clock,
@@ -122,7 +133,7 @@ export class RunCoordinator {
 
   createComparisonReport(
     run: Run,
-    params: Omit<ComparisonReportProps, 'reportId' | 'runId' | 'createdAt'>,
+    params: Omit<ComparisonReportProps, "reportId" | "runId" | "createdAt">,
   ): ComparisonReport {
     const comparisonReport = ComparisonReport.create({
       ...params,
@@ -140,16 +151,26 @@ export class RunCoordinator {
     return run;
   }
 
-  complete(run: Run, params: { finalSummary?: string | null; validationStatus?: string | null } = {}): Run {
+  complete(
+    run: Run,
+    params: {
+      finalSummary?: string | null;
+      validationStatus?: string | null;
+    } = {},
+  ): Run {
     run.complete({
       updatedAt: this.clock(),
-      ...(params.finalSummary !== undefined ? { finalSummary: params.finalSummary } : {}),
-      ...(params.validationStatus !== undefined ? { validationStatus: params.validationStatus } : {}),
+      ...(params.finalSummary !== undefined
+        ? { finalSummary: params.finalSummary }
+        : {}),
+      ...(params.validationStatus !== undefined
+        ? { validationStatus: params.validationStatus }
+        : {}),
     });
     return run;
   }
 
-  fail(run: Run, message: string, status: RunStatus = 'failed'): Run {
+  fail(run: Run, message: string, status: RunStatus = "failed"): Run {
     run.fail(message, status, this.clock());
     return run;
   }

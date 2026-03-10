@@ -1,7 +1,9 @@
 import { chmod, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export async function createFakeClaudeBinary(binDirectory: string): Promise<string> {
+export async function createFakeClaudeBinary(
+  binDirectory: string,
+): Promise<string> {
   await mkdir(binDirectory, { recursive: true });
 
   const binaryPath = path.join(binDirectory, "claude");

@@ -13,7 +13,9 @@ export async function runCli(
 
   try {
     const result = await router.route(argv);
-    output.stdout.write(result.output.endsWith("\n") ? result.output : `${result.output}\n`);
+    output.stdout.write(
+      result.output.endsWith("\n") ? result.output : `${result.output}\n`,
+    );
     return result.exitCode;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

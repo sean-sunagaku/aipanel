@@ -11,8 +11,8 @@ import {
 } from "./base.js";
 import { ProviderRef, type ProviderRefProps } from "./value-objects.js";
 
-export type SessionStatus = 'active' | 'archived' | 'closed';
-export type SessionTurnRole = 'user' | 'assistant' | 'system';
+export type SessionStatus = "active" | "archived" | "closed";
+export type SessionTurnRole = "user" | "assistant" | "system";
 
 export interface SessionTurnProps {
   turnId: string;
@@ -41,7 +41,7 @@ export class SessionTurn {
   }
 
   static create(
-    params: Omit<SessionTurnProps, 'turnId' | 'createdAt'> & {
+    params: Omit<SessionTurnProps, "turnId" | "createdAt"> & {
       turnId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -52,12 +52,12 @@ export class SessionTurn {
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
     return new SessionTurn({
-      turnId: params.turnId ?? idGenerator('turn'),
+      turnId: params.turnId ?? idGenerator("turn"),
       sessionId: params.sessionId,
       role: params.role,
       content: params.content,
       createdAt: params.createdAt ?? clock(),
-      ...optionalProp('artifactIds', params.artifactIds),
+      ...optionalProp("artifactIds", params.artifactIds),
     });
   }
 
@@ -105,8 +105,12 @@ export class Session {
     this.status = props.status;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
-    this.providerRefs = ensureArray(props.providerRefs).map((item) => ProviderRef.from(item));
-    this.turns = ensureArray(props.turns).map((item) => SessionTurn.fromJSON(item));
+    this.providerRefs = ensureArray(props.providerRefs).map((item) =>
+      ProviderRef.from(item),
+    );
+    this.turns = ensureArray(props.turns).map((item) =>
+      SessionTurn.fromJSON(item),
+    );
   }
 
   static create(
@@ -128,14 +132,18 @@ export class Session {
     const updatedAt = params.updatedAt ?? createdAt;
 
     return new Session({
-      sessionId: params.sessionId ?? idGenerator('session'),
-      title: params.title ?? 'Untitled Session',
-      status: params.status ?? 'active',
+      sessionId: params.sessionId ?? idGenerator("session"),
+      title: params.title ?? "Untitled Session",
+      status: params.status ?? "active",
       createdAt,
       updatedAt,
-      providerRefs: ensureArray(params.providerRefs).map((item) => ProviderRef.from(item).toJSON()),
+      providerRefs: ensureArray(params.providerRefs).map((item) =>
+        ProviderRef.from(item).toJSON(),
+      ),
       turns: ensureArray(params.turns).map((item) =>
-        item instanceof SessionTurn ? item.toJSON() : SessionTurn.fromJSON(item).toJSON(),
+        item instanceof SessionTurn
+          ? item.toJSON()
+          : SessionTurn.fromJSON(item).toJSON(),
       ),
     });
   }
@@ -144,9 +152,14 @@ export class Session {
     return new Session(input);
   }
 
-  appendTurn(turn: SessionTurn, updatedAt: IsoDateString = defaultClock()): void {
+  appendTurn(
+    turn: SessionTurn,
+    updatedAt: IsoDateString = defaultClock(),
+  ): void {
     if (turn.sessionId !== this.sessionId) {
-      throw new Error(`Session turn ${turn.turnId} does not belong to session ${this.sessionId}`);
+      throw new Error(
+        `Session turn ${turn.turnId} does not belong to session ${this.sessionId}`,
+      );
     }
 
     this.turns.push(turn);
@@ -154,7 +167,7 @@ export class Session {
   }
 
   createTurn(
-    params: Omit<SessionTurnProps, 'sessionId' | 'turnId' | 'createdAt'> & {
+    params: Omit<SessionTurnProps, "sessionId" | "turnId" | "createdAt"> & {
       turnId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -181,7 +194,9 @@ export class Session {
     updatedAt: IsoDateString = defaultClock(),
   ): void {
     const resolved = ProviderRef.from(providerRef);
-    const index = this.providerRefs.findIndex((item) => item.provider === resolved.provider);
+    const index = this.providerRefs.findIndex(
+      (item) => item.provider === resolved.provider,
+    );
 
     if (index >= 0) {
       this.providerRefs[index] = resolved;
@@ -195,7 +210,7 @@ export class Session {
   buildTranscript(): string {
     return this.turns
       .map((turn) => `${turn.role.toUpperCase()}: ${turn.content}`)
-      .join('\n\n');
+      .join("\n\n");
   }
 
   toJSON(): SessionProps {

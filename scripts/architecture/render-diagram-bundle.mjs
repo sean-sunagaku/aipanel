@@ -69,22 +69,26 @@ function anchorPoints(sourceNode, targetNode) {
   const dy = targetCenter.y - sourceCenter.y;
 
   if (Math.abs(dx) >= Math.abs(dy)) {
-    const start = dx >= 0
-      ? { x: sourceNode.x + sourceNode.width, y: sourceCenter.y }
-      : { x: sourceNode.x, y: sourceCenter.y };
-    const end = dx >= 0
-      ? { x: targetNode.x, y: targetCenter.y }
-      : { x: targetNode.x + targetNode.width, y: targetCenter.y };
+    const start =
+      dx >= 0
+        ? { x: sourceNode.x + sourceNode.width, y: sourceCenter.y }
+        : { x: sourceNode.x, y: sourceCenter.y };
+    const end =
+      dx >= 0
+        ? { x: targetNode.x, y: targetCenter.y }
+        : { x: targetNode.x + targetNode.width, y: targetCenter.y };
     const midX = (start.x + end.x) / 2;
     return [start, { x: midX, y: start.y }, { x: midX, y: end.y }, end];
   }
 
-  const start = dy >= 0
-    ? { x: sourceCenter.x, y: sourceNode.y + sourceNode.height }
-    : { x: sourceCenter.x, y: sourceNode.y };
-  const end = dy >= 0
-    ? { x: targetCenter.x, y: targetNode.y }
-    : { x: targetCenter.x, y: targetNode.y + targetNode.height };
+  const start =
+    dy >= 0
+      ? { x: sourceCenter.x, y: sourceNode.y + sourceNode.height }
+      : { x: sourceCenter.x, y: sourceNode.y };
+  const end =
+    dy >= 0
+      ? { x: targetCenter.x, y: targetNode.y }
+      : { x: targetCenter.x, y: targetNode.y + targetNode.height };
   const midY = (start.y + end.y) / 2;
   return [start, { x: start.x, y: midY }, { x: end.x, y: midY }, end];
 }
@@ -118,7 +122,10 @@ function styleForNode(styleType) {
     usecase: { fill: COLORS.usecaseFill, stroke: COLORS.usecaseStroke },
     service: { fill: COLORS.serviceFill, stroke: COLORS.serviceStroke },
     provider: { fill: COLORS.providerFill, stroke: COLORS.providerStroke },
-    persistence: { fill: COLORS.persistenceFill, stroke: COLORS.persistenceStroke },
+    persistence: {
+      fill: COLORS.persistenceFill,
+      stroke: COLORS.persistenceStroke,
+    },
     domain: { fill: COLORS.domainFill, stroke: COLORS.domainStroke },
   };
 
@@ -189,12 +196,14 @@ function renderDrawio(diagram) {
       continue;
     }
 
-    const points = edgeDef.points ?? anchorPoints(sourceNode, targetNode).slice(1, -1);
-    const pointXml = points.length === 0
-      ? ""
-      : `<Array as="points">${points
-          .map((point) => `<mxPoint x="${point.x}" y="${point.y}"/>`)
-          .join("")}</Array>`;
+    const points =
+      edgeDef.points ?? anchorPoints(sourceNode, targetNode).slice(1, -1);
+    const pointXml =
+      points.length === 0
+        ? ""
+        : `<Array as="points">${points
+            .map((point) => `<mxPoint x="${point.x}" y="${point.y}"/>`)
+            .join("")}</Array>`;
 
     cells.push(
       `<mxCell id="${escapeXml(edgeDef.id)}" value="" style="${drawioEdgeStyle(edgeDef)}" edge="1" parent="1" source="${escapeXml(edgeDef.source)}" target="${escapeXml(edgeDef.target)}"><mxGeometry relative="1" as="geometry">${pointXml}</mxGeometry></mxCell>`,
@@ -208,39 +217,49 @@ function svgText(nodeDef) {
   const style = styleForNode(nodeDef.styleType);
   const lines = textLines(nodeDef.label);
   const lineHeight = nodeDef.styleType === "header" ? 24 : style.fontSize + 4;
-  const startY = nodeDef.y + nodeDef.height / 2 - ((lines.length - 1) * lineHeight) / 2 + 5;
+  const startY =
+    nodeDef.y + nodeDef.height / 2 - ((lines.length - 1) * lineHeight) / 2 + 5;
   const x = nodeDef.x + nodeDef.width / 2;
   return `<text x="${x}" y="${startY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${style.fontSize}" fill="${style.text}">${lines
-    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${escapeXml(line)}</tspan>`)
+    .map(
+      (line, index) =>
+        `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${escapeXml(line)}</tspan>`,
+    )
     .join("")}</text>`;
 }
 
 function renderSvg(diagram) {
   const nodesById = new Map(diagram.nodes.map((item) => [item.id, item]));
-  const edgeSvg = diagram.edges.map((edgeDef) => {
-    const sourceNode = nodesById.get(edgeDef.source);
-    const targetNode = nodesById.get(edgeDef.target);
+  const edgeSvg = diagram.edges
+    .map((edgeDef) => {
+      const sourceNode = nodesById.get(edgeDef.source);
+      const targetNode = nodesById.get(edgeDef.target);
 
-    if (!sourceNode || !targetNode) {
-      return "";
-    }
+      if (!sourceNode || !targetNode) {
+        return "";
+      }
 
-    const points = edgeDef.points ?? anchorPoints(sourceNode, targetNode);
-    const d = points
-      .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-      .join(" ");
+      const points = edgeDef.points ?? anchorPoints(sourceNode, targetNode);
+      const d = points
+        .map(
+          (point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`,
+        )
+        .join(" ");
 
-    return `<path d="${d}" fill="none" stroke="${edgeDef.stroke ?? COLORS.edge}" stroke-width="2.5" marker-end="url(#arrow)"/>`;
-  }).join("\n  ");
+      return `<path d="${d}" fill="none" stroke="${edgeDef.stroke ?? COLORS.edge}" stroke-width="2.5" marker-end="url(#arrow)"/>`;
+    })
+    .join("\n  ");
 
-  const nodeSvg = diagram.nodes.map((nodeDef) => {
-    const style = styleForNode(nodeDef.styleType);
-    const dash = style.dashed ? ' stroke-dasharray="8 6"' : "";
-    return `<g id="${escapeXml(nodeDef.id)}">
+  const nodeSvg = diagram.nodes
+    .map((nodeDef) => {
+      const style = styleForNode(nodeDef.styleType);
+      const dash = style.dashed ? ' stroke-dasharray="8 6"' : "";
+      return `<g id="${escapeXml(nodeDef.id)}">
     <rect x="${nodeDef.x}" y="${nodeDef.y}" width="${nodeDef.width}" height="${nodeDef.height}" rx="${style.rounded}" ry="${style.rounded}" fill="${style.fill}" stroke="${style.stroke}" stroke-width="2"${dash}/>
     ${svgText(nodeDef)}
   </g>`;
-  }).join("\n  ");
+    })
+    .join("\n  ");
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${diagram.width}" height="${diagram.height}" viewBox="0 0 ${diagram.width} ${diagram.height}">\n  <defs>\n    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">\n      <path d="M 0 0 L 10 5 L 0 10 z" fill="${COLORS.edge}"/>\n    </marker>\n  </defs>\n  <rect width="${diagram.width}" height="${diagram.height}" fill="${COLORS.background}"/>\n  ${edgeSvg}\n  ${nodeSvg}\n</svg>\n`;
 }
@@ -274,7 +293,9 @@ function assertBundle(bundle) {
     }
 
     if (!item.diagram || typeof item.diagram !== "object") {
-      throw new Error(`Diagram ${item.filename} must include a diagram object.`);
+      throw new Error(
+        `Diagram ${item.filename} must include a diagram object.`,
+      );
     }
 
     const diagram = item.diagram;
@@ -288,7 +309,9 @@ function assertBundle(bundle) {
     ensureNumber(diagram.height, `${item.filename}.diagram.height`);
 
     if (!Array.isArray(diagram.nodes) || !Array.isArray(diagram.edges)) {
-      throw new Error(`Diagram ${item.filename} must define nodes and edges arrays.`);
+      throw new Error(
+        `Diagram ${item.filename} must define nodes and edges arrays.`,
+      );
     }
 
     const nodeIds = new Set();
@@ -300,7 +323,9 @@ function assertBundle(bundle) {
       }
 
       if (!ALLOWED_STYLE_TYPES.has(node.styleType)) {
-        throw new Error(`Node ${node.id} in ${item.filename} has unsupported styleType ${node.styleType}.`);
+        throw new Error(
+          `Node ${node.id} in ${item.filename} has unsupported styleType ${node.styleType}.`,
+        );
       }
 
       ensureNumber(node.x, `${item.filename}.nodes.${node.id}.x`);
@@ -318,16 +343,21 @@ function assertBundle(bundle) {
       }
 
       if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
-        throw new Error(`Edge ${edge.id} in ${item.filename} references unknown nodes.`);
+        throw new Error(
+          `Edge ${edge.id} in ${item.filename} references unknown nodes.`,
+        );
       }
     }
   }
 }
 
 function renderMarkdown(bundle, specFileName, renderCommand) {
-  const readingGuide = Array.isArray(bundle.readingGuide) ? bundle.readingGuide : [];
-  const dataStructureNotes = Array.isArray(bundle.dataStructureNotes) ? bundle.dataStructureNotes : [];
-  const indexFileName = bundle.indexFileName ?? "12_current-implementation-diagrams.md";
+  const readingGuide = Array.isArray(bundle.readingGuide)
+    ? bundle.readingGuide
+    : [];
+  const dataStructureNotes = Array.isArray(bundle.dataStructureNotes)
+    ? bundle.dataStructureNotes
+    : [];
   const title = bundle.title ?? "Current Implementation Diagrams";
   const runtimeScope = bundle.runtimeScope ?? "Current implementation";
 
@@ -359,7 +389,10 @@ Codex sub-agent が spec JSON を作成し、この renderer が \`.drawio\` と
 ## Diagram Reading Guide
 
 ${readingGuide
-  .map((item) => `### ${item.filename}\n${item.points.map((point) => `- ${point}`).join("\n")}`)
+  .map(
+    (item) =>
+      `### ${item.filename}\n${item.points.map((point) => `- ${point}`).join("\n")}`,
+  )
   .join("\n\n")}
 
 ## Canonical Data Structure Notes
@@ -372,11 +405,15 @@ async function main() {
   const [specPathArg, outputDirArg] = process.argv.slice(2);
 
   if (!specPathArg) {
-    throw new Error("Usage: node scripts/architecture/render-diagram-bundle.mjs <spec.json> [output-dir]");
+    throw new Error(
+      "Usage: node scripts/architecture/render-diagram-bundle.mjs <spec.json> [output-dir]",
+    );
   }
 
   const specPath = path.resolve(specPathArg);
-  const outputDir = path.resolve(outputDirArg ?? path.dirname(path.dirname(specPath)));
+  const outputDir = path.resolve(
+    outputDirArg ?? path.dirname(path.dirname(specPath)),
+  );
   const sourceDir = path.join(outputDir, "source");
   const specFileName = path.basename(specPath);
   const renderCommand = `node scripts/architecture/render-diagram-bundle.mjs ${path.relative(process.cwd(), specPath)} ${path.relative(process.cwd(), outputDir) || "."}`;
@@ -395,7 +432,8 @@ async function main() {
     await writeFile(svgPath, renderSvg(item.diagram), "utf8");
   }
 
-  const indexFileName = bundle.indexFileName ?? "12_current-implementation-diagrams.md";
+  const indexFileName =
+    bundle.indexFileName ?? "12_current-implementation-diagrams.md";
   await writeFile(
     path.join(outputDir, indexFileName),
     renderMarkdown(bundle, specFileName, renderCommand),

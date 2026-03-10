@@ -9,11 +9,18 @@ export async function ensureParentDirectory(path: string): Promise<void> {
   await ensureDirectory(dirname(path));
 }
 
-export async function readText(path: string, encoding: BufferEncoding = "utf8"): Promise<string> {
+export async function readText(
+  path: string,
+  encoding: BufferEncoding = "utf8",
+): Promise<string> {
   return readFile(path, encoding);
 }
 
-export async function writeText(path: string, contents: string, encoding: BufferEncoding = "utf8"): Promise<void> {
+export async function writeText(
+  path: string,
+  contents: string,
+  encoding: BufferEncoding = "utf8",
+): Promise<void> {
   await ensureParentDirectory(path);
   await writeFile(path, contents, encoding);
 }

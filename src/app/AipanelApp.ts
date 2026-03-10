@@ -7,7 +7,12 @@ import { ResultRenderer } from "../output/ResultRenderer.js";
 import { ClaudeCodeAdapter, ProviderRegistry } from "../providers/index.js";
 import { RunCoordinator, RunRepository } from "../run/index.js";
 import { SessionManager, SessionRepository } from "../session/index.js";
-import { ConsultUseCase, DebugUseCase, FollowupUseCase, ListProvidersUseCase } from "../usecases/index.js";
+import {
+  ConsultUseCase,
+  DebugUseCase,
+  FollowupUseCase,
+  ListProvidersUseCase,
+} from "../usecases/index.js";
 import { ProfileLoader } from "./ProfileLoader.js";
 import { WorkflowSelector } from "./WorkflowSelector.js";
 
@@ -21,7 +26,8 @@ export class AipanelApp {
   readonly debugUseCase: DebugUseCase;
 
   constructor({
-    storageRoot = process.env.AIPANEL_STORAGE_ROOT ?? path.join(process.cwd(), ".aipanel"),
+    storageRoot = process.env.AIPANEL_STORAGE_ROOT ??
+      path.join(process.cwd(), ".aipanel"),
     cwd = process.env.AIPANEL_CWD ?? process.cwd(),
   }: {
     storageRoot?: string;
@@ -34,7 +40,9 @@ export class AipanelApp {
     const sessionRepository = new SessionRepository({ storageRoot });
     const runRepository = new RunRepository({ storageRoot });
     const artifactRepository = new ArtifactRepository({ storageRoot });
-    const sessionManager = new SessionManager({ repository: sessionRepository });
+    const sessionManager = new SessionManager({
+      repository: sessionRepository,
+    });
     const runCoordinator = new RunCoordinator({ repository: runRepository });
     const contextCollector = new ContextCollector({ cwd });
     const providerRegistry = new ProviderRegistry({

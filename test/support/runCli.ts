@@ -6,10 +6,14 @@ export interface CliRunResult {
   stderr: string;
 }
 
-export async function runCli(command: string, args: string[], options: {
-  cwd: string;
-  env: NodeJS.ProcessEnv;
-}): Promise<CliRunResult> {
+export async function runCli(
+  command: string,
+  args: string[],
+  options: {
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+  },
+): Promise<CliRunResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,

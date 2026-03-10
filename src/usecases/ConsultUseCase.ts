@@ -3,10 +3,12 @@ import type {
   CitationProps,
   ExternalRefProps,
   ProviderRefProps,
-  Session,
   UsageProps,
 } from "../domain/index.js";
-import type { ContextBundleLike, ContextCollector } from "../context/ContextCollector.js";
+import type {
+  ContextBundleLike,
+  ContextCollector,
+} from "../context/ContextCollector.js";
 import type { ArtifactRepository } from "../artifact/ArtifactRepository.js";
 import type { ProviderRegistry } from "../providers/ProviderRegistry.js";
 import type { ProviderCallResult } from "../providers/ProviderAdapter.js";
@@ -190,7 +192,10 @@ export class ConsultUseCase {
       findings: normalizedDraft.findings,
       citations: normalizedDraft.citations,
       confidence: normalizedDraft.confidence,
-      sourceArtifactIds: [rawJsonArtifact.artifactId, rawTextArtifact.artifactId],
+      sourceArtifactIds: [
+        rawJsonArtifact.artifactId,
+        rawTextArtifact.artifactId,
+      ],
     });
 
     const isError = adapterResult.isError ?? false;
@@ -209,10 +214,11 @@ export class ConsultUseCase {
       await this.sessionManager.updateProviderRef(session, providerRef);
     }
 
-    await this.sessionManager.appendAssistantTurn(session, adapterResult.rawText, [
-      rawJsonArtifact.artifactId,
-      rawTextArtifact.artifactId,
-    ]);
+    await this.sessionManager.appendAssistantTurn(
+      session,
+      adapterResult.rawText,
+      [rawJsonArtifact.artifactId, rawTextArtifact.artifactId],
+    );
 
     return {
       kind: "consultation",
@@ -226,7 +232,11 @@ export class ConsultUseCase {
     };
   }
 
-  #buildPrompt(transcript: string, question: string, contextText: string): string {
+  #buildPrompt(
+    transcript: string,
+    question: string,
+    contextText: string,
+  ): string {
     const sections = [
       "You are Claude Code running under aipanel.",
       transcript ? `Conversation so far:\n${transcript}` : "",

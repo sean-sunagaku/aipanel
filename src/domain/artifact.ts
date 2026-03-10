@@ -51,7 +51,7 @@ export class Artifact {
   }
 
   static create(
-    params: Omit<ArtifactProps, 'artifactId' | 'createdAt'> & {
+    params: Omit<ArtifactProps, "artifactId" | "createdAt"> & {
       artifactId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
@@ -62,16 +62,16 @@ export class Artifact {
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
     return new Artifact({
-      artifactId: params.artifactId ?? idGenerator('artifact'),
+      artifactId: params.artifactId ?? idGenerator("artifact"),
       kind: params.kind,
       path: params.path,
       createdAt: params.createdAt ?? clock(),
-      ...optionalProp('sessionId', params.sessionId),
-      ...optionalProp('runId', params.runId),
-      ...optionalProp('turnId', params.turnId),
-      ...optionalProp('metadataPath', params.metadataPath),
-      ...optionalProp('mimeType', params.mimeType),
-      ...optionalProp('sizeBytes', params.sizeBytes),
+      ...optionalProp("sessionId", params.sessionId),
+      ...optionalProp("runId", params.runId),
+      ...optionalProp("turnId", params.turnId),
+      ...optionalProp("metadataPath", params.metadataPath),
+      ...optionalProp("mimeType", params.mimeType),
+      ...optionalProp("sizeBytes", params.sizeBytes),
     });
   }
 

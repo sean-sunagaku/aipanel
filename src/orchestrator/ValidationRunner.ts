@@ -1,4 +1,7 @@
-import type { NormalizedResponseData, ValidationResult } from "../shared/contracts.js";
+import type {
+  NormalizedResponseData,
+  ValidationResult,
+} from "../shared/contracts.js";
 
 export class ValidationRunner {
   validate(normalizedResponses: NormalizedResponseData[]): ValidationResult {
@@ -25,7 +28,9 @@ export class ValidationRunner {
 
     return {
       status: "validated",
-      notes: ["All task responses reached the minimum validation threshold for phase 1."],
+      notes: [
+        "All task responses reached the minimum validation threshold for phase 1.",
+      ],
     };
   }
 }

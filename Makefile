@@ -4,7 +4,7 @@ DIAGRAM_SPEC := docs/rearchitecture/content_rearchitecture_2026-03-10/12_current
 DIAGRAM_OUTPUT_DIR := docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams
 ARGS ?= providers --json
 
-.PHONY: install clean build run dev smoke typecheck test test-unit test-integration test-e2e render-diagrams pack-dry-run pack verify-package publish-check publish
+.PHONY: install clean build run dev smoke lint lint-fix fmt fmt-check typecheck audit test test-unit test-integration test-e2e render-diagrams pack-dry-run pack verify-package publish-check publish
 
 install:
 	npm install
@@ -24,8 +24,23 @@ dev:
 smoke: build
 	node dist/bin/aipanel.js providers --json
 
+lint:
+	npm run lint
+
+lint-fix:
+	npm run lint:fix
+
+fmt:
+	npm run fmt
+
+fmt-check:
+	npm run fmt:check
+
 typecheck:
 	npm run typecheck
+
+audit:
+	npm run audit
 
 test:
 	npm test
