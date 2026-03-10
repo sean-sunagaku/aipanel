@@ -1,0 +1,60 @@
+{
+  "name": "aipanel-cli",
+  "version": "0.1.1",
+  "description": "CLI broker and orchestrator for consult, followup, and debug workflows with Claude Code.",
+  "private": false,
+  "license": "MIT",
+  "keywords": [
+    "cli",
+    "claude-code",
+    "broker",
+    "orchestrator",
+    "debugging"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sean-sunagaku/aipanel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sean-sunagaku/aipanel/issues"
+  },
+  "homepage": "https://github.com/sean-sunagaku/aipanel#readme",
+  "type": "module",
+  "bin": {
+    "aipanel": "dist/bin/aipanel.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "node scripts/clean-dist.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "dev": "tsx bin/aipanel.ts",
+    "start": "node dist/bin/aipanel.js",
+    "smoke": "npm run build && node dist/bin/aipanel.js providers --json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "render:diagrams": "node scripts/architecture/render-diagram-bundle.mjs docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams/source/current-implementation-diagrams.spec.json docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams",
+    "pack:dry-run": "npm pack --dry-run",
+    "verify:package": "node scripts/verify-package-install.mjs",
+    "publish:check": "npm run typecheck && npm test && npm run pack:dry-run && npm run verify:package",
+    "publish:public": "npm run publish:check && npm publish --access public",
+    "prepack": "npm run build",
+    "test:unit": "tsx --test test/unit/**/*.test.ts",
+    "test:integration": "npm run build && tsx --test test/integration/**/*.test.ts",
+    "test:e2e": "npm run build && tsx --test test/e2e/**/*.test.ts",
+    "test": "npm run test:unit && npm run test:integration && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}
