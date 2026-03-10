@@ -175,3 +175,100 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     await rm(sandboxRoot, { recursive: true, force: true });
   }
 });
+
+test("E2E: built CLI honors profile defaultModel and explicit --model override", async () => {
+  const sandboxRoot = await mkdtemp(path.join(os.tmpdir(), "aipanel-e2e-model-"));
+  const workspace = path.join(sandboxRoot, "workspace");
+  const storageRoot = path.join(sandboxRoot, "storage");
+  const fakeBin = path.join(sandboxRoot, "fake-bin");
+
+  await mkdir(workspace, { recursive: true });
+  await mkdir(storageRoot, { recursive: true });
+  await writeFile(path.join(workspace, "context.md"), "# Context\n\nModel routing check.\n", "utf8");
+  await writeFile(
+    path.join(storageRoot, "profile.yml"),
+    ["defaultProvider: claude-code", "defaultModel: claude-sonnet-4-5", "defaultTimeoutMs: 120000"].join("\n"),
+    "utf8",
+  );
+  await createFakeClaudeBinary(fakeBin);
+
+  const env = {
+    ...process.env,
+    PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+    AIPANEL_STORAGE_ROOT: storageRoot,
+  };
+
+  try {
+    const consult = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "consult",
+        "Use the profile default model.",
+        "--json",
+        "--cwd",
+        workspace,
+        "--file",
+        "context.md",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env,
+      },
+    );
+    assert.equal(consult.exitCode, 0, consult.stderr);
+    const consultPayload = JSON.parse(consult.stdout) as ConsultationPayload;
+    assert.equal(consultPayload.model, "claude-sonnet-4-5");
+    assert.match(consultPayload.answer, /Model used: claude-sonnet-4-5/);
+
+    const consultRunDocument = JSON.parse(
+      await readFile(path.join(storageRoot, "runs", `${consultPayload.runId}.json`), "utf8"),
+    ) as {
+      run: {
+        providerResponses: Array<{ model: string }>;
+      };
+    };
+    assert.deepEqual(
+      consultRunDocument.run.providerResponses.map((response) => response.model),
+      ["claude-sonnet-4-5"],
+    );
+
+    const debug = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "debug",
+        "Override the profile model for debug.",
+        "--json",
+        "--cwd",
+        workspace,
+        "--file",
+        "context.md",
+        "--model",
+        "claude-opus-4-1",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env,
+      },
+    );
+    assert.equal(debug.exitCode, 0, debug.stderr);
+    const debugPayload = JSON.parse(debug.stdout) as DebugPayload;
+    assert.equal(debugPayload.model, "claude-opus-4-1");
+    assert.match(debugPayload.details[0] ?? "", /Model used: claude-opus-4-1/);
+
+    const debugRunDocument = JSON.parse(
+      await readFile(path.join(storageRoot, "runs", `${debugPayload.runId}.json`), "utf8"),
+    ) as {
+      run: {
+        providerResponses: Array<{ model: string }>;
+      };
+    };
+    assert.deepEqual(
+      debugRunDocument.run.providerResponses.map((response) => response.model),
+      ["claude-opus-4-1", "claude-opus-4-1", "claude-opus-4-1"],
+    );
+  } finally {
+    await rm(sandboxRoot, { recursive: true, force: true });
+  }
+});
