@@ -44,7 +44,9 @@ function extractSummary(lines: string[]): string {
 function extractFindings(lines: string[]): string[] {
   const bulletLike = lines.filter((line) => /^([-*]|\d+\.)\s+/.test(line));
   if (bulletLike.length > 0) {
-    return bulletLike.slice(0, 8).map((line) => line.replace(/^([-*]|\d+\.)\s+/, "").trim());
+    return bulletLike
+      .slice(0, 8)
+      .map((line) => line.replace(/^([-*]|\d+\.)\s+/, "").trim());
   }
 
   return lines.slice(0, 5);
@@ -57,12 +59,19 @@ function extractSuggestions(lines: string[]): string[] {
 }
 
 export class ResponseNormalizer {
-  normalize({ taskId, providerResponse }: { taskId: string; providerResponse: ProviderResponseLike }): NormalizedResponseLike {
+  normalize({
+    taskId,
+    providerResponse,
+  }: {
+    taskId: string;
+    providerResponse: ProviderResponseLike;
+  }): NormalizedResponseLike {
     const text = providerResponse.rawText ?? "";
     const lines = extractLines(text);
 
     return {
-      normalizedResponseId: providerResponse.normalizedResponseId ?? `${taskId}_normalized`,
+      normalizedResponseId:
+        providerResponse.normalizedResponseId ?? `${taskId}_normalized`,
       taskId,
       provider: providerResponse.provider,
       summary: extractSummary(lines),

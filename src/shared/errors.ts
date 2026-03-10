@@ -5,7 +5,11 @@ export class AipanelError extends Error {
 
   constructor(
     message: string,
-    { code = "AIPANEL_ERROR", details = null, cause = null }: { code?: string; details?: unknown; cause?: unknown } = {},
+    {
+      code = "AIPANEL_ERROR",
+      details = null,
+      cause = null,
+    }: { code?: string; details?: unknown; cause?: unknown } = {},
   ) {
     super(message, cause ? { cause } : undefined);
     this.name = "AipanelError";

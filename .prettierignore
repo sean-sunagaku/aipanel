@@ -1,0 +1,6 @@
+dist
+docs
+tasks
+node_modules
+.serena
+package-lock.json

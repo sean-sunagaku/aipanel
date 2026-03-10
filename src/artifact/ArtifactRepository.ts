@@ -1,5 +1,5 @@
-import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
 import {
   Artifact,
   defaultClock,
@@ -31,17 +31,18 @@ export class ArtifactRepository {
   private readonly idGenerator: IdGenerator;
 
   constructor(options: ArtifactRepositoryOptions = {}) {
-    this.storageRoot = options.storageRoot ?? path.join(process.cwd(), '.aipanel');
+    this.storageRoot =
+      options.storageRoot ?? path.join(process.cwd(), ".aipanel");
     this.clock = options.clock ?? defaultClock;
     this.idGenerator = options.idGenerator ?? defaultIdGenerator;
   }
 
   get artifactsDirectory(): string {
-    return path.join(this.storageRoot, 'artifacts');
+    return path.join(this.storageRoot, "artifacts");
   }
 
   runDirectory(runId?: string | null): string {
-    return path.join(this.artifactsDirectory, runId ?? '_shared');
+    return path.join(this.artifactsDirectory, runId ?? "_shared");
   }
 
   metadataPathFor(artifactId: string, runId?: string | null): string {
@@ -49,9 +50,15 @@ export class ArtifactRepository {
   }
 
   async saveMetadata(artifact: Artifact): Promise<Artifact> {
-    const metadataPath = artifact.metadataPath ?? this.metadataPathFor(artifact.artifactId, artifact.runId);
+    const metadataPath =
+      artifact.metadataPath ??
+      this.metadataPathFor(artifact.artifactId, artifact.runId);
     await mkdir(path.dirname(metadataPath), { recursive: true });
-    await writeFile(metadataPath, JSON.stringify(artifact.toJSON(), null, 2), 'utf8');
+    await writeFile(
+      metadataPath,
+      JSON.stringify(artifact.toJSON(), null, 2),
+      "utf8",
+    );
     return Artifact.fromJSON({
       ...artifact.toJSON(),
       metadataPath,
@@ -59,14 +66,17 @@ export class ArtifactRepository {
   }
 
   async writeTextArtifact(params: ArtifactWriteParams): Promise<Artifact> {
-    const artifactId = this.idGenerator('artifact');
+    const artifactId = this.idGenerator("artifact");
     const runDirectory = this.runDirectory(params.runId);
-    const extension = params.extension ?? '.txt';
-    const contentPath = path.join(runDirectory, `${artifactId}${extension.startsWith('.') ? extension : `.${extension}`}`);
+    const extension = params.extension ?? ".txt";
+    const contentPath = path.join(
+      runDirectory,
+      `${artifactId}${extension.startsWith(".") ? extension : `.${extension}`}`,
+    );
     const metadataPath = this.metadataPathFor(artifactId, params.runId);
 
     await mkdir(runDirectory, { recursive: true });
-    await writeFile(contentPath, params.content, 'utf8');
+    await writeFile(contentPath, params.content, "utf8");
     const fileStat = await stat(contentPath);
 
     const artifact = Artifact.create({
@@ -76,7 +86,9 @@ export class ArtifactRepository {
       metadataPath,
       sizeBytes: fileStat.size,
       createdAt: this.clock(),
-      ...(params.sessionId !== undefined ? { sessionId: params.sessionId } : {}),
+      ...(params.sessionId !== undefined
+        ? { sessionId: params.sessionId }
+        : {}),
       ...(params.runId !== undefined ? { runId: params.runId } : {}),
       ...(params.turnId !== undefined ? { turnId: params.turnId } : {}),
       ...(params.mimeType !== undefined ? { mimeType: params.mimeType } : {}),
@@ -87,7 +99,7 @@ export class ArtifactRepository {
   }
 
   async writeJsonArtifact(
-    params: Omit<ArtifactWriteParams, 'content' | 'extension' | 'mimeType'> & {
+    params: Omit<ArtifactWriteParams, "content" | "extension" | "mimeType"> & {
       content: unknown;
       extension?: string;
     },
@@ -95,18 +107,24 @@ export class ArtifactRepository {
     return this.writeTextArtifact({
       ...params,
       content: JSON.stringify(params.content, null, 2),
-      extension: params.extension ?? '.json',
-      mimeType: 'application/json',
+      extension: params.extension ?? ".json",
+      mimeType: "application/json",
     });
   }
 
-  async get(artifactId: string, runId?: string | null): Promise<Artifact | null> {
+  async get(
+    artifactId: string,
+    runId?: string | null,
+  ): Promise<Artifact | null> {
     try {
-      const raw = await readFile(this.metadataPathFor(artifactId, runId), 'utf8');
+      const raw = await readFile(
+        this.metadataPathFor(artifactId, runId),
+        "utf8",
+      );
       const parsed = JSON.parse(raw) as ArtifactProps;
       return Artifact.fromJSON(parsed);
     } catch (error: unknown) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return null;
       }
 
@@ -120,9 +138,11 @@ export class ArtifactRepository {
     const entries = await readdir(directory, { withFileTypes: true });
     const artifacts = await Promise.all(
       entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith('.artifact.json'))
+        .filter(
+          (entry) => entry.isFile() && entry.name.endsWith(".artifact.json"),
+        )
         .map(async (entry) => {
-          const artifactId = entry.name.replace(/\.artifact\.json$/u, '');
+          const artifactId = entry.name.replace(/\.artifact\.json$/u, "");
           return this.get(artifactId, runId);
         }),
     );

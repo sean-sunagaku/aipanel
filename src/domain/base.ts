@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import crypto from "node:crypto";
 
 export const SCHEMA_VERSION = 1 as const;
 
@@ -7,14 +7,15 @@ export type Clock = () => IsoDateString;
 export type IdGenerator = (prefix: string) => string;
 
 export const defaultClock: Clock = () => new Date().toISOString();
-export const defaultIdGenerator: IdGenerator = (prefix) => `${prefix}_${crypto.randomUUID()}`;
+export const defaultIdGenerator: IdGenerator = (prefix) =>
+  `${prefix}_${crypto.randomUUID()}`;
 
 export function ensureArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
 export function coerceRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
 

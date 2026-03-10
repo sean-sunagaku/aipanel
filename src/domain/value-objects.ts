@@ -236,12 +236,16 @@ export class ConfidenceScore {
     this.reason = props.reason ?? null;
   }
 
-  static from(input: ConfidenceScore | ConfidenceScoreProps | null | undefined): ConfidenceScore | null {
+  static from(
+    input: ConfidenceScore | ConfidenceScoreProps | null | undefined,
+  ): ConfidenceScore | null {
     if (!input) {
       return null;
     }
 
-    return input instanceof ConfidenceScore ? input : new ConfidenceScore(input);
+    return input instanceof ConfidenceScore
+      ? input
+      : new ConfidenceScore(input);
   }
 
   toJSON(): ConfidenceScoreProps {

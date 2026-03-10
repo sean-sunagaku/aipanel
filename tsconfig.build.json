@@ -1,13 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "include": [
-    "bin/**/*.ts",
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "dist",
-    "test",
-    "docs",
-    "tasks"
-  ]
+  "include": ["bin/**/*.ts", "src/**/*.ts"],
+  "exclude": ["dist", "test", "docs", "tasks"]
 }

@@ -128,7 +128,10 @@ export class CommandRouter {
     switch (parsed.command) {
       case "providers": {
         const result = await this.app.listProvidersUseCase.execute();
-        const rendered = this.app.resultRenderer.render(result, parsed.outputFormat);
+        const rendered = this.app.resultRenderer.render(
+          result,
+          parsed.outputFormat,
+        );
         return { output: rendered.text, exitCode: 0 };
       }
       case "consult": {
@@ -144,8 +147,14 @@ export class CommandRouter {
           cwd: parsed.cwd ?? process.cwd(),
           ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
-        const rendered = this.app.resultRenderer.render(result, parsed.outputFormat);
-        return { output: rendered.text, exitCode: result.status === "partial" ? 2 : 0 };
+        const rendered = this.app.resultRenderer.render(
+          result,
+          parsed.outputFormat,
+        );
+        return {
+          output: rendered.text,
+          exitCode: result.status === "partial" ? 2 : 0,
+        };
       }
       case "followup": {
         if (!parsed.sessionId) {
@@ -163,8 +172,14 @@ export class CommandRouter {
           timeoutMs,
           cwd: parsed.cwd ?? process.cwd(),
         });
-        const rendered = this.app.resultRenderer.render(result, parsed.outputFormat);
-        return { output: rendered.text, exitCode: result.status === "partial" ? 2 : 0 };
+        const rendered = this.app.resultRenderer.render(
+          result,
+          parsed.outputFormat,
+        );
+        return {
+          output: rendered.text,
+          exitCode: result.status === "partial" ? 2 : 0,
+        };
       }
       case "debug": {
         const result = await this.app.debugUseCase.execute({
@@ -178,8 +193,14 @@ export class CommandRouter {
           cwd: parsed.cwd ?? process.cwd(),
           ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
-        const rendered = this.app.resultRenderer.render(result, parsed.outputFormat);
-        return { output: rendered.text, exitCode: result.status === "partial" ? 2 : 0 };
+        const rendered = this.app.resultRenderer.render(
+          result,
+          parsed.outputFormat,
+        );
+        return {
+          output: rendered.text,
+          exitCode: result.status === "partial" ? 2 : 0,
+        };
       }
       case "help":
       default:

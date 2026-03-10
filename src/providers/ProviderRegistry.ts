@@ -10,7 +10,9 @@ export class ProviderRegistry {
   readonly #defaultProvider: string;
 
   constructor(options: ProviderRegistryOptions) {
-    this.#adapters = new Map(options.adapters.map((adapter) => [adapter.name, adapter]));
+    this.#adapters = new Map(
+      options.adapters.map((adapter) => [adapter.name, adapter]),
+    );
     this.#defaultProvider = options.defaultProvider;
   }
 

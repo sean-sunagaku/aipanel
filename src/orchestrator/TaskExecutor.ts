@@ -67,10 +67,15 @@ export class TaskExecutor {
     run: RunData;
     task: RunTaskData;
     prompt: string;
-  }): Promise<{ updatedRun: RunData; normalizedResponse: NormalizedResponseData }> {
+  }): Promise<{
+    updatedRun: RunData;
+    normalizedResponse: NormalizedResponseData;
+  }> {
     const provider = input.task.provider ?? "claude-code";
     const adapter = this.#providerRegistry.get(provider);
-    const providerRef = input.session.providerRefs.find((ref) => ref.provider === provider) ?? null;
+    const providerRef =
+      input.session.providerRefs.find((ref) => ref.provider === provider) ??
+      null;
     const providerResponse = await adapter.call({
       provider,
       prompt: input.prompt,
@@ -111,7 +116,10 @@ export class TaskExecutor {
       findings: normalizedResponse.findings,
       citations: normalizedResponse.citations,
       confidence: normalizedResponse.confidence,
-      sourceArtifactIds: [rawTextArtifact.artifactId, rawJsonArtifact.artifactId],
+      sourceArtifactIds: [
+        rawTextArtifact.artifactId,
+        rawJsonArtifact.artifactId,
+      ],
       providerResponse,
       normalizedResponse,
     });

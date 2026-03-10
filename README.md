@@ -5,12 +5,14 @@
 現時点の phase 1 では、`claude-code` 単独 provider を前提に、`Session / Run / Artifact` を `aipanel` 側で正本管理します。
 
 ## Current Status
+
 - phase 1 実装済み
 - provider は `claude-code` のみ
 - 利用可能 command は `providers`, `consult`, `followup`, `debug`
 - `compare` は phase 2 予約で、内部 placeholder のみ残している
 
 ## Setup
+
 ```bash
 npm install
 npm run build
@@ -102,6 +104,7 @@ make publish
 ```
 
 ## Commands
+
 ```bash
 node dist/bin/aipanel.js providers [--json]
 node dist/bin/aipanel.js consult "<question>" [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
@@ -127,6 +130,7 @@ node dist/bin/aipanel.js debug "この不具合の根本原因は？" --cwd ./re
 ```
 
 ## Runtime Notes
+
 - `--cwd` は provider 実行ディレクトリだけでなく、`--file`, `--diff`, `--log` の相対パス解決にも使われます
 - `--model` は `claude-code` provider にそのまま渡されます。未指定時は `.aipanel/profile.yml` の `defaultModel`、さらに未設定なら `sonnet` を使います
 - `AIPANEL_STORAGE_ROOT` を指定すると、session / run / artifact の保存先を切り替えられます
@@ -149,6 +153,7 @@ defaultTimeoutMs: 120000
 ```
 
 ## Storage Layout
+
 デフォルトでは `./.aipanel` 配下に保存します。
 
 ```text
@@ -170,19 +175,26 @@ defaultTimeoutMs: 120000
 - `artifacts/`: context bundle, provider raw text/json, debug task outputs
 
 ## Tests
+
 ```bash
+npm run lint
+npm run fmt:check
 npm run typecheck
 npm run test:unit
 npm run test:integration
 npm run test:e2e
 npm test
+npm run audit
 ```
 
 `Makefile` 経由でも同じ確認ができます。
 
 ```bash
+make lint
+make fmt-check
 make typecheck
 make test
+make audit
 ```
 
 テストの役割:
@@ -193,10 +205,14 @@ make test
 - integration / E2E では `defaultModel` fallback と `--model` override の両方を確認
 
 ## Verified Smoke Checks
+
 2026-03-10 JST 時点で、以下を実行確認済みです。
 
+- `npm run lint`
+- `npm run fmt:check`
 - `npm run typecheck`
 - `npm test`
+- `npm run audit`
 - `npm run build`
 - `npm run verify:package`
 - `npm run dev -- providers --json`
@@ -212,6 +228,7 @@ make test
 - 実 Claude Code を使った `consult --model sonnet`
 
 ## Repo Skill
+
 - repo-local Codex skill は [.agent/skills/aipanel/SKILL.md](./.agent/skills/aipanel/SKILL.md) にあります
 - install / build / command usage / storage inspection / tests / E2E の入口を 1 本にまとめています
 - アーキテクチャ図の再生成用 Skill は [.agent/skills/aipanel-diagrams/SKILL.md](./.agent/skills/aipanel-diagrams/SKILL.md) にあります
@@ -219,6 +236,7 @@ make test
 - draw.io 専用 sub-agent 定義は [drawio-diagrammer.yaml](./docs/skills/aipanel-diagrams/subagents/drawio-diagrammer.yaml) にあります
 
 ## Architecture Docs
+
 - [Overview](./docs/rearchitecture/content_rearchitecture_2026-03-10/00_overview/00_overview.md)
 - [Current Implementation Diagrams](./docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams/12_current-implementation-diagrams.md)
 - [Comparison](./docs/rearchitecture/content_rearchitecture_2026-03-10/06_comparison/06_comparison.md)

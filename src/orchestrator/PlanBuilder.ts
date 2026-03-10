@@ -1,7 +1,11 @@
 import type { ContextBundleData, PlanTaskSpec } from "../shared/contracts.js";
 
 export class PlanBuilder {
-  buildDirectPlan(question: string, contextBundle: ContextBundleData, provider: string): PlanTaskSpec[] {
+  buildDirectPlan(
+    question: string,
+    contextBundle: ContextBundleData,
+    provider: string,
+  ): PlanTaskSpec[] {
     return [
       {
         taskKind: "consultation",
@@ -12,7 +16,11 @@ export class PlanBuilder {
     ];
   }
 
-  buildDebugPlan(question: string, contextBundle: ContextBundleData, provider: string): PlanTaskSpec[] {
+  buildDebugPlan(
+    question: string,
+    contextBundle: ContextBundleData,
+    provider: string,
+  ): PlanTaskSpec[] {
     return [
       {
         taskKind: "root-cause-analysis",
@@ -47,7 +55,11 @@ export class PlanBuilder {
     ];
   }
 
-  #buildPrompt(label: string, question: string, contextBundle: ContextBundleData): string {
+  #buildPrompt(
+    label: string,
+    question: string,
+    contextBundle: ContextBundleData,
+  ): string {
     const sections = [
       `Task: ${label}`,
       `Question:\n${question.trim()}`,

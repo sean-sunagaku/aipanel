@@ -241,7 +241,10 @@ export interface RunCoordinatorPort {
     validationStatus: string;
     comparisonReport?: ComparisonReportData | null;
   }): Promise<RunData>;
-  markRunFailed(input: { runId: string; errorMessage: string }): Promise<RunData>;
+  markRunFailed(input: {
+    runId: string;
+    errorMessage: string;
+  }): Promise<RunData>;
   loadRun(runId: string): Promise<RunData | null>;
 }
 

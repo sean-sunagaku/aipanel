@@ -1,5 +1,5 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { Run, type RunProps } from "../domain/index.js";
 
 export interface RunRepositoryOptions {
@@ -14,11 +14,12 @@ export class RunRepository {
   private readonly storageRoot: string;
 
   constructor(options: RunRepositoryOptions = {}) {
-    this.storageRoot = options.storageRoot ?? path.join(process.cwd(), '.aipanel');
+    this.storageRoot =
+      options.storageRoot ?? path.join(process.cwd(), ".aipanel");
   }
 
   get runsDirectory(): string {
-    return path.join(this.storageRoot, 'runs');
+    return path.join(this.storageRoot, "runs");
   }
 
   filePathFor(runId: string): string {
@@ -28,17 +29,21 @@ export class RunRepository {
   async save(run: Run): Promise<Run> {
     await mkdir(this.runsDirectory, { recursive: true });
     const document: RunDocument = { run: run.toJSON() };
-    await writeFile(this.filePathFor(run.runId), JSON.stringify(document, null, 2), 'utf8');
+    await writeFile(
+      this.filePathFor(run.runId),
+      JSON.stringify(document, null, 2),
+      "utf8",
+    );
     return run;
   }
 
   async get(runId: string): Promise<Run | null> {
     try {
-      const raw = await readFile(this.filePathFor(runId), 'utf8');
+      const raw = await readFile(this.filePathFor(runId), "utf8");
       const parsed = JSON.parse(raw) as RunDocument | RunProps;
-      return Run.fromJSON('run' in parsed ? parsed.run : parsed);
+      return Run.fromJSON("run" in parsed ? parsed.run : parsed);
     } catch (error: unknown) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return null;
       }
 
@@ -61,9 +66,9 @@ export class RunRepository {
     const entries = await readdir(this.runsDirectory, { withFileTypes: true });
     const runs = await Promise.all(
       entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
         .map(async (entry) => {
-          const runId = entry.name.replace(/\.json$/u, '');
+          const runId = entry.name.replace(/\.json$/u, "");
           return this.get(runId);
         }),
     );

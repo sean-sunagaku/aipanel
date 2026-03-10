@@ -24,16 +24,24 @@ export function buildPromptWithTranscript(input: {
   const transcript = buildConversationTranscript(input.session);
   const contextSections = [
     input.contextBundle.summary,
-    ...(input.contextBundle.files ?? []).map((file) => `File: ${file.path}\n${file.content ?? ""}`),
-    ...(input.contextBundle.diffs ?? []).map((diff) => `Diff: ${diff.path}\n${diff.content ?? ""}`),
-    ...(input.contextBundle.logs ?? []).map((log) => `Log: ${log.path}\n${log.content ?? ""}`),
+    ...(input.contextBundle.files ?? []).map(
+      (file) => `File: ${file.path}\n${file.content ?? ""}`,
+    ),
+    ...(input.contextBundle.diffs ?? []).map(
+      (diff) => `Diff: ${diff.path}\n${diff.content ?? ""}`,
+    ),
+    ...(input.contextBundle.logs ?? []).map(
+      (log) => `Log: ${log.path}\n${log.content ?? ""}`,
+    ),
   ].filter(Boolean);
 
   return [
     `Mode: ${input.modeLabel}`,
     transcript ? `Conversation so far:\n${transcript}` : "",
     `New user question:\n${input.question.trim()}`,
-    contextSections.length > 0 ? `Context:\n${contextSections.join("\n\n")}` : "",
+    contextSections.length > 0
+      ? `Context:\n${contextSections.join("\n\n")}`
+      : "",
     "Answer in a concise but useful way. Prefer concrete next steps.",
   ]
     .filter(Boolean)

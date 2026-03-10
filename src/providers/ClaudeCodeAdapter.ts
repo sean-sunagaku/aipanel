@@ -1,6 +1,10 @@
 import { spawn } from "node:child_process";
 
-import type { ProviderAdapter, ProviderCallPlan, ProviderCallResult } from "./ProviderAdapter.js";
+import type {
+  ProviderAdapter,
+  ProviderCallPlan,
+  ProviderCallResult,
+} from "./ProviderAdapter.js";
 
 interface ClaudeJsonResponse {
   result?: string;
@@ -96,7 +100,8 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
     const parsed = JSON.parse(stdout) as ClaudeJsonResponse;
     const model = parsed.model ?? input.model ?? "sonnet";
     const subtype = parsed.subtype ?? null;
-    const isError = parsed.is_error === true || !isSuccessSubtype(parsed.subtype);
+    const isError =
+      parsed.is_error === true || !isSuccessSubtype(parsed.subtype);
     const externalRefs = parsed.session_id
       ? [
           {

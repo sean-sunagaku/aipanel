@@ -28,7 +28,9 @@ export class SessionManager {
     this.idGenerator = options.idGenerator ?? defaultIdGenerator;
   }
 
-  async startOrResume(params: { sessionId?: string; title?: string } = {}): Promise<Session> {
+  async startOrResume(
+    params: { sessionId?: string; title?: string } = {},
+  ): Promise<Session> {
     if (params.sessionId) {
       return this.repository.require(params.sessionId);
     }
@@ -62,23 +64,34 @@ export class SessionManager {
     return turn;
   }
 
-  async appendUserTurn(session: Session, content: string, artifactIds: string[] = []): Promise<SessionTurn> {
+  async appendUserTurn(
+    session: Session,
+    content: string,
+    artifactIds: string[] = [],
+  ): Promise<SessionTurn> {
     return this.appendTurn(session, {
-      role: 'user',
+      role: "user",
       content,
       artifactIds,
     });
   }
 
-  async appendAssistantTurn(session: Session, content: string, artifactIds: string[] = []): Promise<SessionTurn> {
+  async appendAssistantTurn(
+    session: Session,
+    content: string,
+    artifactIds: string[] = [],
+  ): Promise<SessionTurn> {
     return this.appendTurn(session, {
-      role: 'assistant',
+      role: "assistant",
       content,
       artifactIds,
     });
   }
 
-  async updateProviderRef(session: Session, providerRef: ProviderRef | ProviderRefProps): Promise<Session> {
+  async updateProviderRef(
+    session: Session,
+    providerRef: ProviderRef | ProviderRefProps,
+  ): Promise<Session> {
     const resolved = ProviderRef.from(providerRef);
     session.upsertProviderRef(
       new ProviderRef({
