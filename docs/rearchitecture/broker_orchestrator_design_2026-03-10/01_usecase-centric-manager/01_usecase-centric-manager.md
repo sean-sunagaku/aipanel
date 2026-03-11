@@ -1,5 +1,9 @@
 # Pattern 1: UseCase-Centric Manager
 
+## Historical Note
+この文書は設計比較または実装履歴の資料であり、2026-03-11 時点の現行コード構成とは一部異なる。`WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder などへの言及は履歴として読むこと。
+
+
 ## Summary
 各 command 用の use case が、自分の中で planner / provider 呼び出し / merge / validate までを管理する構成である。  
 最小の service object 群で始めやすい。

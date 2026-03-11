@@ -1,5 +1,8 @@
 # Implementation Plan
 
+## Historical Note
+この implementation plan は 2026-03-10 時点の実装計画の記録である。2026-03-11 に `WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder は削除されているため、関連する項目は履歴として読むこと。
+
 ## Document Status
 - Status: Proposed
 - Last Updated: 2026-03-10

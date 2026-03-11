@@ -1,5 +1,9 @@
 # Data Flow For Run-Centric Ledger
 
+## Historical Note
+この文書は設計比較または実装履歴の資料であり、2026-03-11 時点の現行コード構成とは一部異なる。`WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder などへの言及は履歴として読むこと。
+
+
 ## Goal
 このフローでは、すべての command 実行が `Run` を作る。  
 simple path でも complex path でも、内部の追跡単位を `Run` に揃えることで、データ保持と検証の仕方を統一する。

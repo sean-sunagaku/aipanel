@@ -1,5 +1,8 @@
 # Recommended Architecture
 
+## Current Code Note
+2026-03-11 時点の現行コードでは、専用の `WorkflowSelector`、`src/orchestrator/*`、phase 2 placeholder の `CompareUseCase` は削除済みである。`debug` の orchestrated flow は `DebugUseCase` が `RunCoordinator` と `ComparisonEngine` を使って直接管理する。
+
 ## Recommended Direction
 `aipanel` は、`Option 2: CLI Broker` を中核に採用し、`Option 5: Multi-Agent Job Orchestrator` の要素を broker 内の実行管理として組み込む構成を推奨する。
 
@@ -22,15 +25,10 @@ clients
 
     -> src/cli/aipanel.ts
         -> command router
-        -> workflow selector
         -> use case services
             -> session manager
             -> run coordinator
-                -> context collector
-                -> plan builder
-                -> task executor
-                -> result merger
-                -> validation runner
+            -> context collector
             -> provider registry
             -> response normalizer
             -> comparison engine
@@ -60,13 +58,12 @@ optional later
 |---|---|
 | `src/cli/aipanel.ts` | TypeScript source entrypoint。引数解析、command 選択、exit code 制御 |
 | `dist/bin/aipanel.js` | build 後の CLI 実行成果物 |
-| `src/usecases` | `consult`, `debug`, `followup`, `compare`, `providers` の実行 |
+| `src/usecases` | `consult`, `debug`, `followup`, `providers` の実行 |
 | `src/session` | session, turn, provider conversation ref の保存・取得 |
-| `src/run` | run, task result, validation result の保存・取得 |
-| `src/orchestrator` | planner, executor, merger, validator の調停 |
+| `src/run` | run, task, result, comparison report の保存・取得 |
 | `src/context` | ファイル、差分、ログ、対象範囲の収集 |
 | `src/providers` | provider registry と adapter 実装 |
-| `src/compare` | 複数 provider 出力の正規化と比較 |
+| `src/compare` | provider 出力の正規化と debug 集約 |
 | `src/output` | terminal 向け表示、JSON 出力、要約整形 |
 
 phase 1 の concrete 実装は `claude-code` adapter のみとする。  
@@ -76,18 +73,17 @@ phase 1 の concrete 実装は `claude-code` adapter のみとする。
 - `Session`, `Run`, `Artifact` は aggregate root として `aipanel` が持つ
 - `SessionTurn`, `RunTask`, `TaskResult`, `ContextBundle`, `ProviderResponse`, `NormalizedResponse` は child / trace entity として扱う
 - provider 固有の thread / conversation ID は `Session` 配下の `ProviderRef` value object として保存する
-- compare の入力は raw response ではなく normalized response を使う
-- multi-agent 要素は `src/orchestrator` に閉じ込め、provider adapter そのものへ混ぜない
+- 集約や比較の入力は raw response ではなく normalized response を使う
+- orchestrated な debug 制御は `DebugUseCase` と `RunCoordinator` に閉じ込め、provider adapter そのものへ混ぜない
 - CLI request DTO や render 用 view model は entity にしない
 
 ## Command Mapping
 
 | Command | 主ユースケース | 想定 mode |
 |---|---|---|
-| `aipanel consult` | `ConsultUseCase` | direct / orchestrated |
+| `aipanel consult` | `ConsultUseCase` | direct |
 | `aipanel debug` | `DebugUseCase` | orchestrated が主 |
 | `aipanel followup` | `FollowupUseCase` | direct が主 |
-| `aipanel compare` | `CompareUseCase` | phase 2 以降。phase 1 は optional |
 | `aipanel providers` | `ListProvidersUseCase` | direct |
 
 ## Recommended Evolution Path
@@ -95,8 +91,8 @@ phase 1 の concrete 実装は `claude-code` adapter のみとする。
 2. `session` を導入して `followup` を成立させる
 3. `run` と `artifact` を導入して実行単位を分離する
 4. Claude Code 単独での normalized response と artifact 管理を固める
-5. planner / collector / reviewer / merger / validator を `Run` 配下の role として組み込み、orchestrated mode を有効化する
-6. 2 つ目の provider が必要になった時点で `compare` を本格導入する
+5. `DebugUseCase` 内で role-based task loop を回し、orchestrated mode を有効化する
+6. 2 つ目以上の provider を本格比較したくなった時点で `compare` を導入する
 7. 外部 client 需要が出たら MCP facade を追加する
 
 ## Linked Design Docs

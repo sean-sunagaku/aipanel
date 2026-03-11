@@ -1,5 +1,8 @@
 # TASK-02: Scaffold Node CLI foundation
 
+## Historical Note
+このタスク記録にある `WorkflowSelector` は 2026-03-11 の cleanup で削除済み。
+
 ## Status
 - Status: done
 - Owner: main

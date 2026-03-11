@@ -55,10 +55,6 @@
       "types": "./dist/src/domain/index.d.ts",
       "import": "./dist/src/domain/index.js"
     },
-    "./orchestrator": {
-      "types": "./dist/src/orchestrator/index.d.ts",
-      "import": "./dist/src/orchestrator/index.js"
-    },
     "./output": {
       "types": "./dist/src/output/index.d.ts",
       "import": "./dist/src/output/index.js"
@@ -101,6 +97,8 @@
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "dev": "tsx bin/aipanel.ts",
     "start": "node dist/bin/aipanel.js",
+    "worktree:add": "node scripts/add-worktree.mjs",
+    "worktree:list": "git worktree list",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "fmt": "prettier . --write",

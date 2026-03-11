@@ -2,8 +2,11 @@
 
 ## Document Status
 - Status: Accepted
-- Last Updated: 2026-03-10
+- Last Updated: 2026-03-11
 - Position: `aipanel` の正式採用アーキテクチャ
+
+## Current Code Note
+2026-03-11 時点の現行コードでは、専用の `WorkflowSelector`、`src/orchestrator/*`、phase 2 placeholder の `CompareUseCase` は削除済みである。`debug` の orchestrated flow は `DebugUseCase` が内部で role-based task を作り、`RunCoordinator` と `ComparisonEngine` で集約する。
 
 ## Decision Statement
 `aipanel` の正式アーキテクチャは、外側を `CLI Broker`、内側の実行モデルを `Run-Centric Ledger` とする。
@@ -19,15 +22,15 @@
 - 将来の MCP / daemon 化にもモデルを持ち運びやすい
 
 ## Official Provider Scope
-phase 1 の concrete provider は `Claude Code` のみとする。  
-これは「Claude Code 専用設計に閉じる」という意味ではなく、現在の実装対象を 1 つに絞るという意味である。
+現行コードは `claude-code` と `codex` の 2 provider adapter を持つ。  
+ただし設計原則は「provider 固有 state を正本にしない」ことで共通である。
 
 したがって、今の正式スコープは以下である。
 
-- concrete adapter は `claude-code` のみ
+- concrete adapter は `claude-code`, `codex`
 - `ProviderRegistry` と `ProviderAdapter` の境界は残す
 - `compare` は phase 2 以降の本格導入対象とする
-- multi-agent 的な役割分担は、まず Claude Code 単独の orchestrated mode で成立させる
+- orchestrated な役割分担は、まず `debug` の role-based task loop で成立させる
 
 ## Official Architecture Summary
 
@@ -95,16 +98,10 @@ clients
 
     -> src/cli/aipanel.ts
         -> CommandRouter
-        -> WorkflowSelector
         -> UseCases
             -> SessionManager
             -> RunCoordinator
-                -> PlanBuilder
-                -> ContextCollector
-                -> TaskScheduler
-                -> TaskExecutor
-                -> ResultMerger
-                -> ValidationRunner
+            -> ContextCollector
             -> ProviderRegistry
             -> ResponseNormalizer
             -> ComparisonEngine
@@ -131,13 +128,12 @@ future later
 | `src/cli/aipanel.ts` | TypeScript の source entrypoint。CLI 入力、引数解析、exit code 制御 |
 | `dist/bin/aipanel.js` | build 後に `aipanel` コマンドから起動される成果物 |
 | `src/domain` | entity と value object の定義 |
-| `src/usecases` | `consult`, `debug`, `followup`, `compare`, `providers` のアプリケーションフロー |
+| `src/usecases` | `consult`, `debug`, `followup`, `providers` のアプリケーションフロー |
 | `src/session` | `Session` aggregate と `SessionTurn` entity の永続化調停 |
 | `src/run` | `Run`, `RunTask`, `TaskResult`, `ContextBundle`, `ProviderResponse`, `NormalizedResponse` の正本管理 |
-| `src/orchestrator` | planner / scheduler / executor / merger / validator の調停 |
 | `src/context` | ファイル、差分、ログ、metadata の収集 |
-| `src/providers` | phase 1 では `claude-code` adapter と registry |
-| `src/compare` | response 正規化と比較レポート生成 |
+| `src/providers` | `claude-code`, `codex` adapter と registry |
+| `src/compare` | response 正規化と debug 集約レポート生成 |
 | `src/artifact` | `Artifact` entity と export 物の保存 |
 | `src/output` | terminal / JSON 向けの最終整形 |
 
@@ -192,12 +188,13 @@ future later
 - ただし内部モデル上は必ず `Run` を作る
 
 ### Orchestrated Mode
-- `debug`, `compare`, 難しい `consult` 向け
+- `debug` 向け
 - `Run` 配下に複数 task を作る
-- planner / collector / reviewer / merger / validator を role として有効化する
-- phase 1 では reviewer は Claude Code 単独で観点別 task を回す
+- planner / reviewer / validator を role として有効化する
+- 現行コードでは `DebugUseCase` が 3 role を直列実行し、`ComparisonEngine` で要約を集約する
 
 ## Future Multi-Agent Role Mapping
+この節のクラス名は将来案であり、2026-03-11 時点の現行コードに専用モジュールは存在しない。
 
 | Role | Adopted Class Direction | Stored In |
 |---|---|---|
@@ -214,7 +211,6 @@ future later
 | `aipanel consult` | Session start/resume -> Run -> provider execution | direct |
 | `aipanel debug` | Session -> Run -> multi-task investigation | orchestrated |
 | `aipanel followup` | Existing session -> new run -> provider execution | direct |
-| `aipanel compare` | Session -> Run -> multi-review tasks -> merge | phase 2 以降を想定 |
 | `aipanel providers` | registry lookup only | direct |
 
 ## Formal Non-Goals

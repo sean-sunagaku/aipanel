@@ -1,5 +1,9 @@
 # Option 5: Multi-Agent Job Orchestrator
 
+## Historical Note
+この文書は設計比較または実装履歴の資料であり、2026-03-11 時点の現行コード構成とは一部異なる。`WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder などへの言及は履歴として読むこと。
+
+
 ## Summary
 1 つの相談や不具合に対して、collector / planner / provider reviewer / merger / validator の役割を分け、複数の処理を束ねて結果を返す構成である。
 

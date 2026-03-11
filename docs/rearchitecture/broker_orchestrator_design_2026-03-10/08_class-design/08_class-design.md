@@ -1,5 +1,9 @@
 # Class Design For Run-Centric Ledger
 
+## Historical Note
+この文書は設計比較または実装履歴の資料であり、2026-03-11 時点の現行コード構成とは一部異なる。`WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder などへの言及は履歴として読むこと。
+
+
 ## Design Goal
 この設計では、`Session` と `Run` を分けることで、会話継続と実行追跡を別責務にする。  
 クラス設計の中心は `RunCoordinator` であり、orchestrator 要素はここに集約する。

@@ -1,5 +1,9 @@
 # Pattern 3: Run-Centric Ledger
 
+## Historical Note
+この文書は設計比較または実装履歴の資料であり、2026-03-11 時点の現行コード構成とは一部異なる。`WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder などへの言及は履歴として読むこと。
+
+
 ## Summary
 1 回の実行を `Run` として独立管理し、その中に plan, task, result, merge, validation を記録する構成である。  
 `Session` は会話の継続単位、`Run` は実行の追跡単位として分離する。

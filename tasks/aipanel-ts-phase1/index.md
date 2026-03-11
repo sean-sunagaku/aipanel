@@ -1,5 +1,8 @@
 # aipanel TS Phase 1 Task Index
 
+## Historical Note
+このタスク群は 2026-03-10 時点の実装ログである。2026-03-11 の cleanup で `WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder は削除されているため、関連記述は履歴として読むこと。
+
 ## Status Summary
 - `done`: 7
 - `doing`: 0
