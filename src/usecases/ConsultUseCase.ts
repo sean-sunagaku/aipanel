@@ -83,7 +83,7 @@ export class ConsultUseCase {
   }
 
   async execute(input: ConsultationInput): Promise<ConsultationResult> {
-    const model = input.model ?? "sonnet";
+    const model = input.model;
     const session = await this.sessionManager.startOrResume({
       title: input.title ?? input.question.slice(0, 80),
       ...(input.sessionId ? { sessionId: input.sessionId } : {}),
@@ -138,8 +138,8 @@ export class ConsultUseCase {
       provider: input.providerName,
       prompt,
       cwd: input.cwd,
-      model,
       timeoutMs: input.timeoutMs,
+      ...(model !== undefined ? { model } : {}),
     });
 
     const rawJsonArtifact = await this.artifactRepository.writeJsonArtifact({
@@ -238,7 +238,7 @@ export class ConsultUseCase {
     contextText: string,
   ): string {
     const sections = [
-      "You are Claude Code running under aipanel.",
+      "You are an AI coding assistant running under aipanel.",
       transcript ? `Conversation so far:\n${transcript}` : "",
       contextText ? `Additional context:\n${contextText}` : "",
       `Current question:\n${question}`,

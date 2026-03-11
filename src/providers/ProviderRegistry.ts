@@ -20,6 +20,10 @@ export class ProviderRegistry {
     return [...this.#adapters.keys()].sort();
   }
 
+  getDefaultModel(name?: string): string | undefined {
+    return this.get(name).defaultModel;
+  }
+
   get(name?: string): ProviderAdapter {
     const providerName = name ?? this.#defaultProvider;
     const adapter = this.#adapters.get(providerName);

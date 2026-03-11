@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { createFakeClaudeBinary } from "../support/fakeClaude.js";
+import { createFakeCodexBinary } from "../support/fakeCodex.js";
 import { BUILT_CLI_PATH, REPO_ROOT } from "../support/testPaths.js";
 import { runCli } from "../support/runCli.js";
 
@@ -53,6 +54,7 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     "utf8",
   );
   await createFakeClaudeBinary(fakeBin);
+  await createFakeCodexBinary(fakeBin);
 
   const env = {
     ...process.env,
@@ -71,7 +73,7 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     );
     assert.equal(providers.exitCode, 0, providers.stderr);
     const providersPayload = JSON.parse(providers.stdout) as ProvidersPayload;
-    assert.deepEqual(providersPayload.providers, ["claude-code"]);
+    assert.deepEqual(providersPayload.providers, ["claude-code", "codex"]);
 
     const consult = await runCli(
       process.execPath,
@@ -194,6 +196,132 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
   }
 });
 
+test("E2E: built CLI can use codex as the default provider with the same direct commands", async () => {
+  const sandboxRoot = await mkdtemp(
+    path.join(os.tmpdir(), "aipanel-e2e-codex-"),
+  );
+  const workspace = path.join(sandboxRoot, "workspace");
+  const storageRoot = path.join(sandboxRoot, "storage");
+  const fakeBin = path.join(sandboxRoot, "fake-bin");
+
+  await mkdir(workspace, { recursive: true });
+  await mkdir(storageRoot, { recursive: true });
+  await writeFile(
+    path.join(workspace, "context.md"),
+    "# Context\n\nCodex provider path.\n",
+    "utf8",
+  );
+  await writeFile(
+    path.join(workspace, "error.log"),
+    "WARN review budget nearly exhausted\n",
+    "utf8",
+  );
+  await writeFile(
+    path.join(storageRoot, "profile.yml"),
+    ["defaultProvider: codex", "defaultTimeoutMs: 120000"].join("\n"),
+    "utf8",
+  );
+  await createFakeClaudeBinary(fakeBin);
+  await createFakeCodexBinary(fakeBin);
+
+  const env = {
+    ...process.env,
+    PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+    AIPANEL_STORAGE_ROOT: storageRoot,
+  };
+
+  try {
+    const consult = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "consult",
+        "Give the highest-priority review note.",
+        "--json",
+        "--cwd",
+        workspace,
+        "--file",
+        "context.md",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env,
+      },
+    );
+    assert.equal(consult.exitCode, 0, consult.stderr);
+    const consultPayload = JSON.parse(consult.stdout) as ConsultationPayload;
+    assert.equal(consultPayload.provider, "codex");
+    assert.equal(consultPayload.model, "configured-default");
+    assert.match(consultPayload.answer, /Codex answer/);
+
+    const followup = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "followup",
+        "--session",
+        consultPayload.sessionId,
+        "Now summarize the followup risk.",
+        "--json",
+        "--cwd",
+        workspace,
+      ],
+      {
+        cwd: REPO_ROOT,
+        env,
+      },
+    );
+    assert.equal(followup.exitCode, 0, followup.stderr);
+    const followupPayload = JSON.parse(followup.stdout) as ConsultationPayload;
+    assert.equal(followupPayload.provider, "codex");
+    assert.equal(followupPayload.model, "configured-default");
+
+    const debug = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "debug",
+        "Review the likely regression in one paragraph.",
+        "--json",
+        "--cwd",
+        workspace,
+        "--file",
+        "context.md",
+        "--log",
+        "error.log",
+        "--model",
+        "codex-reviewer",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env,
+      },
+    );
+    assert.equal(debug.exitCode, 0, debug.stderr);
+    const debugPayload = JSON.parse(debug.stdout) as DebugPayload;
+    assert.equal(debugPayload.provider, "codex");
+    assert.equal(debugPayload.model, "codex-reviewer");
+    assert.equal(debugPayload.details.length, 3);
+
+    const debugRunDocument = JSON.parse(
+      await readFile(
+        path.join(storageRoot, "runs", `${debugPayload.runId}.json`),
+        "utf8",
+      ),
+    ) as {
+      run: {
+        providerResponses: Array<{ model: string }>;
+      };
+    };
+    assert.deepEqual(
+      debugRunDocument.run.providerResponses.map((response) => response.model),
+      ["codex-reviewer", "codex-reviewer", "codex-reviewer"],
+    );
+  } finally {
+    await rm(sandboxRoot, { recursive: true, force: true });
+  }
+});
+
 test("E2E: built CLI honors profile defaultModel and explicit --model override", async () => {
   const sandboxRoot = await mkdtemp(
     path.join(os.tmpdir(), "aipanel-e2e-model-"),
@@ -219,6 +347,7 @@ test("E2E: built CLI honors profile defaultModel and explicit --model override",
     "utf8",
   );
   await createFakeClaudeBinary(fakeBin);
+  await createFakeCodexBinary(fakeBin);
 
   const env = {
     ...process.env,

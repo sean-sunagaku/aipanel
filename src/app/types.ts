@@ -42,6 +42,6 @@ export interface ProviderDescriptor {
 
 export interface Profile {
   defaultProvider: string;
-  defaultModel: string;
+  defaultModel?: string;
   storageRoot: string;
 }

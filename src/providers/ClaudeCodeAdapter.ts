@@ -94,6 +94,7 @@ async function runClaude(plan: ProviderCallPlan): Promise<string> {
 
 export class ClaudeCodeAdapter implements ProviderAdapter {
   readonly name = "claude-code" as const;
+  readonly defaultModel = "sonnet" as const;
 
   async call(input: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runClaude(input);

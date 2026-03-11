@@ -1,13 +1,13 @@
 # aipanel
 
-`aipanel` は、Claude Code を provider として使いながら、相談、継続会話、デバッグ調査を CLI で進めるための TypeScript 製 broker / orchestrator です。
+`aipanel` は、Claude Code と Codex を provider として使いながら、相談、継続会話、デバッグ調査を CLI で進めるための TypeScript 製 broker / orchestrator です。
 
-現時点の phase 1 では、`claude-code` 単独 provider を前提に、`Session / Run / Artifact` を `aipanel` 側で正本管理します。
+現時点の phase 1 では、`claude-code` と `codex` の direct provider を前提に、`Session / Run / Artifact` を `aipanel` 側で正本管理します。
 
 ## Current Status
 
 - phase 1 実装済み
-- provider は `claude-code` のみ
+- provider は `claude-code`, `codex`
 - 利用可能 command は `providers`, `consult`, `followup`, `debug`
 - `compare` は phase 2 予約で、内部 placeholder のみ残している
 
@@ -107,9 +107,9 @@ make publish
 
 ```bash
 node dist/bin/aipanel.js providers [--json]
-node dist/bin/aipanel.js consult "<question>" [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--cwd <dir>] [--model <name>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js debug "<question>" [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js consult "<question>" [--provider <name>] [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--provider <name>] [--cwd <dir>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js debug "<question>" [--provider <name>] [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
 ```
 
 repo からのショートカット:
@@ -125,6 +125,7 @@ make run ARGS='debug "この不具合の根本原因は？" --json --timeout 600
 ```bash
 node dist/bin/aipanel.js consult "この設計どう？" --json
 node dist/bin/aipanel.js consult "このログから原因わかる？" --cwd ./repo --log logs/app.log --file src/server.ts --model sonnet --json
+node dist/bin/aipanel.js consult "この差分レビューして" --provider codex --cwd ./repo --file src/server.ts --log logs/app.log --json
 node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --model sonnet --json
 node dist/bin/aipanel.js debug "この不具合の根本原因は？" --cwd ./repo --file src/cache.ts --log logs/error.log --model sonnet --json
 ```
@@ -132,9 +133,9 @@ node dist/bin/aipanel.js debug "この不具合の根本原因は？" --cwd ./re
 ## Runtime Notes
 
 - `--cwd` は provider 実行ディレクトリだけでなく、`--file`, `--diff`, `--log` の相対パス解決にも使われます
-- `--model` は `claude-code` provider にそのまま渡されます。未指定時は `.aipanel/profile.yml` の `defaultModel`、さらに未設定なら `sonnet` を使います
+- `--model` は選択した provider にそのまま渡されます。未指定時は `.aipanel/profile.yml` の `defaultModel` を優先し、さらに未設定なら provider 側の既定を使います
 - `AIPANEL_STORAGE_ROOT` を指定すると、session / run / artifact の保存先を切り替えられます
-- `followup` は Claude Code の native resume を正本にせず、`aipanel` 側の session 履歴再構築を基本にしています
+- `followup` は Claude Code / Codex の native resume を正本にせず、`aipanel` 側の session 履歴再構築を基本にしています
 - `debug` の `--timeout` は orchestrated mode の各 provider call に適用されるので、合計所要時間は 3 倍近くになることがあります
 
 例:
@@ -151,6 +152,8 @@ defaultProvider: claude-code
 defaultModel: sonnet
 defaultTimeoutMs: 120000
 ```
+
+Codex を既定 provider にしたい場合は、`defaultProvider: codex` を指定したうえで `defaultModel` を省略して Codex CLI 側の既定を使うか、使いたい model を明示的に書いてください。
 
 ## Storage Layout
 
@@ -200,7 +203,7 @@ make audit
 テストの役割:
 
 - `test:unit`: `ResponseNormalizer`, `ContextCollector`, `SessionManager`
-- `test:integration`: built CLI + fake Claude provider で `providers/consult/followup/debug`
+- `test:integration`: built CLI + fake Claude/Codex provider で `providers/consult/followup/debug`
 - `test:e2e`: built CLI の永続化込みフルフロー確認
 - integration / E2E では `defaultModel` fallback と `--model` override の両方を確認
 

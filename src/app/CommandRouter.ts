@@ -122,7 +122,12 @@ export class CommandRouter {
     const parsed = parseArgs(argv);
     const profile = await this.app.profileLoader.load();
     const providerName = parsed.providerName ?? profile.defaultProvider;
-    const model = parsed.model ?? profile.defaultModel;
+    const shouldUseProfileModel =
+      !parsed.providerName || parsed.providerName === profile.defaultProvider;
+    const model =
+      parsed.model ??
+      (shouldUseProfileModel ? profile.defaultModel : undefined) ??
+      this.app.providerRegistry.getDefaultModel(providerName);
     const timeoutMs = parsed.timeoutMs ?? profile.defaultTimeoutMs;
 
     switch (parsed.command) {
@@ -142,9 +147,9 @@ export class CommandRouter {
           diffs: parsed.diffs,
           logs: parsed.logs,
           providerName,
-          model,
           timeoutMs,
           cwd: parsed.cwd ?? process.cwd(),
+          ...(model !== undefined ? { model } : {}),
           ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
         const rendered = this.app.resultRenderer.render(
@@ -168,9 +173,9 @@ export class CommandRouter {
           diffs: parsed.diffs,
           logs: parsed.logs,
           providerName,
-          model,
           timeoutMs,
           cwd: parsed.cwd ?? process.cwd(),
+          ...(model !== undefined ? { model } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
@@ -188,9 +193,9 @@ export class CommandRouter {
           diffs: parsed.diffs,
           logs: parsed.logs,
           providerName,
-          model,
           timeoutMs,
           cwd: parsed.cwd ?? process.cwd(),
+          ...(model !== undefined ? { model } : {}),
           ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
         const rendered = this.app.resultRenderer.render(
