@@ -128,6 +128,54 @@ make publish-check
 make publish
 ```
 
+別レポジトリに組み込むなら、global install より repo-local install を推奨します。チーム全員で同じ版を使いやすく、更新も `package.json` / lockfile で追跡できます。
+
+```bash
+pnpm add -D aipanel-cli
+pnpm exec aipanel providers --json
+```
+
+## Updating The Library In Your Repository
+
+`aipanel-cli` を自分のレポジトリで更新するときは、まず依存関係を上げてから、薄い smoke check とラッパースクリプト見直しを順に行うのが安全です。
+
+repo-local install の場合:
+
+```bash
+pnpm outdated aipanel-cli
+pnpm up -D aipanel-cli
+pnpm exec aipanel providers --json
+```
+
+TypeScript import でも使っている場合:
+
+```bash
+pnpm up aipanel-cli
+pnpm run typecheck
+pnpm test
+```
+
+global install だけで使っている場合:
+
+```bash
+pnpm add -g aipanel-cli@latest
+aipanel providers --json
+```
+
+更新後の確認ポイント:
+
+- `package.json` / lockfile に上がった version が入っているか
+- `pnpm exec aipanel consult "Reply with exactly: ready" --json --timeout 30000` が通るか
+- `followup` を使う運用なら、一時 storage で 1 回流して継続できるか
+- `Makefile`, `package.json scripts`, CI, `.githooks/` に固定している command / option / timeout を見直す必要がないか
+- `.aipanel/profile.yml` の `defaultProvider`, `defaultModel`, `defaultTimeoutMs` が今の運用に合っているか
+
+継続会話や debug の確認を既存データと切り離して行いたい場合は、一時 storage を使うと安全です。
+
+```bash
+AIPANEL_STORAGE_ROOT="$(mktemp -d)" pnpm exec aipanel consult "Reply with exactly: ready" --json --timeout 30000
+```
+
 ## Commands
 
 最短スタート:
@@ -272,7 +320,11 @@ make audit
 ## Repo Skill
 
 - 公開用の `aipanel-cli` 利用ガイド Skill は [skills/use-aipanel-cli/SKILL.md](./skills/use-aipanel-cli/SKILL.md) にあります
+- `npx --yes skills add sean-sunagaku/aipanel --skill use-aipanel-cli` で project-level に install できます
 - `pnpm dlx skills add sean-sunagaku/aipanel --skill use-aipanel-cli` で install できます
+- user-level に入れたい場合は `npx --yes skills add sean-sunagaku/aipanel --skill use-aipanel-cli -g` を使います
+- 更新確認は `npx --yes skills check`、更新は `npx --yes skills update` です
+- install 後は prompt で `$use-aipanel-cli` を呼ぶと、`aipanel-cli` の導入・実行・import・storage の案内に使えます
 - install / build / command usage / TypeScript import / storage layout の入口を 1 本にまとめています
 
 ## Architecture Docs
