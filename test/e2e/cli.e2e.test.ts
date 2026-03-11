@@ -208,7 +208,7 @@ test("E2E: built CLI can use codex when explicitly selected", async () => {
       "runs",
       debugPayload.runId,
     );
-    const debugRunRecord = getRecord(debugRunDocument, "run");
+    getRecord(debugRunDocument, "run");
   } finally {
     await sandbox.cleanup();
   }

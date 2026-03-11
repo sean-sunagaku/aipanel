@@ -32,7 +32,9 @@ export interface DebugBatchOutput {
 
 export type BatchResultOutput = ConsultationBatchOutput | DebugBatchOutput;
 
-export interface BatchResult<TOutput extends BatchResultOutput = BatchResultOutput> {
+export interface BatchResult<
+  TOutput extends BatchResultOutput = BatchResultOutput,
+> {
   readonly provider: ProviderName;
   readonly sessionId?: string;
   readonly status: RunResultStatus;

@@ -3,7 +3,6 @@
  * このファイルは、利用可能 provider の一覧取得を use case として切り出し、CLI command が registry 参照の詳細を直接持たないようにするために存在する。
  */
 
-import type { ProviderName } from "../shared/commands.js";
 import type { ProvidersPayload } from "../shared/cli-contract.js";
 import type { ProviderRegistry } from "../providers/ProviderRegistry.js";
 

@@ -99,6 +99,7 @@ export class ConsultUseCase {
    *
    * @param input この処理に渡す入力。
    * @returns BatchPayload<ConsultationBatchOutput> を解決する Promise。
+   * @throws provider が空、または followup に複数 provider が渡された場合。
    * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
    */
   async execute(
@@ -116,7 +117,9 @@ export class ConsultUseCase {
       input.providers.map(async (provider) => {
         const session = await this.sessionManager.startOrResume({
           title: input.question.slice(0, 80),
-          ...(input.command === "followup" ? { sessionId: input.sessionId } : {}),
+          ...(input.command === "followup"
+            ? { sessionId: input.sessionId }
+            : {}),
         });
         await this.sessionManager.appendUserTurn(session, input.question);
         return {
@@ -165,31 +168,35 @@ export class ConsultUseCase {
       .with("consult", () => "consult")
       .with("followup", () => "followup")
       .exhaustive();
-    const reviewerExecutions = reviewerSessions.map((reviewerSession, index) => {
-      const task = this.runCoordinator.createTask(run, {
-        taskKind: "provider-review",
-        role: taskRole,
-        provider: reviewerSession.provider.name,
-        dependsOn: [],
-        status: "queued",
-        input: {
-          prompt: reviewerSession.prompt,
+    const reviewerExecutions = reviewerSessions.map(
+      (reviewerSession, index) => {
+        const task = this.runCoordinator.createTask(run, {
+          taskKind: "provider-review",
+          role: taskRole,
           provider: reviewerSession.provider.name,
-          reviewerOrder: index + 1,
-        },
-      });
-      task.transition("running", this.clock.nowIso());
-      return {
-        ...reviewerSession,
-        task,
-      };
-    });
+          dependsOn: [],
+          status: "queued",
+          input: {
+            prompt: reviewerSession.prompt,
+            provider: reviewerSession.provider.name,
+            reviewerOrder: index + 1,
+          },
+        });
+        task.transition("running", this.clock.nowIso());
+        return {
+          ...reviewerSession,
+          task,
+        };
+      },
+    );
     run.transition("running", this.clock.nowIso());
     await this.runCoordinator.save(run);
 
     const settledCalls = await Promise.allSettled(
       reviewerExecutions.map(async (reviewerExecution) => {
-        const adapter = this.providerRegistry.get(reviewerExecution.provider.name);
+        const adapter = this.providerRegistry.get(
+          reviewerExecution.provider.name,
+        );
         const adapterResult: AdapterCallResult = await adapter.call({
           provider: reviewerExecution.provider.name,
           prompt: reviewerExecution.prompt,
@@ -234,7 +241,10 @@ export class ConsultUseCase {
 
     run.finalSummary = this.#buildBatchSummary(results);
     run.reviewStatus = deriveBatchReviewStatus(results) ?? null;
-    run.transition(this.#toRunStatus(deriveBatchStatus(results)), this.clock.nowIso());
+    run.transition(
+      this.#toRunStatus(deriveBatchStatus(results)),
+      this.clock.nowIso(),
+    );
     await this.runCoordinator.save(run);
 
     return {
@@ -247,6 +257,15 @@ export class ConsultUseCase {
     };
   }
 
+  /**
+   * 成功した consultation provider call を ledger と batch result へ反映する。
+   * artifact 保存、normalized response 作成、session 追記をこの helper に閉じ込め、成功系の記録順を固定する。
+   *
+   * @param run 更新対象の run。
+   * @param reviewerExecution 実行中 reviewer の文脈。
+   * @param adapterResult provider から返った生結果。
+   * @returns 成功時の batch result。
+   */
   async #recordConsultationSuccess(
     run: Run,
     reviewerExecution: ReviewerExecution,
@@ -300,13 +319,19 @@ export class ConsultUseCase {
       findings: normalizedDraft.findings,
       citations: normalizedDraft.citations,
       confidence: normalizedDraft.confidence,
-      sourceArtifactIds: [rawJsonArtifact.artifactId, rawTextArtifact.artifactId],
+      sourceArtifactIds: [
+        rawJsonArtifact.artifactId,
+        rawTextArtifact.artifactId,
+      ],
     });
 
     const transition = this.#deriveConsultationTransition(
       adapterResult.isError ?? false,
     );
-    reviewerExecution.task.transition(transition.taskStatus, this.clock.nowIso());
+    reviewerExecution.task.transition(
+      transition.taskStatus,
+      this.clock.nowIso(),
+    );
 
     await this.sessionManager.appendAssistantTurn(
       reviewerExecution.session,
@@ -329,6 +354,15 @@ export class ConsultUseCase {
     };
   }
 
+  /**
+   * 失敗した consultation provider call を ledger と batch result へ反映する。
+   * 失敗時も artifact と normalized error を残し、partial batch response を一貫した形で返せるようにする。
+   *
+   * @param run 更新対象の run。
+   * @param reviewerExecution 実行中 reviewer の文脈。
+   * @param reason 例外または失敗理由。
+   * @returns 失敗時の batch result。
+   */
   async #recordConsultationFailure(
     run: Run,
     reviewerExecution: ReviewerExecution,
@@ -383,7 +417,10 @@ export class ConsultUseCase {
       findings: normalizedDraft.findings,
       citations: normalizedDraft.citations,
       confidence: normalizedDraft.confidence,
-      sourceArtifactIds: [rawJsonArtifact.artifactId, rawTextArtifact.artifactId],
+      sourceArtifactIds: [
+        rawJsonArtifact.artifactId,
+        rawTextArtifact.artifactId,
+      ],
     });
 
     reviewerExecution.task.transition("failed", this.clock.nowIso());
@@ -406,6 +443,13 @@ export class ConsultUseCase {
     };
   }
 
+  /**
+   * provider call の error 状態から task/run/result 遷移を決める。
+   * consultation 成否の状態変換を一箇所へ寄せ、成功系と失敗系で同じ mapping を使えるようにする。
+   *
+   * @param isError provider call が error 扱いかどうか。
+   * @returns task/run/result/review の遷移先。
+   */
   #deriveConsultationTransition(isError: boolean): {
     taskStatus: TaskStatus;
     runStatus: RunStatus;
@@ -434,6 +478,13 @@ export class ConsultUseCase {
       .exhaustive();
   }
 
+  /**
+   * batch result status を run status へ変換する。
+   * CLI 向けの result status と run ledger の status 名を同じ意味で接続し、集約後の保存先を単純に保つ。
+   *
+   * @param resultStatus 集約済み result status。
+   * @returns run ledger に保存する status。
+   */
   #toRunStatus(resultStatus: RunResultStatus): RunStatus {
     return match(resultStatus)
       .returnType<RunStatus>()
@@ -442,6 +493,13 @@ export class ConsultUseCase {
       .exhaustive();
   }
 
+  /**
+   * consultation batch 全体の summary を作る。
+   * provider ごとの回答を run final summary へ圧縮し、後続の ledger 参照で全体像を追いやすくする。
+   *
+   * @param results 集約対象の batch result 一覧。
+   * @returns run summary。
+   */
   #buildBatchSummary(
     results: readonly BatchResult<ConsultationBatchOutput>[],
   ): string {

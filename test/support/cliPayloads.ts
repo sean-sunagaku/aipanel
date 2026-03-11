@@ -52,7 +52,9 @@ function parseProviderName(value: string): (typeof PROVIDER_NAMES)[number] {
     }
   }
 
-  throw new Error(`Expected provider to be one of: ${PROVIDER_NAMES.join(", ")}`);
+  throw new Error(
+    `Expected provider to be one of: ${PROVIDER_NAMES.join(", ")}`,
+  );
 }
 
 function parseBatchOutput(record: Record<string, unknown>): BatchResultOutput {
@@ -125,14 +127,18 @@ export function parseConsultationBatchPayload(
 ): BatchPayload<ConsultationBatchOutput> {
   const payload = parseBatchPayload(stdout);
   if (payload.command !== "consult" && payload.command !== "followup") {
-    throw new Error(`Expected consultation batch payload but received ${payload.command}.`);
+    throw new Error(
+      `Expected consultation batch payload but received ${payload.command}.`,
+    );
   }
 
   return {
     ...payload,
     results: payload.results.map((result) => {
       if (result.output.kind !== "consultation") {
-        throw new Error("Expected consultation output in consultation batch payload.");
+        throw new Error(
+          "Expected consultation output in consultation batch payload.",
+        );
       }
 
       return {
@@ -148,7 +154,9 @@ export function parseDebugBatchPayload(
 ): BatchPayload<DebugBatchOutput> {
   const payload = parseBatchPayload(stdout);
   if (payload.command !== "debug") {
-    throw new Error(`Expected debug batch payload but received ${payload.command}.`);
+    throw new Error(
+      `Expected debug batch payload but received ${payload.command}.`,
+    );
   }
 
   return {

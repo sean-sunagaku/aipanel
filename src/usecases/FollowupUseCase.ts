@@ -3,10 +3,7 @@
  * このファイルは、followup を consult 実装へ委譲する薄い専用入口を持ち、CLI 上の command 区別を保ったまま direct flow を再利用するために存在する。
  */
 
-import {
-  ConsultUseCase,
-  type ConsultationInput,
-} from "./ConsultUseCase.js";
+import { ConsultUseCase, type ConsultationInput } from "./ConsultUseCase.js";
 import type {
   BatchPayload,
   ConsultationBatchOutput,

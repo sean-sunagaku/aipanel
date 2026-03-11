@@ -56,6 +56,13 @@ export class ResultRenderer {
     return rendered;
   }
 
+  /**
+   * batch payload を text 表示へ整形する。
+   * JSON contract と同じ情報を CLI で読みやすい一覧へ落とし込み、command 側が表示整形を重複実装しないようにする。
+   *
+   * @param payload 表示対象の batch payload。
+   * @returns 表示向け text。
+   */
   #renderBatchText(payload: BatchPayload): string {
     const sections = [
       `run: ${payload.runId}`,
@@ -73,10 +80,16 @@ export class ResultRenderer {
     return sections.join("\n");
   }
 
-  #renderBatchResult(
-    result: BatchResult,
-    index: number,
-  ): readonly string[] {
+  /**
+   * 個別 result を text 行へ展開する。
+   * provider ごとの回答と状態を一貫した順序で表示し、複数 reviewer 実行でも見比べやすく保つ。
+   *
+   * @param result 表示対象の個別 result。
+   * @param index 表示順。
+   * @returns 表示向け text 行。
+   * @remarks batch output の kind ごとに整形が分かれるため、新しい output を追加するときはここへ text 変換も足す。
+   */
+  #renderBatchResult(result: BatchResult, index: number): readonly string[] {
     const outputLines = match(result.output)
       .returnType<readonly string[]>()
       .with(
@@ -86,11 +99,13 @@ export class ResultRenderer {
       )
       .with(
         { kind: "debug" },
-        ({ summary, details }: Extract<BatchResultOutput, { kind: "debug" }>) =>
-          [
-            `summary: ${summary}`,
-            ...(details.length > 0 ? ["", details.join("\n\n")] : []),
-          ],
+        ({
+          summary,
+          details,
+        }: Extract<BatchResultOutput, { kind: "debug" }>) => [
+          `summary: ${summary}`,
+          ...(details.length > 0 ? ["", details.join("\n\n")] : []),
+        ],
       )
       .exhaustive();
 

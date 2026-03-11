@@ -148,7 +148,16 @@ export class CommandRouter {
       .exhaustive();
   }
 
-  #resolveProviders(providers: readonly ProviderSpec[]): readonly ProviderSpec[] {
+  /**
+   * reviewer 指定の既定値を補完する。
+   * provider 指定が無い command でも既定 provider で実行できるようにし、router 以外へ default 解決責務を漏らさない。
+   *
+   * @param providers 処理に渡す provider 指定。
+   * @returns 解決済み provider 指定一覧。
+   */
+  #resolveProviders(
+    providers: readonly ProviderSpec[],
+  ): readonly ProviderSpec[] {
     if (providers.length > 0) {
       return providers;
     }

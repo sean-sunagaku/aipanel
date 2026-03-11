@@ -64,6 +64,7 @@ export function isProviderName(value: string): value is ProviderName {
  * @param value 処理に渡す値。
  * @returns provider 名と optional model を持つ内部表現。
  * @throws 入力が既知 provider を満たさない場合。
+ * @remarks `:` を含む model 名も受けられるよう、最初の要素だけを provider として検証し、残りは model へ戻している。
  */
 export function parseProviderSpec(value: string): ProviderSpec {
   const [providerCandidate = "", ...modelParts] = value.split(":");

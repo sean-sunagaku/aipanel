@@ -45,6 +45,14 @@ function readFlagValue(args: string[], index: number, flag: string): string {
   return value;
 }
 
+/**
+ * `--provider` 引数を reviewer 指定へ変換する。
+ * public CLI の `provider[:model]` 書式を一箇所で解釈し、parser の分岐を後続へ漏らさないようにする。
+ *
+ * @param args 処理に渡す args。
+ * @param index `--provider` 値の位置。
+ * @returns 解釈済み provider 指定。
+ */
 function readProviderSpec(args: string[], index: number): ProviderSpec {
   const value = readFlagValue(args, index, "--provider");
   return parseProviderSpec(value);

@@ -334,7 +334,9 @@ test("CLI consult can fan out to claude and repeated codex reviewers", async () 
       ["claude-code", "codex", "codex"],
     );
 
-    const sessionIds = consultPayload.results.map((result) => result.sessionId ?? "");
+    const sessionIds = consultPayload.results.map(
+      (result) => result.sessionId ?? "",
+    );
     assert.equal(new Set(sessionIds).size, 3);
 
     const runDocument = await readStoredRecord(
@@ -388,10 +390,7 @@ test("CLI routes provider:model overrides into the selected adapters", async () 
     assert.ok(codexReview);
     assert.equal(claudeReview.output.kind, "consultation");
     assert.equal(codexReview.output.kind, "consultation");
-    assert.match(
-      claudeReview.output.answer,
-      /Model used: claude-sonnet-4-5/,
-    );
+    assert.match(claudeReview.output.answer, /Model used: claude-sonnet-4-5/);
     assert.match(codexReview.output.answer, /Model used: codex-reviewer/);
   } finally {
     await sandbox.cleanup();

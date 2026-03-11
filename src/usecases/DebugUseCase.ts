@@ -10,7 +10,6 @@ import type { ContextCollector } from "../context/ContextCollector.js";
 import type {
   Run,
   RunResultStatus,
-  RunReviewStatus,
   RunStatus,
   RunTask,
   TaskStatus,
@@ -148,6 +147,7 @@ export class DebugUseCase {
    *
    * @param input この処理に渡す入力。
    * @returns BatchPayload<DebugBatchOutput> を解決する Promise。
+   * @throws provider が 1 件も指定されていない場合。
    * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
    */
   async execute(input: DebugInput): Promise<BatchPayload<DebugBatchOutput>> {
@@ -201,43 +201,45 @@ export class DebugUseCase {
     });
     run.transition("planned", this.clock.nowIso());
 
-    const providerExecutions = providerSessions.map((providerSession, index) => {
-      const taskExecutions = DEBUG_TASKS.map((taskSpec) => {
-        const prompt = [
-          "You are an AI coding assistant running under aipanel debug orchestrated mode.",
-          `Task focus: ${taskSpec.instruction}`,
-          `Debug question:\n${input.question}`,
-          "Reply concisely with findings, evidence, and actionable next steps when relevant.",
-        ]
-          .filter(Boolean)
-          .join("\n\n");
+    const providerExecutions = providerSessions.map(
+      (providerSession, index) => {
+        const taskExecutions = DEBUG_TASKS.map((taskSpec) => {
+          const prompt = [
+            "You are an AI coding assistant running under aipanel debug orchestrated mode.",
+            `Task focus: ${taskSpec.instruction}`,
+            `Debug question:\n${input.question}`,
+            "Reply concisely with findings, evidence, and actionable next steps when relevant.",
+          ]
+            .filter(Boolean)
+            .join("\n\n");
 
-        const task = this.runCoordinator.createTask(run, {
-          taskKind: "provider-review",
-          role: taskSpec.role,
-          provider: providerSession.provider.name,
-          dependsOn: [],
-          status: "queued",
-          input: {
+          const task = this.runCoordinator.createTask(run, {
+            taskKind: "provider-review",
+            role: taskSpec.role,
+            provider: providerSession.provider.name,
+            dependsOn: [],
+            status: "queued",
+            input: {
+              prompt,
+              label: taskSpec.label,
+              reviewerOrder: index + 1,
+            },
+          });
+          task.transition("running", this.clock.nowIso());
+
+          return {
+            spec: taskSpec,
+            task,
             prompt,
-            label: taskSpec.label,
-            reviewerOrder: index + 1,
-          },
+          };
         });
-        task.transition("running", this.clock.nowIso());
 
         return {
-          spec: taskSpec,
-          task,
-          prompt,
+          ...providerSession,
+          taskExecutions,
         };
-      });
-
-      return {
-        ...providerSession,
-        taskExecutions,
-      };
-    });
+      },
+    );
 
     run.transition("running", this.clock.nowIso());
     await this.runCoordinator.save(run);
@@ -251,14 +253,21 @@ export class DebugUseCase {
     const results: BatchResult<DebugBatchOutput>[] = [];
 
     for (const providerStep of providerSteps) {
-      const result = await this.#recordProviderSteps(run, input.question, providerStep);
+      const result = await this.#recordProviderSteps(
+        run,
+        input.question,
+        providerStep,
+      );
       results.push(result);
       await this.runCoordinator.save(run);
     }
 
     run.finalSummary = this.#buildBatchSummary(results);
     run.reviewStatus = deriveBatchReviewStatus(results) ?? null;
-    run.transition(this.#toRunStatus(deriveBatchStatus(results)), this.clock.nowIso());
+    run.transition(
+      this.#toRunStatus(deriveBatchStatus(results)),
+      this.clock.nowIso(),
+    );
     await this.runCoordinator.save(run);
 
     return {
@@ -271,6 +280,15 @@ export class DebugUseCase {
     };
   }
 
+  /**
+   * 単一 provider の planner/reviewer/validator call を順に実行する。
+   * provider 内の 3 段フローを順序付きで保ちつつ、provider 間だけ並列化できるようにする。
+   *
+   * @param providerExecution 対象 provider の実行文脈。
+   * @param input debug 入力。
+   * @returns 実行結果と step 一覧。
+   * @remarks どこかで失敗した provider は後続 step を skipped にし、planner/reviewer/validator の順序前提を崩さない。
+   */
   async #executeProviderSteps(
     providerExecution: ProviderDebugExecution,
     input: DebugInput,
@@ -322,6 +340,16 @@ export class DebugUseCase {
     };
   }
 
+  /**
+   * provider 単位の debug steps を ledger と batch result へ反映する。
+   * task ごとの成功・失敗・skip をまとめて記録し、comparison report と final batch result を組み立てる。
+   *
+   * @param run 更新対象の run。
+   * @param question debug 対象の質問。
+   * @param providerStep provider 単位の step 実行結果。
+   * @returns provider 単位の batch result。
+   * @remarks skipped step も ledger に残し、partial failure 時にどこで流れが止まったかを run 記録と caller の両方から追えるようにする。
+   */
   async #recordProviderSteps(
     run: Run,
     question: string,
@@ -338,21 +366,27 @@ export class DebugUseCase {
     for (const step of providerStep.steps) {
       await match(step)
         .returnType<Promise<void>>()
-        .with({ kind: "fulfilled" }, async ({ taskExecution, adapterResult }) => {
-          const recorded = await this.#recordDebugTaskSuccess(
-            run,
-            providerStep.providerExecution.session,
-            providerStep.providerExecution.provider.name,
-            taskExecution,
-            adapterResult,
-          );
-          details.push(recorded.detail);
-          normalizedResponses.push(recorded.normalized);
-          hasError ||= adapterResult.isError ?? false;
-          if ((adapterResult.isError ?? false) && errorMessage === undefined) {
-            errorMessage = adapterResult.rawText;
-          }
-        })
+        .with(
+          { kind: "fulfilled" },
+          async ({ taskExecution, adapterResult }) => {
+            const recorded = await this.#recordDebugTaskSuccess(
+              run,
+              providerStep.providerExecution.session,
+              providerStep.providerExecution.provider.name,
+              taskExecution,
+              adapterResult,
+            );
+            details.push(recorded.detail);
+            normalizedResponses.push(recorded.normalized);
+            hasError ||= adapterResult.isError ?? false;
+            if (
+              (adapterResult.isError ?? false) &&
+              errorMessage === undefined
+            ) {
+              errorMessage = adapterResult.rawText;
+            }
+          },
+        )
         .with({ kind: "rejected" }, async ({ taskExecution, reason }) => {
           hasError = true;
           const recorded = await this.#recordDebugTaskFailure(
@@ -375,7 +409,10 @@ export class DebugUseCase {
         .exhaustive();
     }
 
-    const reportDraft = this.comparisonEngine.compare(question, normalizedResponses);
+    const reportDraft = this.comparisonEngine.compare(
+      question,
+      normalizedResponses,
+    );
     this.runCoordinator.createComparisonReport(run, {
       topic: `${question} (${providerStep.providerExecution.provider.name})`,
       responseIds: reportDraft.responseIds,
@@ -384,7 +421,8 @@ export class DebugUseCase {
       recommendation: reportDraft.recommendation,
     });
 
-    const summary = reportDraft.recommendation ?? "No recommendation available.";
+    const summary =
+      reportDraft.recommendation ?? "No recommendation available.";
     await this.sessionManager.appendAssistantTurn(
       providerStep.providerExecution.session,
       details.join("\n\n"),
@@ -404,6 +442,17 @@ export class DebugUseCase {
     };
   }
 
+  /**
+   * 成功した debug task を ledger へ反映する。
+   * raw artifact、normalized response、task result をまとめて作り、task 単位の成功記録を一貫させる。
+   *
+   * @param run 更新対象の run。
+   * @param session provider session。
+   * @param providerName 対象 provider。
+   * @param taskExecution 対象 task。
+   * @param adapterResult provider から返った生結果。
+   * @returns 表示 detail と normalized response。
+   */
   async #recordDebugTaskSuccess(
     run: Run,
     session: Session,
@@ -477,6 +526,17 @@ export class DebugUseCase {
     };
   }
 
+  /**
+   * 失敗した debug task を ledger へ反映する。
+   * 例外を artifact と normalized error に変換し、後続の comparison 前でも失敗理由を追跡できるようにする。
+   *
+   * @param run 更新対象の run。
+   * @param session provider session。
+   * @param providerName 対象 provider。
+   * @param taskExecution 対象 task。
+   * @param reason 例外または失敗理由。
+   * @returns 表示 detail と失敗 message。
+   */
   async #recordDebugTaskFailure(
     run: Run,
     session: Session,
@@ -547,6 +607,13 @@ export class DebugUseCase {
     };
   }
 
+  /**
+   * batch result status を run status へ変換する。
+   * debug batch の集約結果を run ledger の status 名へ写し替え、保存時の分岐を増やさないようにする。
+   *
+   * @param resultStatus 集約済み result status。
+   * @returns run ledger に保存する status。
+   */
   #toRunStatus(resultStatus: RunResultStatus): RunStatus {
     return match(resultStatus)
       .returnType<RunStatus>()
@@ -555,7 +622,16 @@ export class DebugUseCase {
       .exhaustive();
   }
 
-  #buildBatchSummary(results: readonly BatchResult<DebugBatchOutput>[]): string {
+  /**
+   * debug batch 全体の summary を作る。
+   * provider ごとの recommendation を連結し、run final summary から全 reviewer の結論を追えるようにする。
+   *
+   * @param results 集約対象の batch result 一覧。
+   * @returns run summary。
+   */
+  #buildBatchSummary(
+    results: readonly BatchResult<DebugBatchOutput>[],
+  ): string {
     const summaries = results
       .map((result) => `${result.provider}: ${result.output.summary}`.trim())
       .filter((value) => value.length > 0);
