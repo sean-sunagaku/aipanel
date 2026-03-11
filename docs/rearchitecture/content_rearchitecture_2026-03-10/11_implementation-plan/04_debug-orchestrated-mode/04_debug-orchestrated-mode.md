@@ -20,7 +20,7 @@ Claude Code 単独でも `Run` 配下で複数 task を管理できる orchestra
 - [ ] merged result と validation note を run に保存する
 
 ## Acceptance Checklist
-- [ ] `aipanel debug --log ... --question ...` が複数 task を作る
+- [ ] `aipanel debug "<question>"` が複数 task を作る
 - [ ] task ごとの status と result が run に残る
 - [ ] merged summary が返る
 - [ ] validation step の結果が確認できる

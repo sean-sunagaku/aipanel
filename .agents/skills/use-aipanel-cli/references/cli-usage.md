@@ -40,10 +40,7 @@ pnpm add -g aipanel-cli
 aipanel providers --json
 ```
 
-When someone says "use the library" or "use the package", check whether they mean:
-
-- the global CLI command `aipanel`
-- importing `aipanel-cli` into TypeScript code
+When someone says "use the package", assume they mean the CLI unless they explicitly ask about exports.
 
 ## Command Shapes
 
@@ -56,19 +53,19 @@ aipanel providers --json
 Consult:
 
 ```bash
-aipanel consult "この設計どう？" [--provider <name>] [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
+aipanel consult "この設計どう？" [--provider <name[:model]>]... [--timeout <ms>] [--json]
 ```
 
 Follow up on an existing session:
 
 ```bash
-aipanel followup --session <sessionId> "この修正方針で進めていい？" [--provider <name>] [--cwd <dir>] [--model <name>] [--timeout <ms>] [--json]
+aipanel followup --session <sessionId> "この修正方針で進めていい？" [--provider <name[:model]>] [--timeout <ms>] [--json]
 ```
 
 Debug:
 
 ```bash
-aipanel debug "この不具合の根本原因は？" [--provider <name>] [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
+aipanel debug "この不具合の根本原因は？" [--provider <name[:model]>]... [--timeout <ms>] [--json]
 ```
 
 ## Good Examples
@@ -76,26 +73,25 @@ aipanel debug "この不具合の根本原因は？" [--provider <name>] [--cwd 
 Repository source execution:
 
 ```bash
-pnpm run dev consult "このログから原因わかる？" --cwd ./repo --log logs/app.log --file src/server.ts --model sonnet --json
+pnpm run dev consult "この設計どう？" --provider claude-code:claude-sonnet-4-5 --provider codex:codex-reviewer --json
 ```
 
 Built CLI:
 
 ```bash
-pnpm start consult "この差分レビューして" --provider codex --cwd ./repo --file src/server.ts --log logs/app.log --json
+pnpm start consult "この差分レビューして" --provider codex:codex-reviewer --provider codex:codex-reviewer --json
 ```
 
 Global install:
 
 ```bash
-aipanel debug "この不具合の根本原因は？" --cwd ./repo --file src/cache.ts --log logs/error.log --model sonnet --json
+aipanel debug "この不具合の根本原因は？" --provider claude-code:claude-sonnet-4-5 --provider codex:codex-reviewer --json
 ```
 
 ## Runtime Notes
 
-- `--cwd` affects both provider execution and relative path resolution for `--file`, `--diff`, and `--log`.
-- `--model` is passed through to the selected provider.
-- If `--model` is omitted, `.aipanel/profile.yml` `defaultModel` is preferred, then the provider default is used.
+- review 系 command は repeatable `--provider` を公開する。`provider:model` を使うと model override を指定できる。同じ provider を複数回書けば別インスタンスとして並列実行される。
+- `consult` / `followup` / `debug` の `--json` 出力は常に batch shape で返る。単発でも `results.length === 1`。
 - `defaultProvider` in `.aipanel/profile.yml` can switch the default provider to `claude-code` or `codex`.
 - `AIPANEL_STORAGE_ROOT` overrides where sessions, runs, and artifacts are stored.
 - `followup` rebuilds context from `aipanel` session history instead of using native provider resume state as the system of record.
@@ -105,7 +101,6 @@ Profile example:
 
 ```yaml
 defaultProvider: claude-code
-defaultModel: sonnet
 defaultTimeoutMs: 300000
 ```
 
@@ -129,14 +124,6 @@ pnpm up -D aipanel-cli
 pnpm exec aipanel providers --json
 ```
 
-If the repository imports `aipanel-cli` from TypeScript, also validate the code-level surface:
-
-```bash
-pnpm up aipanel-cli
-pnpm run typecheck
-pnpm test
-```
-
 If they only use a global install:
 
 ```bash
@@ -149,7 +136,7 @@ After the version bump, remind them to:
 - run one lightweight `consult` smoke check
 - run one `followup` on temporary storage if their workflow depends on session persistence
 - review wrapper scripts, Makefile targets, CI jobs, and git hooks that hardcode flags, provider names, or timeout values
-- re-check `.aipanel/profile.yml` defaults such as `defaultProvider`, `defaultModel`, and `defaultTimeoutMs`
+- re-check `.aipanel/profile.yml` defaults such as `defaultProvider` and `defaultTimeoutMs`
 
 ## Development Workflow Integration
 

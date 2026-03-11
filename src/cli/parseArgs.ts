@@ -6,10 +6,10 @@
 import {
   type CliCommand,
   isCliCommand,
-  isProviderName,
+  parseProviderSpec,
   type ParsedCommand,
-  type ProviderName,
   type OutputFormat,
+  type ProviderSpec,
 } from "../shared/commands.js";
 
 export type { OutputFormat };
@@ -21,8 +21,7 @@ export interface ParsedArgs {
   readonly positionals: readonly string[];
   readonly outputFormat: OutputFormat;
   readonly sessionId: string | undefined;
-  readonly providerName: ProviderName | undefined;
-  readonly model: string | undefined;
+  readonly providers: readonly ProviderSpec[];
   readonly timeoutMs: number | undefined;
 }
 
@@ -46,6 +45,11 @@ function readFlagValue(args: string[], index: number, flag: string): string {
   return value;
 }
 
+function readProviderSpec(args: string[], index: number): ProviderSpec {
+  const value = readFlagValue(args, index, "--provider");
+  return parseProviderSpec(value);
+}
+
 /**
  * Args を内部表現へ解釈する。
  * 入力の解釈や追跡に必要な前処理をここでまとめ、後続処理を単純に保つ。
@@ -64,8 +68,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const positionals: string[] = [];
 
   let sessionId: string | undefined;
-  let providerName: ProviderName | undefined;
-  let model: string | undefined;
+  const providers: ProviderSpec[] = [];
   let timeoutMs: number | undefined;
   let outputFormat: OutputFormat = "text";
 
@@ -87,18 +90,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
 
     if (token === "--provider") {
-      const candidate = readFlagValue(rest, index + 1, "--provider");
-      if (!isProviderName(candidate)) {
-        throw new Error(`Unknown provider: ${candidate}`);
-      }
-
-      providerName = candidate;
-      index += 1;
-      continue;
-    }
-
-    if (token === "--model") {
-      model = readFlagValue(rest, index + 1, "--model");
+      providers.push(readProviderSpec(rest, index + 1));
       index += 1;
       continue;
     }
@@ -112,6 +104,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
+    if (token.startsWith("--")) {
+      throw new Error(`Unknown option: ${token}`);
+    }
+
     positionals.push(token);
   }
 
@@ -120,8 +116,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     positionals: Object.freeze(positionals),
     outputFormat,
     sessionId,
-    providerName,
-    model,
+    providers: Object.freeze(providers),
     timeoutMs,
   });
 }

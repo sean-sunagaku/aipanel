@@ -3,11 +3,7 @@ import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import {
-  parseConsultationPayload,
-  parseDebugPayload,
-  type ConsultationPayload,
-} from "../support/cliPayloads.js";
+import { parseBatchPayload } from "../support/cliPayloads.js";
 import { createCliSandbox } from "../support/cliSandbox.js";
 import {
   getArray,
@@ -39,16 +35,6 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     "cache invalidation notes\n",
     "utf8",
   );
-  await writeFile(
-    path.join(sandbox.workspace, "change.diff"),
-    "--- a\n+++ b\n@@\n-cache\n+fresh cache\n",
-    "utf8",
-  );
-  await writeFile(
-    path.join(sandbox.workspace, "app.log"),
-    "ERROR cache refresh skipped\n",
-    "utf8",
-  );
 
   try {
     const providersResult = await runCli(
@@ -67,32 +53,28 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
 
     const consultResult = await runCli(
       process.execPath,
-      [
-        BUILT_CLI_PATH,
-        "consult",
-        "How should we proceed?",
-        "--json",
-        "--model",
-        "claude-sonnet-4-5",
-      ],
+      [BUILT_CLI_PATH, "consult", "How should we proceed?", "--json"],
       {
         cwd: REPO_ROOT,
         env: sandbox.env,
       },
     );
     assert.equal(consultResult.exitCode, 0, consultResult.stderr);
-    const consultation = parseConsultationPayload(consultResult.stdout);
-    assertConsultation(consultation, {
-      provider: "claude-code",
-      model: "claude-sonnet-4-5",
-      answerPattern: /Practical answer/,
-      modelPattern: /Model used: claude-sonnet-4-5/,
-    });
+    const consultPayload = parseBatchPayload(consultResult.stdout);
+    assert.equal(consultPayload.command, "consult");
+    assert.equal(consultPayload.status, "completed");
+    assert.equal(consultPayload.results.length, 1);
+    const consultReview = consultPayload.results[0];
+    assert.ok(consultReview);
+    assert.equal(consultReview.provider, "claude-code");
+    assert.equal(consultReview.output.kind, "consultation");
+    assert.match(consultReview.output.answer, /Practical answer/);
 
+    const consultSessionId = consultReview.sessionId ?? "";
     const sessionDocument = await readStoredRecord(
       sandbox.storageRoot,
       "sessions",
-      consultation.sessionId,
+      consultSessionId,
     );
     const sessionRecord = getRecord(sessionDocument, "session");
     assert.equal(getArray(sessionRecord, "turns").length, 2);
@@ -100,7 +82,7 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     const consultRunDocument = await readStoredRecord(
       sandbox.storageRoot,
       "runs",
-      consultation.runId,
+      consultPayload.runId,
     );
     const consultRunRecord = getRecord(consultRunDocument, "run");
     assert.equal(getString(consultRunRecord, "mode"), "direct");
@@ -111,10 +93,6 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
     assert.equal(
       getString(firstConsultProviderResponse, "provider"),
       "claude-code",
-    );
-    assert.equal(
-      getString(firstConsultProviderResponse, "model"),
-      "claude-sonnet-4-5",
     );
     const firstRunContext = getFirstRecord(consultRunRecord, "runContexts");
     assert.equal(
@@ -129,11 +107,9 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
         BUILT_CLI_PATH,
         "followup",
         "--session",
-        consultation.sessionId,
+        consultSessionId,
         "What should we verify next?",
         "--json",
-        "--model",
-        "claude-sonnet-4-5",
       ],
       {
         cwd: REPO_ROOT,
@@ -141,14 +117,18 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       },
     );
     assert.equal(followupResult.exitCode, 0, followupResult.stderr);
-    const followup = parseConsultationPayload(followupResult.stdout);
-    assert.equal(followup.sessionId, consultation.sessionId);
-    assert.equal(followup.model, "claude-sonnet-4-5");
+    const followupPayload = parseBatchPayload(followupResult.stdout);
+    assert.equal(followupPayload.command, "followup");
+    assert.equal(followupPayload.results.length, 1);
+    const followupReview = followupPayload.results[0];
+    assert.ok(followupReview);
+    assert.equal(followupReview.sessionId, consultSessionId);
+    assert.equal(followupReview.output.kind, "consultation");
 
     const followedSessionDocument = await readStoredRecord(
       sandbox.storageRoot,
       "sessions",
-      consultation.sessionId,
+      consultSessionId,
     );
     assert.equal(
       getArray(getRecord(followedSessionDocument, "session"), "turns").length,
@@ -157,27 +137,26 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
 
     const debugResult = await runCli(
       process.execPath,
-      [
-        BUILT_CLI_PATH,
-        "debug",
-        "Why is the build red?",
-        "--json",
-        "--model",
-        "claude-opus-4-1",
-      ],
+      [BUILT_CLI_PATH, "debug", "Why is the build red?", "--json"],
       {
         cwd: REPO_ROOT,
         env: sandbox.env,
       },
     );
     assert.equal(debugResult.exitCode, 0, debugResult.stderr);
-    const debugPayload = parseDebugPayload(debugResult.stdout);
-    assert.equal(debugPayload.kind, "debug");
-    assert.equal(debugPayload.provider, "claude-code");
-    assert.equal(debugPayload.model, "claude-opus-4-1");
+    const debugPayload = parseBatchPayload(debugResult.stdout);
+    assert.equal(debugPayload.command, "debug");
     assert.equal(debugPayload.status, "completed");
-    assert.equal(debugPayload.details.length, 3);
-    assert.match(debugPayload.details[0] ?? "", /Model used: claude-opus-4-1/);
+    assert.equal(debugPayload.results.length, 1);
+    const debugReview = debugPayload.results[0];
+    assert.ok(debugReview);
+    assert.equal(debugReview.provider, "claude-code");
+    assert.equal(debugReview.output.kind, "debug");
+    assert.equal(debugReview.output.details.length, 3);
+    assert.match(
+      debugReview.output.details[0] ?? "",
+      /Analyze the most likely root cause/,
+    );
 
     const debugRunDocument = await readStoredRecord(
       sandbox.storageRoot,
@@ -192,17 +171,14 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       ),
       ["planner", "reviewer", "validator"],
     );
-    assert.deepEqual(
-      getRecordArray(debugRunRecord, "providerResponses").map((response) =>
-        getString(response, "model"),
-      ),
-      ["claude-opus-4-1", "claude-opus-4-1", "claude-opus-4-1"],
-    );
     const comparisonReport = getFirstRecord(
       debugRunRecord,
       "comparisonReports",
     );
-    assert.equal(getString(comparisonReport, "topic"), "Why is the build red?");
+    assert.equal(
+      getString(comparisonReport, "topic"),
+      "Why is the build red? (claude-code)",
+    );
     const debugRunContext = getFirstRecord(debugRunRecord, "runContexts");
     assert.equal(
       getString(debugRunContext, "question"),
@@ -220,11 +196,6 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
   await writeFile(
     path.join(sandbox.workspace, "note.txt"),
     "investigate the flaky reviewer flow\n",
-    "utf8",
-  );
-  await writeFile(
-    path.join(sandbox.workspace, "app.log"),
-    "WARN retry budget almost exhausted\n",
     "utf8",
   );
 
@@ -245,18 +216,18 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
       },
     );
     assert.equal(consultResult.exitCode, 0, consultResult.stderr);
-    const consultation = parseConsultationPayload(consultResult.stdout);
-    assertConsultation(consultation, {
-      provider: "codex",
-      model: "configured-default",
-      answerPattern: /Codex answer/,
-      modelPattern: /Model used: configured-default/,
-    });
+    const consultPayload = parseBatchPayload(consultResult.stdout);
+    const consultReview = consultPayload.results[0];
+    assert.ok(consultReview);
+    assert.equal(consultReview.provider, "codex");
+    assert.equal(consultReview.output.kind, "consultation");
+    assert.match(consultReview.output.answer, /Codex answer/);
 
+    const consultSessionId = consultReview.sessionId ?? "";
     const sessionDocument = await readStoredRecord(
       sandbox.storageRoot,
       "sessions",
-      consultation.sessionId,
+      consultSessionId,
     );
     assert.equal(
       getArray(getRecord(sessionDocument, "session"), "turns").length,
@@ -269,7 +240,7 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
         BUILT_CLI_PATH,
         "followup",
         "--session",
-        consultation.sessionId,
+        consultSessionId,
         "Keep the followup concise.",
         "--json",
         "--provider",
@@ -281,9 +252,11 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
       },
     );
     assert.equal(followupResult.exitCode, 0, followupResult.stderr);
-    const followup = parseConsultationPayload(followupResult.stdout);
-    assert.equal(followup.provider, "codex");
-    assert.equal(followup.model, "configured-default");
+    const followupPayload = parseBatchPayload(followupResult.stdout);
+    const followupReview = followupPayload.results[0];
+    assert.ok(followupReview);
+    assert.equal(followupReview.provider, "codex");
+    assert.equal(followupReview.output.kind, "consultation");
 
     const debugResult = await runCli(
       process.execPath,
@@ -294,8 +267,6 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
         "--json",
         "--provider",
         "codex",
-        "--model",
-        "codex-pro",
       ],
       {
         cwd: REPO_ROOT,
@@ -303,11 +274,16 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
       },
     );
     assert.equal(debugResult.exitCode, 0, debugResult.stderr);
-    const debugPayload = parseDebugPayload(debugResult.stdout);
-    assert.equal(debugPayload.provider, "codex");
-    assert.equal(debugPayload.model, "codex-pro");
-    assert.equal(debugPayload.details.length, 3);
-    assert.match(debugPayload.details[0] ?? "", /Model used: codex-pro/);
+    const debugPayload = parseBatchPayload(debugResult.stdout);
+    const debugReview = debugPayload.results[0];
+    assert.ok(debugReview);
+    assert.equal(debugReview.provider, "codex");
+    assert.equal(debugReview.output.kind, "debug");
+    assert.equal(debugReview.output.details.length, 3);
+    assert.match(
+      debugReview.output.details[0] ?? "",
+      /Analyze the most likely root cause/,
+    );
 
     const debugRunDocument = await readStoredRecord(
       sandbox.storageRoot,
@@ -321,30 +297,103 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
       ),
       ["codex", "codex", "codex"],
     );
+  } finally {
+    await sandbox.cleanup();
+  }
+});
+
+test("CLI consult can fan out to claude and repeated codex reviewers", async () => {
+  const sandbox = await createCliSandbox("aipanel-cli-multi-");
+
+  try {
+    const consultResult = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "consult",
+        "Compare the reviewers and keep it short.",
+        "--json",
+        "--provider",
+        "claude-code",
+        "--provider",
+        "codex",
+        "--provider",
+        "codex",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: sandbox.env,
+      },
+    );
+    assert.equal(consultResult.exitCode, 0, consultResult.stderr);
+    const consultPayload = parseBatchPayload(consultResult.stdout);
+    assert.equal(consultPayload.command, "consult");
+    assert.equal(consultPayload.status, "completed");
     assert.deepEqual(
-      getRecordArray(debugRunRecord, "providerResponses").map((response) =>
-        getString(response, "model"),
+      consultPayload.results.map((result) => result.provider),
+      ["claude-code", "codex", "codex"],
+    );
+
+    const sessionIds = consultPayload.results.map((result) => result.sessionId ?? "");
+    assert.equal(new Set(sessionIds).size, 3);
+
+    const runDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      consultPayload.runId,
+    );
+    const runRecord = getRecord(runDocument, "run");
+    assert.equal(getString(runRecord, "mode"), "orchestrated");
+    assert.deepEqual(
+      getRecordArray(runRecord, "providerResponses").map((response) =>
+        getString(response, "provider"),
       ),
-      ["codex-pro", "codex-pro", "codex-pro"],
+      ["claude-code", "codex", "codex"],
     );
   } finally {
     await sandbox.cleanup();
   }
 });
 
-function assertConsultation(
-  payload: ConsultationPayload,
-  options: {
-    provider: string;
-    model: string;
-    answerPattern: RegExp;
-    modelPattern: RegExp;
-  },
-): void {
-  assert.equal(payload.kind, "consultation");
-  assert.equal(payload.provider, options.provider);
-  assert.equal(payload.model, options.model);
-  assert.equal(payload.status, "completed");
-  assert.match(payload.answer, options.answerPattern);
-  assert.match(payload.answer, options.modelPattern);
-}
+test("CLI routes provider:model overrides into the selected adapters", async () => {
+  const sandbox = await createCliSandbox("aipanel-cli-model-");
+
+  try {
+    const consultResult = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "consult",
+        "Use the requested models and keep it short.",
+        "--json",
+        "--provider",
+        "claude-code:claude-sonnet-4-5",
+        "--provider",
+        "codex:codex-reviewer",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: sandbox.env,
+      },
+    );
+    assert.equal(consultResult.exitCode, 0, consultResult.stderr);
+    const consultPayload = parseBatchPayload(consultResult.stdout);
+    assert.deepEqual(
+      consultPayload.results.map((result) => result.provider),
+      ["claude-code", "codex"],
+    );
+    const claudeReview = consultPayload.results[0];
+    const codexReview = consultPayload.results[1];
+    assert.ok(claudeReview);
+    assert.ok(codexReview);
+    assert.equal(claudeReview.output.kind, "consultation");
+    assert.equal(codexReview.output.kind, "consultation");
+    assert.match(
+      claudeReview.output.answer,
+      /Model used: claude-sonnet-4-5/,
+    );
+    assert.match(codexReview.output.answer, /Model used: codex-reviewer/);
+  } finally {
+    await sandbox.cleanup();
+  }
+});

@@ -14,6 +14,8 @@ import type {
 } from "./ProviderAdapter.js";
 import type { ProviderName } from "../shared/commands.js";
 
+const CLAUDE_CODE_MODEL = "sonnet";
+
 /**
  * Subtype から必要な情報だけを取り出す。
  * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
@@ -43,7 +45,7 @@ async function runClaude(plan: ProviderCallPlan): Promise<string> {
       "--tools",
       "",
       "--model",
-      plan.model ?? "sonnet",
+      plan.model ?? CLAUDE_CODE_MODEL,
       "--output-format",
       "json",
       plan.prompt,
@@ -110,7 +112,6 @@ async function runClaude(plan: ProviderCallPlan): Promise<string> {
  */
 export class ClaudeCodeAdapter implements ProviderAdapter {
   readonly name: ProviderName = "claude-code";
-  readonly defaultModel = "sonnet";
 
   /**
    * call を担当する。
@@ -122,7 +123,6 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
   async call(input: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runClaude(input);
     const parsed = JSON.parse(stdout);
-    const model = parsed.model ?? input.model ?? "sonnet";
     const subtype = pickSubtype(parsed.subtype);
     const isErrorBySubtype = match(subtype)
       .with("success", () => false)
@@ -130,7 +130,6 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
     const hasFailure = parsed.is_error === true || isErrorBySubtype;
     return {
       provider: this.name,
-      model,
       rawText: parsed.result ?? "",
       rawJson: parsed,
       usage: {

@@ -11,12 +11,14 @@ fi
 
 echo "[aipanel] Reviewing staged changes..."
 
-git diff --cached > /tmp/aipanel-staged.patch
+DIFF=$(git diff --cached --no-ext-diff)
+PROMPT=$(printf '%s\n\n%s' \
+  "この差分をレビューして。重大なバグ・回帰リスク・設計上の問題だけ指摘して。先頭行は REVIEW_VERDICT: pass|warn|block" \
+  "$DIFF")
 
 RESULT=$(aipanel consult \
-  "この差分をレビューして。重大なバグ・回帰リスク・設計上の問題だけ指摘して。先頭行は REVIEW_VERDICT: pass|warn|block" \
+  "$PROMPT" \
   --provider codex \
-  --diff /tmp/aipanel-staged.patch \
   --timeout 300000 \
   --json 2>&1) || true
 

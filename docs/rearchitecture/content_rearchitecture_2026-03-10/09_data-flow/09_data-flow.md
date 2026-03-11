@@ -114,7 +114,7 @@ sequenceDiagram
     participant G as ComparisonEngine
     participant O as ResultRenderer
 
-    U->>R: aipanel debug "Why is it failing?" --log error.log
+    U->>R: aipanel debug "Why is it failing?"
     R->>C: collect context
     C-->>R: ContextBundle
     R->>S: start or resume session

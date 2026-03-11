@@ -6,8 +6,11 @@
 import {
   ConsultUseCase,
   type ConsultationInput,
-  type ConsultationResult,
 } from "./ConsultUseCase.js";
+import type {
+  BatchPayload,
+  ConsultationBatchOutput,
+} from "../shared/cli-contract.js";
 
 /**
  * Followup command の実行手順を定義する。
@@ -25,11 +28,11 @@ export class FollowupUseCase {
    * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
    *
    * @param input この処理に渡す入力。
-   * @returns ConsultationResult を解決する Promise。
+   * @returns BatchPayload<ConsultationBatchOutput> を解決する Promise。
    */
   async execute(
     input: Omit<Extract<ConsultationInput, { command: "followup" }>, "command">,
-  ): Promise<ConsultationResult> {
+  ): Promise<BatchPayload<ConsultationBatchOutput>> {
     return this.consultUseCase.execute({
       ...input,
       command: "followup",

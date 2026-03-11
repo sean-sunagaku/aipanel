@@ -2,13 +2,13 @@
 
 ## Context
 
-This note captures improvements discovered while using `aipanel` itself to validate the CLI `--model` plumbing for `claude-code`.
+This note captures improvements discovered while using `aipanel` itself to validate the CLI review flow around provider selection and batch responses.
 
 ## Confirmed Good Changes
 
-- `--model` now flows from the CLI through `consult`, `followup`, and `debug`
+- repeatable `--provider` now drives single-reviewer and multi-reviewer execution uniformly
 - provider default selection is resolved from CLI args and adapter defaults; `profile.yml` is not used in phase 1
-- JSON output now shows the resolved `model`
+- JSON output now uses one batch contract for `consult`, `followup`, and `debug`
 - persisted `Run` records now keep `providerResponses[].model`
 
 ## Suggested Next Improvements
@@ -21,7 +21,7 @@ Current output only returns provider names. It would be easier to operate `aipan
 - whether native resume is supported
 - phase or stability hint
 
-This would let users discover valid `--model` choices without opening docs.
+This would let users discover provider defaults and capabilities without opening docs.
 
 ### 2. Clarify `debug --timeout` semantics in the CLI itself
 
@@ -37,14 +37,9 @@ Two possible improvements:
 `providers --json` に default model / native resume 支援情報を含めると、初回利用時の設定判断がやりやすくなる。  
 phase 1 では専用 bootstrap コマンドは未導入。
 
-### 4. Show requested vs resolved model in debug mode
+### 4. Keep provider-level debug output explicit
 
-The current output shows the resolved model, which is already helpful. For troubleshooting, it may be even better to expose both:
-
-- requested model
-- resolved model
-
-This becomes more valuable once multiple providers or provider-side aliases are introduced.
+The current public output intentionally stays provider-focused. If troubleshooting needs to improve later, it may still be useful to make provider-level execution metadata easier to inspect through stored run artifacts or a future diagnostics surface.
 
 ### 5. Add a smaller single-shot review command
 
@@ -58,5 +53,5 @@ without paying the full orchestrated cost every time.
 
 ## Evidence From Real Usage
 
-- real `consult --model sonnet` completed successfully and returned `model: "sonnet"` in JSON output
+- real `consult` completed successfully through the provider-only CLI and returned batch JSON as expected
 - real `debug` runs exposed that orchestrated review is more expensive and slower than direct checks, which makes timeout behavior especially important to explain well

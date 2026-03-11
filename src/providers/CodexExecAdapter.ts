@@ -195,7 +195,6 @@ export class CodexExecAdapter implements ProviderAdapter {
 
     return {
       provider: this.name,
-      model: plan.model ?? "configured-default",
       rawText: rawText || errorMessage || "",
       rawJson: events,
       usage: {

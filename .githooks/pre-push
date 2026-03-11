@@ -18,12 +18,14 @@ fi
 
 echo "[aipanel] Deep reviewing branch ${BRANCH} against ${BASE}..."
 
-git diff "${BASE}...HEAD" > /tmp/aipanel-branch.patch
+DIFF=$(git diff "${BASE}...HEAD" --no-ext-diff)
+PROMPT=$(printf '%s\n\n%s' \
+  "このブランチの変更全体をレビューして。根本的な設計問題・テスト不足・回帰リスクを分析して" \
+  "$DIFF")
 
 RESULT=$(aipanel debug \
-  "このブランチの変更全体をレビューして。根本的な設計問題・テスト不足・回帰リスクを分析して" \
+  "$PROMPT" \
   --provider codex \
-  --diff /tmp/aipanel-branch.patch \
   --timeout 300000 \
   --json 2>&1) || true
 

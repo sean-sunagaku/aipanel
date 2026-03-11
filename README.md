@@ -147,14 +147,6 @@ pnpm up -D aipanel-cli
 pnpm exec aipanel providers --json
 ```
 
-TypeScript import でも使っている場合:
-
-```bash
-pnpm up aipanel-cli
-pnpm run typecheck
-pnpm test
-```
-
 global install だけで使っている場合:
 
 ```bash
@@ -168,7 +160,7 @@ aipanel providers --json
 - `pnpm exec aipanel consult "Reply with exactly: ready" --json --timeout 30000` が通るか
 - `followup` を使う運用なら、一時 storage で 1 回流して継続できるか
 - `Makefile`, `package.json scripts`, CI, `.githooks/` に固定している command / option / timeout を見直す必要がないか
-- `.aipanel/profile.yml` の `defaultProvider`, `defaultModel`, `defaultTimeoutMs` が今の運用に合っているか
+- `.aipanel/profile.yml` の `defaultProvider`, `defaultTimeoutMs` が今の運用に合っているか
 
 継続会話や debug の確認を既存データと切り離して行いたい場合は、一時 storage を使うと安全です。
 
@@ -189,9 +181,9 @@ node dist/bin/aipanel.js debug "この不具合の根本原因は？" --json
 
 ```bash
 node dist/bin/aipanel.js providers [--json]
-node dist/bin/aipanel.js consult "<question>" [--provider <name>] [--model <name>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--provider <name>] [--model <name>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js debug "<question>" [--provider <name>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js consult "<question>" [--provider <name[:model]>]... [--timeout <ms>] [--json]
+node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--provider <name[:model]>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js debug "<question>" [--provider <name[:model]>]... [--timeout <ms>] [--json]
 ```
 
 補足:
@@ -213,14 +205,16 @@ make run ARGS='debug "この不具合の根本原因は？" --json --timeout 600
 
 ```bash
 node dist/bin/aipanel.js consult "この設計どう？" --json
-node dist/bin/aipanel.js consult "この設計どう？" --provider codex --model sonnet --json
-node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --model sonnet --json
-node dist/bin/aipanel.js debug "この不具合の根本原因は？" --model sonnet --json
+node dist/bin/aipanel.js consult "この設計どう？" --provider claude-code:claude-sonnet-4-5 --provider codex:codex-reviewer --json
+node dist/bin/aipanel.js consult "この設計どう？" --provider codex:codex-reviewer --provider codex:codex-reviewer --json
+node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --provider codex:codex-reviewer --json
+node dist/bin/aipanel.js debug "この不具合の根本原因は？" --provider claude-code:claude-sonnet-4-5 --provider codex:codex-reviewer --json
 ```
 
 ## Runtime Notes
 
-- `--model` は選択した provider にそのまま渡されます。未指定時は `.aipanel/profile.yml` の `defaultModel` を優先し、さらに未設定なら provider 側の既定を使います
+- review 系 command は repeatable `--provider` を公開します。`provider:model` を使うと model override を渡せます。同じ provider を複数回書けば別インスタンスとして並列実行されます
+- `consult` / `followup` / `debug` の `--json` 出力は常に batch shape です。単発でも `results.length === 1` の配列で返ります
 - `AIPANEL_STORAGE_ROOT` を指定すると、session / run / artifact の保存先を切り替えられます
 - `followup` は `--session` 必須です。Claude Code / Codex の native resume を正本にせず、`aipanel` 側の session 履歴再構築を基本にしています
 - `debug` の `--timeout` は orchestrated mode の各 provider call に適用されるので、合計所要時間は 3 倍近くになることがあります
@@ -232,16 +226,15 @@ node dist/bin/aipanel.js debug "この不具合の根本原因は？" --model so
 AIPANEL_STORAGE_ROOT="$(mktemp -d)" node dist/bin/aipanel.js consult "Reply with exactly: ready" --json --timeout 30000
 ```
 
-profile で既定 model を固定したい場合:
+profile で provider や timeout を固定したい場合:
 
 ```yaml
 # .aipanel/profile.yml
 defaultProvider: claude-code
-defaultModel: sonnet
 defaultTimeoutMs: 120000
 ```
 
-Codex を既定 provider にしたい場合は、`defaultProvider: codex` を指定したうえで `defaultModel` を省略して Codex CLI 側の既定を使うか、使いたい model を明示的に書いてください。
+Codex を既定 provider にしたい場合は、`defaultProvider: codex` を指定します。
 
 ## Storage Layout
 
@@ -264,6 +257,39 @@ Codex を既定 provider にしたい場合は、`defaultProvider: codex` を指
 - `sessions/`: `Session`, `SessionTurn`
 - `runs/`: `Run`, `RunTask`, `TaskResult`, `RunContext`, `ProviderResponse`, `NormalizedResponse`, `ComparisonReport`
 - `artifacts/`: run context, provider raw text/json, debug task outputs
+
+返却例:
+
+```json
+{
+  "kind": "batch",
+  "command": "consult",
+  "runId": "run_xxx",
+  "status": "completed",
+  "results": [
+    {
+      "provider": "claude-code",
+      "sessionId": "session_a",
+      "status": "completed",
+      "reviewStatus": "ready",
+      "output": {
+        "kind": "consultation",
+        "answer": "..."
+      }
+    },
+    {
+      "provider": "codex",
+      "sessionId": "session_b",
+      "status": "completed",
+      "reviewStatus": "ready",
+      "output": {
+        "kind": "consultation",
+        "answer": "..."
+      }
+    }
+  ]
+}
+```
 
 ## Tests
 
@@ -293,7 +319,7 @@ make audit
 - `test:unit`: `ResponseNormalizer`, `ContextCollector`, `SessionManager`
 - `test:integration`: built CLI + fake Claude/Codex provider で `providers/consult/followup/debug`
 - `test:e2e`: built CLI の永続化込みフルフロー確認
-- integration / E2E では `--model` override が効くことを確認
+- integration / E2E では always-batch JSON と複数 provider 実行を確認
 
 ## Verified Smoke Checks
 
@@ -315,7 +341,7 @@ make audit
 - 実 Claude Code を使った `consult`
 - 実 Claude Code を使った `followup`
 - 実 Claude Code を使った `debug`
-- 実 Claude Code を使った `consult --model sonnet`
+- 実 Claude Code / Codex を混在させた batch `consult`
 
 ## Repo Skill
 
@@ -324,8 +350,8 @@ make audit
 - `pnpm dlx skills add sean-sunagaku/aipanel --skill use-aipanel-cli` で install できます
 - user-level に入れたい場合は `npx --yes skills add sean-sunagaku/aipanel --skill use-aipanel-cli -g` を使います
 - 更新確認は `npx --yes skills check`、更新は `npx --yes skills update` です
-- install 後は prompt で `$use-aipanel-cli` を呼ぶと、`aipanel-cli` の導入・実行・import・storage の案内に使えます
-- install / build / command usage / TypeScript import / storage layout の入口を 1 本にまとめています
+- install 後は prompt で `$use-aipanel-cli` を呼ぶと、`aipanel-cli` の導入・実行・storage の案内に使えます
+- install / build / command usage / storage layout の入口を 1 本にまとめています
 
 ## Architecture Docs
 

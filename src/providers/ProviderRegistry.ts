@@ -39,17 +39,6 @@ export class ProviderRegistry {
   }
 
   /**
-   * Default Model を取得する。
-   * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
-   *
-   * @param name 処理に渡す name。
-   * @returns string | undefined。
-   */
-  getDefaultModel(name?: ProviderName): string | undefined {
-    return this.get(name).defaultModel;
-  }
-
-  /**
    * 対象の値 を取得する。
    * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
    *

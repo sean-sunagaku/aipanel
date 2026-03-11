@@ -4,6 +4,7 @@
  */
 
 import type { ProviderName } from "../shared/commands.js";
+import type { ProvidersPayload } from "../shared/cli-contract.js";
 import type { ProviderRegistry } from "../providers/ProviderRegistry.js";
 
 /**
@@ -21,15 +22,9 @@ export class ListProvidersUseCase {
    * execute を担当する。
    * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
    *
-   * @returns Promise<{
-    readonly kind: "providers";
-    providers: ProviderName[];
-  }>。
+   * @returns ProvidersPayload を解決する Promise。
    */
-  async execute(): Promise<{
-    readonly kind: "providers";
-    providers: ProviderName[];
-  }> {
+  async execute(): Promise<ProvidersPayload> {
     return {
       kind: "providers",
       providers: this.providerRegistry.list(),

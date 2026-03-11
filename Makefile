@@ -90,25 +90,30 @@ hooks-install:
 
 ai-review:
 	@git diff --cached --quiet && echo "No staged changes." && exit 0 || true
-	@git diff --cached > /tmp/aipanel-staged.patch
-	aipanel consult "この差分をレビューして。重大なバグ・回帰リスク・設計上の問題だけ指摘して。先頭行は REVIEW_VERDICT: pass|warn|block" \
-		--provider $(AI_PROVIDER) --diff /tmp/aipanel-staged.patch --timeout $(AI_TIMEOUT) --json
+	@DIFF="$$(git diff --cached --no-ext-diff)"; \
+	PROMPT="$$(printf '%s\n\n%s' 'この差分をレビューして。重大なバグ・回帰リスク・設計上の問題だけ指摘して。先頭行は REVIEW_VERDICT: pass|warn|block' "$$DIFF")"; \
+	aipanel consult "$$PROMPT" \
+		--provider $(AI_PROVIDER) --timeout $(AI_TIMEOUT) --json
 
 ai-review-deep:
-	@git diff $(BASE)...HEAD > /tmp/aipanel-branch.patch
-	aipanel debug "このブランチの変更全体をレビューして。根本的な設計問題・テスト不足・回帰リスクを分析して" \
-		--provider $(AI_PROVIDER) --diff /tmp/aipanel-branch.patch --timeout $(AI_TIMEOUT) --json
+	@DIFF="$$(git diff $(BASE)...HEAD --no-ext-diff)"; \
+	PROMPT="$$(printf '%s\n\n%s' 'このブランチの変更全体をレビューして。根本的な設計問題・テスト不足・回帰リスクを分析して' "$$DIFF")"; \
+	aipanel debug "$$PROMPT" \
+		--provider $(AI_PROVIDER) --timeout $(AI_TIMEOUT) --json
 
 ai-docs-review:
 	@git diff --cached --quiet && echo "No staged changes." && exit 0 || true
-	@git diff --cached > /tmp/aipanel-staged.patch
-	aipanel consult "この差分の source docs と JSDoc をレビューして。特に src/ 配下では『この repo でなぜ存在するか』『何の責務を持つか』が伝わるかを見て、固定文ではなくコードから読める意図に沿って改善案を出して。先頭行は DOCS_VERDICT: pass|revise" \
-		--provider $(AI_PROVIDER) --diff /tmp/aipanel-staged.patch --timeout $(AI_TIMEOUT) --json
+	@DIFF="$$(git diff --cached --no-ext-diff)"; \
+	PROMPT="$$(printf '%s\n\n%s' 'この差分の source docs と JSDoc をレビューして。特に src/ 配下では「この repo でなぜ存在するか」「何の責務を持つか」が伝わるかを見て、固定文ではなくコードから読める意図に沿って改善案を出して。先頭行は DOCS_VERDICT: pass|revise' "$$DIFF")"; \
+	aipanel consult "$$PROMPT" \
+		--provider $(AI_PROVIDER) --timeout $(AI_TIMEOUT) --json
 
 ai-plan:
 	@test -n "$(FILE)" || (echo "Usage: make ai-plan FILE=path/to/plan.md"; exit 1)
-	aipanel consult "この実装計画を添削して。抜けている前提・順序ミス・検証不足・ロールバック不足・観測性不足を指摘し、最後に PLAN_VERDICT: good|revise で判定して" \
-		--provider $(AI_PROVIDER) --file $(FILE) --timeout $(AI_TIMEOUT) --json
+	@PLAN="$$(cat "$(FILE)")"; \
+	PROMPT="$$(printf '%s\n\n%s' 'この実装計画を添削して。抜けている前提・順序ミス・検証不足・ロールバック不足・観測性不足を指摘し、最後に PLAN_VERDICT: good|revise で判定して' "$$PLAN")"; \
+	aipanel consult "$$PROMPT" \
+		--provider $(AI_PROVIDER) --timeout $(AI_TIMEOUT) --json
 
 ai-followup:
 	@test -n "$(SESSION)" || (echo "Usage: make ai-followup SESSION=session_xxx QUESTION='...'" ; exit 1)

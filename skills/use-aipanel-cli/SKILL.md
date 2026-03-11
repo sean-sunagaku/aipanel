@@ -31,7 +31,7 @@ Give copy-pastable examples first, then add the minimum explanation needed to av
 
 - Prefer examples that include the exact command shape the user can run immediately.
 - Distinguish clearly between local repo usage and package-installed usage.
-- When `--cwd` appears, explain that relative paths for `--file`, `--diff`, and `--log` are also resolved against that directory.
+- Explain review commands with repeatable `--provider` only. Do not reintroduce or document legacy review flags that are no longer public.
 - When answering `followup` questions, mention that `aipanel` reconstructs session context itself instead of treating native provider resume state as the source of truth.
 - When users ask about installation or publishing, use package name `aipanel-cli`.
 - If the user asks for exact exports or runtime details, cite the relevant reference file before inferring behavior.
