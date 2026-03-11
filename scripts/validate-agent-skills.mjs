@@ -16,10 +16,7 @@ const skillConfigs = [
       "references/05_subagent-prompt-template.md",
       "references/subagents/drawio-diagrammer.yaml",
     ],
-    forbiddenPaths: [
-      "docs/skills/aipanel-diagrams",
-      "skills/aipanel-diagrams",
-    ],
+    forbiddenPaths: ["docs/skills/aipanel-diagrams", "skills/aipanel-diagrams"],
     staleReferencePatterns: [
       "docs/skills/aipanel-diagrams",
       "/.agent/skills/aipanel-diagrams",

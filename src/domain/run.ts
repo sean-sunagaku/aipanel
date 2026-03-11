@@ -27,12 +27,7 @@ import {
   type UsageProps,
 } from "./value-objects.js";
 
-type RunStatus =
-  | "created"
-  | "planned"
-  | "running"
-  | "completed"
-  | "partial";
+type RunStatus = "created" | "planned" | "running" | "completed" | "partial";
 
 type TaskStatus =
   | "created"

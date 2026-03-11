@@ -1,8 +1,6 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import {
-  Artifact,
-} from "../domain/artifact.js";
+import { Artifact } from "../domain/artifact.js";
 import {
   defaultClock,
   defaultIdGenerator,

@@ -23,11 +23,7 @@ export class SessionRepository {
     const filePath = path.join(sessionsDirectory, `${session.sessionId}.json`);
     await mkdir(sessionsDirectory, { recursive: true });
     const document: SessionDocument = { session: session.toJSON() };
-    await writeFile(
-      filePath,
-      JSON.stringify(document, null, 2),
-      "utf8",
-    );
+    await writeFile(filePath, JSON.stringify(document, null, 2), "utf8");
     return session;
   }
 

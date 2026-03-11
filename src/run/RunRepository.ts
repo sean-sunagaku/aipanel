@@ -23,11 +23,7 @@ export class RunRepository {
     const filePath = path.join(runsDirectory, `${run.runId}.json`);
     await mkdir(runsDirectory, { recursive: true });
     const document: RunDocument = { run: run.toJSON() };
-    await writeFile(
-      filePath,
-      JSON.stringify(document, null, 2),
-      "utf8",
-    );
+    await writeFile(filePath, JSON.stringify(document, null, 2), "utf8");
     return run;
   }
 }

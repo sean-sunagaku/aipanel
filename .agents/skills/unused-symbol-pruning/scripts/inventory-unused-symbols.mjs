@@ -83,14 +83,9 @@ function countOccurrences(value, needle) {
 }
 
 function isIgnoredMethodName(name) {
-  return new Set([
-    "constructor",
-    "if",
-    "for",
-    "while",
-    "switch",
-    "catch",
-  ]).has(name);
+  return new Set(["constructor", "if", "for", "while", "switch", "catch"]).has(
+    name,
+  );
 }
 
 function categorize(relativeFile, symbol) {
@@ -404,7 +399,11 @@ function dedupeSymbols(symbols) {
 function toReport(rootDir, options, symbols) {
   return dedupeSymbols(symbols).map((symbol) => {
     const patterns = buildPatterns(symbol);
-    const runtimeMatches = findMatches(rootDir, patterns.runtime, options.runtime);
+    const runtimeMatches = findMatches(
+      rootDir,
+      patterns.runtime,
+      options.runtime,
+    );
     const testMatches = findMatches(rootDir, patterns.tests, options.tests);
     const docMatches = findMatches(rootDir, patterns.docs, options.docs);
 
