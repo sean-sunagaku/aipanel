@@ -1,10 +1,13 @@
 import type { ConsultationResult } from "../usecases/ConsultUseCase.js";
 import type { DebugResult } from "../usecases/DebugUseCase.js";
+import { match } from "ts-pattern";
 
 type RenderedOutput = {
   text: string;
   json: Record<string, unknown>;
 };
+
+type OutputFormat = "text" | "json";
 
 type RenderableResult =
   | { kind: "providers"; providers: string[] }
@@ -26,48 +29,43 @@ export class ResultRenderer {
    */
   render(
     result: RenderableResult,
-    outputFormat: "text" | "json" = "text",
+    outputFormat: OutputFormat = "text",
   ): RenderedOutput {
-    const rendered = (() => {
-      switch (result.kind) {
-        case "providers":
-          return {
-            text: result.providers.join("\n"),
-            json: {
-              kind: result.kind,
-              providers: result.providers,
-            },
-          };
-        case "consultation":
-          return {
-            text: [
-              `session: ${result.sessionId}`,
-              `run: ${result.runId}`,
-              `provider: ${result.provider}`,
-              `model: ${result.model}`,
-              `status: ${result.status}`,
-              "",
-              result.answer,
-            ].join("\n"),
-            json: { ...result },
-          };
-        case "debug":
-          return {
-            text: [
-              `session: ${result.sessionId}`,
-              `run: ${result.runId}`,
-              `provider: ${result.provider}`,
-              `model: ${result.model}`,
-              `status: ${result.status}`,
-              "",
-              `summary: ${result.summary}`,
-              "",
-              result.details.join("\n\n"),
-            ].join("\n"),
-            json: { ...result },
-          };
-      }
-    })();
+    const rendered = match(result)
+      .with({ kind: "providers" }, ({ providers }) => ({
+        text: providers.join("\n"),
+        json: {
+          kind: "providers" as const,
+          providers,
+        },
+      }))
+      .with({ kind: "consultation" }, (r) => ({
+        text: [
+          `session: ${r.sessionId}`,
+          `run: ${r.runId}`,
+          `provider: ${r.provider}`,
+          `model: ${r.model}`,
+          `status: ${r.status}`,
+          "",
+          r.answer,
+        ].join("\n"),
+        json: { ...r },
+      }))
+      .with({ kind: "debug" }, (r) => ({
+        text: [
+          `session: ${r.sessionId}`,
+          `run: ${r.runId}`,
+          `provider: ${r.provider}`,
+          `model: ${r.model}`,
+          `status: ${r.status}`,
+          "",
+          `summary: ${r.summary}`,
+          "",
+          r.details.join("\n\n"),
+        ].join("\n"),
+        json: { ...r },
+      }))
+      .exhaustive();
 
     if (outputFormat === "json") {
       return {

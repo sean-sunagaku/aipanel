@@ -9,6 +9,7 @@ import type {
   ContextBundleLike,
   ContextCollector,
 } from "../context/ContextCollector.js";
+import type { ProviderName } from "../shared/commands.js";
 import type { ArtifactRepository } from "../artifact/ArtifactRepository.js";
 import type { ProviderRegistry } from "../providers/ProviderRegistry.js";
 import type { ProviderCallResult } from "../providers/ProviderAdapter.js";
@@ -22,26 +23,29 @@ type AdapterCallResult = ProviderCallResult & {
   citations?: CitationProps[];
 };
 
-interface ConsultationInput {
-  command: "consult" | "followup";
+type ConsultationInputBase = {
   question: string;
   sessionId?: string;
   title?: string;
   files?: string[];
   diffs?: string[];
   logs?: string[];
-  providerName: string;
+  providerName: ProviderName;
   model?: string;
   timeoutMs: number;
   cwd: string;
-}
+};
+
+export type ConsultationInput =
+  | ({ command: "consult"; sessionId?: string } & ConsultationInputBase)
+  | ({ command: "followup"; sessionId: string } & ConsultationInputBase);
 
 export interface ConsultationResult {
   kind: "consultation";
   sessionId: string;
   runId: string;
   answer: string;
-  provider: string;
+  provider: ProviderName;
   model: string;
   status: "completed" | "partial";
   validationStatus: string;

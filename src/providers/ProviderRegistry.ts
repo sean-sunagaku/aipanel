@@ -1,8 +1,9 @@
 import type { ProviderAdapter } from "./ProviderAdapter.js";
+import type { ProviderName } from "../shared/commands.js";
 
 interface ProviderRegistryOptions {
   adapters: ProviderAdapter[];
-  defaultProvider: string;
+  defaultProvider: ProviderName;
 }
 
 /**
@@ -10,8 +11,8 @@ interface ProviderRegistryOptions {
  * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
  */
 export class ProviderRegistry {
-  readonly #adapters: Map<string, ProviderAdapter>;
-  readonly #defaultProvider: string;
+  readonly #adapters: Map<ProviderName, ProviderAdapter>;
+  readonly #defaultProvider: ProviderName;
 
   constructor(options: ProviderRegistryOptions) {
     this.#adapters = new Map(
@@ -26,8 +27,8 @@ export class ProviderRegistry {
    *
    * @returns 収集した string の一覧。
    */
-  list(): string[] {
-    return [...this.#adapters.keys()].sort();
+  list(): ProviderName[] {
+    return [...this.#adapters.keys()].sort() as ProviderName[];
   }
 
   /**
@@ -37,7 +38,7 @@ export class ProviderRegistry {
    * @param name 処理に渡す name。
    * @returns string | undefined。
    */
-  getDefaultModel(name?: string): string | undefined {
+  getDefaultModel(name?: ProviderName): string | undefined {
     return this.get(name).defaultModel;
   }
 
@@ -50,7 +51,7 @@ export class ProviderRegistry {
    * @throws 入力や参照先が前提を満たさない場合。
    * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
    */
-  get(name?: string): ProviderAdapter {
+  get(name?: ProviderName): ProviderAdapter {
     const providerName = name ?? this.#defaultProvider;
     const adapter = this.#adapters.get(providerName);
     if (!adapter) {

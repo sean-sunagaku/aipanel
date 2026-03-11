@@ -16,6 +16,7 @@ import { DebugUseCase } from "../usecases/DebugUseCase.js";
 import { FollowupUseCase } from "../usecases/FollowupUseCase.js";
 import { ListProvidersUseCase } from "../usecases/ListProvidersUseCase.js";
 import { ProfileLoader } from "./ProfileLoader.js";
+import { DEFAULT_PROVIDER } from "../shared/commands.js";
 
 /**
  * Aipanel App の責務を一箇所にまとめる。
@@ -51,7 +52,7 @@ export class AipanelApp {
     const contextCollector = new ContextCollector({ cwd });
     this.providerRegistry = new ProviderRegistry({
       adapters: [new ClaudeCodeAdapter(), new CodexExecAdapter()],
-      defaultProvider: "claude-code",
+      defaultProvider: DEFAULT_PROVIDER,
     });
 
     this.listProvidersUseCase = new ListProvidersUseCase(this.providerRegistry);

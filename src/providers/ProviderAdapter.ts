@@ -1,10 +1,12 @@
+import type { ProviderName } from "../shared/commands.js";
+
 /**
  * プロバイダー呼び出しに必要な入力をまとめる。
  *
  * 実行系ごとの差分を上位層へ漏らさず、同じ形でアダプターを呼び出せるようにする。
  */
 export interface ProviderCallPlan {
-  provider: string;
+  provider: ProviderName;
   prompt: string;
   cwd: string;
   timeoutMs: number;
@@ -17,7 +19,7 @@ export interface ProviderCallPlan {
  * プロバイダーごとのレスポンス差分をここで吸収し、比較や保存の後続処理を単純に保つ。
  */
 export interface ProviderCallResult {
-  provider: string;
+  provider: ProviderName;
   model: string;
   rawText: string;
   rawJson: unknown;
@@ -44,7 +46,7 @@ export interface ProviderCallResult {
  * 上位層が Claude Code と Codex の違いを意識せずに実行できるようにする。
  */
 export interface ProviderAdapter {
-  readonly name: string;
+  readonly name: ProviderName;
   readonly defaultModel?: string;
 
   /**

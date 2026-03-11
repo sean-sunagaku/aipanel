@@ -6,6 +6,7 @@ import type {
   ExternalRefProps,
   UsageProps,
 } from "../domain/value-objects.js";
+import type { ProviderName } from "../shared/commands.js";
 import type {
   ContextBundleLike,
   ContextCollector,
@@ -47,7 +48,7 @@ export interface DebugResult {
   kind: "debug";
   sessionId: string;
   runId: string;
-  provider: string;
+  provider: ProviderName;
   model: string;
   summary: string;
   details: string[];
@@ -123,7 +124,7 @@ export class DebugUseCase {
     files?: string[];
     diffs?: string[];
     logs?: string[];
-    providerName: string;
+    providerName: ProviderName;
     model?: string;
     timeoutMs: number;
     cwd: string;

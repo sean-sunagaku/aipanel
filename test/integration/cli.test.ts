@@ -63,11 +63,6 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
   await createFakeClaudeBinary(fakeBin);
   await createFakeCodexBinary(fakeBin);
   await mkdir(storageRoot, { recursive: true });
-  await writeFile(
-    path.join(storageRoot, "profile.yml"),
-    "defaultModel: claude-sonnet-4-5\n",
-    "utf8",
-  );
 
   const env = {
     ...process.env,
@@ -105,6 +100,8 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
         "change.diff",
         "--log",
         "app.log",
+        "--model",
+        "claude-sonnet-4-5",
       ],
       {
         cwd: REPO_ROOT,
@@ -182,6 +179,8 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
         "--json",
         "--cwd",
         workspace,
+        "--model",
+        "claude-sonnet-4-5",
       ],
       {
         cwd: REPO_ROOT,
@@ -292,11 +291,6 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
   await createFakeClaudeBinary(fakeBin);
   await createFakeCodexBinary(fakeBin);
   await mkdir(storageRoot, { recursive: true });
-  await writeFile(
-    path.join(storageRoot, "profile.yml"),
-    ["defaultProvider: codex", "defaultTimeoutMs: 120000"].join("\n"),
-    "utf8",
-  );
 
   const env = {
     ...process.env,
@@ -318,6 +312,8 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
         "note.txt",
         "--log",
         "app.log",
+        "--provider",
+        "codex",
       ],
       {
         cwd: REPO_ROOT,
@@ -361,6 +357,8 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
         "--json",
         "--cwd",
         workspace,
+        "--provider",
+        "codex",
       ],
       {
         cwd: REPO_ROOT,
@@ -385,6 +383,8 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
         "note.txt",
         "--log",
         "app.log",
+        "--provider",
+        "codex",
         "--model",
         "codex-pro",
       ],

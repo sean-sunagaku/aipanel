@@ -196,7 +196,7 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
   }
 });
 
-test("E2E: built CLI can use codex as the default provider with the same direct commands", async () => {
+test("E2E: built CLI can use codex when explicitly selected", async () => {
   const sandboxRoot = await mkdtemp(
     path.join(os.tmpdir(), "aipanel-e2e-codex-"),
   );
@@ -214,11 +214,6 @@ test("E2E: built CLI can use codex as the default provider with the same direct 
   await writeFile(
     path.join(workspace, "error.log"),
     "WARN review budget nearly exhausted\n",
-    "utf8",
-  );
-  await writeFile(
-    path.join(storageRoot, "profile.yml"),
-    ["defaultProvider: codex", "defaultTimeoutMs: 120000"].join("\n"),
     "utf8",
   );
   await createFakeClaudeBinary(fakeBin);
@@ -242,6 +237,8 @@ test("E2E: built CLI can use codex as the default provider with the same direct 
         workspace,
         "--file",
         "context.md",
+        "--provider",
+        "codex",
       ],
       {
         cwd: REPO_ROOT,
@@ -265,6 +262,8 @@ test("E2E: built CLI can use codex as the default provider with the same direct 
         "--json",
         "--cwd",
         workspace,
+        "--provider",
+        "codex",
       ],
       {
         cwd: REPO_ROOT,
@@ -289,6 +288,8 @@ test("E2E: built CLI can use codex as the default provider with the same direct 
         "context.md",
         "--log",
         "error.log",
+        "--provider",
+        "codex",
         "--model",
         "codex-reviewer",
       ],
@@ -322,7 +323,7 @@ test("E2E: built CLI can use codex as the default provider with the same direct 
   }
 });
 
-test("E2E: built CLI honors profile defaultModel and explicit --model override", async () => {
+test("E2E: built CLI follows explicit --model and keeps override behavior", async () => {
   const sandboxRoot = await mkdtemp(
     path.join(os.tmpdir(), "aipanel-e2e-model-"),
   );
@@ -335,15 +336,6 @@ test("E2E: built CLI honors profile defaultModel and explicit --model override",
   await writeFile(
     path.join(workspace, "context.md"),
     "# Context\n\nModel routing check.\n",
-    "utf8",
-  );
-  await writeFile(
-    path.join(storageRoot, "profile.yml"),
-    [
-      "defaultProvider: claude-code",
-      "defaultModel: claude-sonnet-4-5",
-      "defaultTimeoutMs: 120000",
-    ].join("\n"),
     "utf8",
   );
   await createFakeClaudeBinary(fakeBin);
@@ -361,12 +353,14 @@ test("E2E: built CLI honors profile defaultModel and explicit --model override",
       [
         BUILT_CLI_PATH,
         "consult",
-        "Use the profile default model.",
+        "Use an explicit model and verify it is used.",
         "--json",
         "--cwd",
         workspace,
         "--file",
         "context.md",
+        "--model",
+        "claude-sonnet-4-5",
       ],
       {
         cwd: REPO_ROOT,
@@ -400,7 +394,7 @@ test("E2E: built CLI honors profile defaultModel and explicit --model override",
       [
         BUILT_CLI_PATH,
         "debug",
-        "Override the profile model for debug.",
+        "Override the explicit model for debug.",
         "--json",
         "--cwd",
         workspace,
