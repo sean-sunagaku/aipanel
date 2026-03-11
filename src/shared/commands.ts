@@ -8,7 +8,8 @@ export type CliCommand =
   | "providers"
   | "consult"
   | "followup"
-  | "debug";
+  | "debug"
+  | "plan";
 export type ConsultationCommand = "consult" | "followup";
 export type ProviderName = "claude-code" | "codex";
 export type OutputFormat = "text" | "json";
@@ -24,6 +25,7 @@ export const CLI_COMMANDS: readonly CliCommand[] = [
   "consult",
   "followup",
   "debug",
+  "plan",
 ];
 export type ParsedCommand = CliCommand | "unknown";
 

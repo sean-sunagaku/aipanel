@@ -12,6 +12,7 @@
 ## This Repository
 
 - 非公開のアーキテクチャ図更新 Skill は `.agents/skills/aipanel-diagrams/` に置く。
+- 非公開の review retrospective / usage-review note 作成 Skill は `.agents/skills/aipanel-review-retrospective/` に置く。
 - 非公開の source docs review / repair Skill は `.agents/skills/source-docs-review/` に置く。
 - 非公開の未使用シンボル精査・削除 Skill は `.agents/skills/unused-symbol-pruning/` に置く。
 

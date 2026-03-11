@@ -3,7 +3,10 @@ import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { parseBatchPayload } from "../support/cliPayloads.js";
+import {
+  parseBatchPayload,
+  parsePlanBatchPayload,
+} from "../support/cliPayloads.js";
 import { createCliSandbox } from "../support/cliSandbox.js";
 import {
   getArray,
@@ -12,6 +15,7 @@ import {
   getRecord,
   getRecordArray,
   getString,
+  getStringArray,
   parseJsonRecord,
 } from "../support/jsonRecord.js";
 import { runCli } from "../support/runCli.js";
@@ -27,12 +31,18 @@ function readStoredRecord(
   );
 }
 
-test("CLI providers, consult, followup, and debug flows work end-to-end", async () => {
+test("CLI providers, consult, followup, debug, and plan flows work end-to-end", async () => {
   const sandbox = await createCliSandbox("aipanel-cli-");
+  const planPath = path.join(sandbox.workspace, "plan.md");
 
   await writeFile(
     path.join(sandbox.workspace, "note.txt"),
     "cache invalidation notes\n",
+    "utf8",
+  );
+  await writeFile(
+    planPath,
+    "# Rollout Plan\n\n1. Add the new flag\n2. Update the router\n3. Verify with tests\n",
     "utf8",
   );
 
@@ -185,6 +195,131 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
       "Why is the build red?",
     );
     await access(getOptionalString(debugRunContext, "artifactPath") ?? "");
+
+    const planResult = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "plan",
+        "Review this implementation plan.",
+        "--file",
+        planPath,
+        "--json",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: sandbox.env,
+      },
+    );
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+    const planPayload = parsePlanBatchPayload(planResult.stdout);
+    assert.equal(planPayload.command, "plan");
+    assert.equal(planPayload.status, "completed");
+    assert.equal(planPayload.results.length, 1);
+    const planReview = planPayload.results[0];
+    assert.ok(planReview);
+    assert.equal(planReview.provider, "claude-code");
+    assert.ok(planReview.sessionId);
+    assert.equal(planReview.output.kind, "plan");
+    assert.equal(planReview.output.details.length, 3);
+    assert.equal(planReview.output.verdict, "good");
+    assert.doesNotMatch(planReview.output.summary, /^\[advice\]/);
+    assert.match(planReview.output.summary, /PLAN_VERDICT: good/);
+    assert.match(
+      planReview.output.details.join("\n\n"),
+      /Plan reviewed: # Rollout Plan/,
+    );
+
+    const planRunDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      planPayload.runId,
+    );
+    const planRunRecord = getRecord(planRunDocument, "run");
+    assert.equal(getString(planRunRecord, "mode"), "orchestrated");
+    assert.deepEqual(
+      getRecordArray(planRunRecord, "tasks").map((task) =>
+        getString(task, "role"),
+      ),
+      ["analyzer", "critic", "advisor"],
+    );
+    const planRunContext = getFirstRecord(planRunRecord, "runContexts");
+    assert.equal(
+      getString(planRunContext, "question"),
+      "Review this implementation plan.",
+    );
+    assert.equal(getString(planRunContext, "filePath"), planPath);
+    await access(getOptionalString(planRunContext, "artifactPath") ?? "");
+    await access(getOptionalString(planRunContext, "sourceArtifactPath") ?? "");
+
+    const planSessionDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "sessions",
+      planReview.sessionId,
+    );
+    const planSessionRecord = getRecord(planSessionDocument, "session");
+    const planTurns = getRecordArray(planSessionRecord, "turns");
+    const planUserTurn = planTurns[0];
+    assert.ok(planUserTurn);
+    assert.match(
+      getString(planUserTurn, "content"),
+      /Plan document:\n# Rollout Plan/,
+    );
+    assert.equal(getStringArray(planUserTurn, "artifactIds").length, 1);
+
+    const planFollowupResult = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "followup",
+        "--session",
+        planReview.sessionId,
+        "What should we validate first?",
+        "--json",
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: sandbox.env,
+      },
+    );
+    assert.equal(planFollowupResult.exitCode, 0, planFollowupResult.stderr);
+    const planFollowupPayload = parseBatchPayload(planFollowupResult.stdout);
+    const planFollowupReview = planFollowupPayload.results[0];
+    assert.ok(planFollowupReview);
+    assert.equal(planFollowupReview.output.kind, "consultation");
+    assert.match(
+      planFollowupReview.output.answer,
+      /Transcript reviewed: # Rollout Plan/,
+    );
+  } finally {
+    await sandbox.cleanup();
+  }
+});
+
+test("CLI rejects --file outside the plan command", async () => {
+  const sandbox = await createCliSandbox("aipanel-cli-invalid-file-");
+  const planPath = path.join(sandbox.workspace, "not-for-consult.md");
+
+  await writeFile(planPath, "# Wrong Command\n", "utf8");
+
+  try {
+    const result = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "consult",
+        "Should reject the file flag.",
+        "--file",
+        planPath,
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: sandbox.env,
+      },
+    );
+
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /`--file` is only supported by `plan`\./);
   } finally {
     await sandbox.cleanup();
   }
@@ -192,10 +327,16 @@ test("CLI providers, consult, followup, and debug flows work end-to-end", async 
 
 test("CLI supports codex consult, followup, and debug through exec flow", async () => {
   const sandbox = await createCliSandbox("aipanel-cli-codex-");
+  const planPath = path.join(sandbox.workspace, "plan.md");
 
   await writeFile(
     path.join(sandbox.workspace, "note.txt"),
     "investigate the flaky reviewer flow\n",
+    "utf8",
+  );
+  await writeFile(
+    planPath,
+    "# Codex Plan\n\n1. Inspect the current reviewer flow\n2. Patch the execution path\n",
     "utf8",
   );
 
@@ -297,6 +438,50 @@ test("CLI supports codex consult, followup, and debug through exec flow", async 
       ),
       ["codex", "codex", "codex"],
     );
+
+    const planResult = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "plan",
+        "Review the codex plan path.",
+        "--json",
+        "--provider",
+        "codex",
+        "--file",
+        planPath,
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: sandbox.env,
+      },
+    );
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+    const planPayload = parsePlanBatchPayload(planResult.stdout);
+    const planReview = planPayload.results[0];
+    assert.ok(planReview);
+    assert.equal(planReview.provider, "codex");
+    assert.equal(planReview.output.kind, "plan");
+    assert.equal(planReview.output.verdict, "good");
+    assert.match(
+      planReview.output.details.join("\n\n"),
+      /Plan reviewed: # Codex Plan/,
+    );
+
+    const planRunDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      planPayload.runId,
+    );
+    const planRunRecord = getRecord(planRunDocument, "run");
+    assert.deepEqual(
+      getRecordArray(planRunRecord, "providerResponses").map((response) =>
+        getString(response, "provider"),
+      ),
+      ["codex", "codex", "codex"],
+    );
+    const planRunContext = getFirstRecord(planRunRecord, "runContexts");
+    await access(getOptionalString(planRunContext, "sourceArtifactPath") ?? "");
   } finally {
     await sandbox.cleanup();
   }

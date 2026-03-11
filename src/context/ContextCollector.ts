@@ -12,12 +12,14 @@ export interface RunContextLike {
   summary: string;
   question: string;
   cwd: string;
+  filePath?: string;
   collectedAt: string;
 }
 
 interface ContextCollectInput {
   question: string;
   cwd?: string;
+  filePath?: string;
 }
 
 /**
@@ -47,13 +49,18 @@ export class ContextCollector {
   async collect({
     question,
     cwd = this.cwd,
+    filePath,
   }: ContextCollectInput): Promise<RunContextLike> {
     return {
       runContextId: createId("runctx"),
       runId: null,
-      summary: "Prompt-only execution without external context attachments.",
+      summary:
+        filePath !== undefined
+          ? "Prompt execution with an attached plan document."
+          : "Prompt-only execution without external context attachments.",
       question,
       cwd,
+      ...(filePath !== undefined ? { filePath } : {}),
       collectedAt: this.clock.nowIso(),
     };
   }

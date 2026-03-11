@@ -31,7 +31,7 @@ Persistence categories:
 
 - `sessions/`: `Session`, `SessionTurn`
 - `runs/`: `Run`, `RunTask`, `TaskResult`, `RunContext`, `ProviderResponse`, `NormalizedResponse`, `ComparisonReport`
-- `artifacts/`: run context, provider raw outputs, debug task outputs
+- `artifacts/`: run context, provider raw outputs, debug task outputs, plan task outputs, plan source documents
 
 `AIPANEL_STORAGE_ROOT` changes the storage root.
 

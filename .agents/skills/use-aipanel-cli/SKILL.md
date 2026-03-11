@@ -1,6 +1,6 @@
 ---
 name: use-aipanel-cli
-description: Explain how to install, configure, and run `aipanel-cli` as a CLI broker and orchestrator for Claude Code and Codex. Use when someone asks how to use this repository or package, how to run `providers`, `consult`, `followup`, or `debug`, or how `.aipanel/profile.yml` and `AIPANEL_STORAGE_ROOT` affect behavior and storage.
+description: Explain how to install, configure, and run `aipanel-cli` as a CLI broker and orchestrator for Claude Code and Codex. Use when someone asks how to use this repository or package, how to run `providers`, `consult`, `followup`, `debug`, or `plan`, or how `.aipanel/profile.yml` and `AIPANEL_STORAGE_ROOT` affect behavior and storage.
 ---
 
 # Use Aipanel Cli
@@ -23,7 +23,7 @@ Give copy-pastable examples first, then add the minimum explanation needed to av
    - installed package: `aipanel ...`
 5. Mention the current phase-1 scope when it matters:
    - supported providers: `claude-code`, `codex`
-   - supported commands: `providers`, `consult`, `followup`, `debug`
+   - supported commands: `providers`, `consult`, `followup`, `debug`, `plan`
    - `compare` is out of scope for phase 1
 
 ## Guidance
@@ -32,6 +32,7 @@ Give copy-pastable examples first, then add the minimum explanation needed to av
 - Distinguish clearly between local repo usage and package-installed usage.
 - Explain review commands with repeatable `--provider` only. Do not reintroduce or document legacy review flags that are no longer public.
 - When answering `followup` questions, mention that `aipanel` reconstructs session context itself instead of treating native provider resume state as the source of truth.
+- When answering `plan` questions, mention that the positional question is required, `--file` is optional, and attached plan text is stored in the run ledger and session history for later `followup`.
 - When users ask about installation or publishing, use package name `aipanel-cli`.
 - If the user asks about TypeScript imports, check the current export map before claiming support. The current public surface is CLI-first.
 - Codex provider は起動が遅いため `--timeout` は `300000`（5分）以上を推奨。Makefile のデフォルトは `600000`（10分）。

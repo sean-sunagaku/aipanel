@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aipanel Review Retrospective"
+  short_description: "Capture review lessons into docs/usage-review"
+  default_prompt: "Use $aipanel-review-retrospective to review recent aipanel changes, capture what could have gone better, and write a reusable retrospective note under docs/usage-review/."

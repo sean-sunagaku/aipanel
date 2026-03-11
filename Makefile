@@ -110,9 +110,7 @@ ai-docs-review:
 
 ai-plan:
 	@test -n "$(FILE)" || (echo "Usage: make ai-plan FILE=path/to/plan.md"; exit 1)
-	@PLAN="$$(cat "$(FILE)")"; \
-	PROMPT="$$(printf '%s\n\n%s' 'この実装計画を添削して。抜けている前提・順序ミス・検証不足・ロールバック不足・観測性不足を指摘し、最後に PLAN_VERDICT: good|revise で判定して' "$$PLAN")"; \
-	aipanel consult "$$PROMPT" \
+	aipanel plan "この実装計画を添削して" --file "$(FILE)" \
 		--provider $(AI_PROVIDER) --timeout $(AI_TIMEOUT) --json
 
 ai-followup:

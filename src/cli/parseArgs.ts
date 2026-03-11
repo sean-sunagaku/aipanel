@@ -21,6 +21,7 @@ export interface ParsedArgs {
   readonly positionals: readonly string[];
   readonly outputFormat: OutputFormat;
   readonly sessionId: string | undefined;
+  readonly filePath: string | undefined;
   readonly providers: readonly ProviderSpec[];
   readonly timeoutMs: number | undefined;
 }
@@ -76,6 +77,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const positionals: string[] = [];
 
   let sessionId: string | undefined;
+  let filePath: string | undefined;
   const providers: ProviderSpec[] = [];
   let timeoutMs: number | undefined;
   let outputFormat: OutputFormat = "text";
@@ -93,6 +95,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
     if (token === "--session") {
       sessionId = readFlagValue(rest, index + 1, "--session");
+      index += 1;
+      continue;
+    }
+
+    if (token === "--file") {
+      filePath = readFlagValue(rest, index + 1, "--file");
       index += 1;
       continue;
     }
@@ -124,6 +132,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     positionals: Object.freeze(positionals),
     outputFormat,
     sessionId,
+    filePath,
     providers: Object.freeze(providers),
     timeoutMs,
   });
