@@ -115,6 +115,40 @@ Temporary storage example:
 AIPANEL_STORAGE_ROOT="$(mktemp -d)" aipanel consult "Reply with exactly: ready" --json --timeout 30000
 ```
 
+## Updating In Another Repository
+
+When the question is about updating `aipanel-cli` inside the user's own repository, prefer repo-local installation over global installation so the version is pinned in `package.json` and lockfile.
+
+Recommended update flow for repo-local usage:
+
+```bash
+pnpm outdated aipanel-cli
+pnpm up -D aipanel-cli
+pnpm exec aipanel providers --json
+```
+
+If the repository imports `aipanel-cli` from TypeScript, also validate the code-level surface:
+
+```bash
+pnpm up aipanel-cli
+pnpm run typecheck
+pnpm test
+```
+
+If they only use a global install:
+
+```bash
+pnpm add -g aipanel-cli@latest
+aipanel providers --json
+```
+
+After the version bump, remind them to:
+
+- run one lightweight `consult` smoke check
+- run one `followup` on temporary storage if their workflow depends on session persistence
+- review wrapper scripts, Makefile targets, CI jobs, and git hooks that hardcode flags, provider names, or timeout values
+- re-check `.aipanel/profile.yml` defaults such as `defaultProvider`, `defaultModel`, and `defaultTimeoutMs`
+
 ## Packaging And Publish Checks
 
 When the question is about package distribution, use package name `aipanel-cli`.
