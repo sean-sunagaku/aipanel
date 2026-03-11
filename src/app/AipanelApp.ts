@@ -20,6 +20,7 @@ import { ConsultUseCase } from "../usecases/ConsultUseCase.js";
 import { DebugUseCase } from "../usecases/DebugUseCase.js";
 import { FollowupUseCase } from "../usecases/FollowupUseCase.js";
 import { ListProvidersUseCase } from "../usecases/ListProvidersUseCase.js";
+import { PlanUseCase } from "../usecases/PlanUseCase.js";
 import { DEFAULT_PROVIDER } from "../shared/commands.js";
 
 /**
@@ -33,6 +34,7 @@ export class AipanelApp {
   readonly consultUseCase: ConsultUseCase;
   readonly followupUseCase: FollowupUseCase;
   readonly debugUseCase: DebugUseCase;
+  readonly planUseCase: PlanUseCase;
 
   constructor({
     storageRoot = process.env.AIPANEL_STORAGE_ROOT ??
@@ -67,6 +69,14 @@ export class AipanelApp {
     });
     this.followupUseCase = new FollowupUseCase(this.consultUseCase);
     this.debugUseCase = new DebugUseCase({
+      sessionManager,
+      runCoordinator,
+      providerRegistry: this.providerRegistry,
+      contextCollector,
+      artifactRepository,
+      comparisonEngine: new ComparisonEngine(),
+    });
+    this.planUseCase = new PlanUseCase({
       sessionManager,
       runCoordinator,
       providerRegistry: this.providerRegistry,

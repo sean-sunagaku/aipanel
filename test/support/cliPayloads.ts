@@ -4,6 +4,7 @@ import type {
   BatchResultOutput,
   ConsultationBatchOutput,
   DebugBatchOutput,
+  PlanBatchOutput,
   ProvidersPayload,
 } from "../../src/shared/cli-contract.js";
 import {
@@ -25,6 +26,7 @@ import { literalTuple } from "../../src/shared/literalTuple.js";
 
 const providerPayloadKinds = literalTuple("providers");
 const batchPayloadKinds = literalTuple("batch");
+const planVerdicts = literalTuple("good", "revise");
 
 function getOptionalStringLiteral<T extends readonly string[]>(
   record: Record<string, unknown>,
@@ -66,10 +68,20 @@ function parseBatchOutput(record: Record<string, unknown>): BatchResultOutput {
     };
   }
 
+  if (kind === "debug") {
+    return {
+      kind,
+      summary: getString(record, "summary"),
+      details: getStringArray(record, "details"),
+    };
+  }
+
+  const verdict = getOptionalStringLiteral(record, "verdict", planVerdicts);
   return {
     kind,
     summary: getString(record, "summary"),
     details: getStringArray(record, "details"),
+    ...(verdict !== undefined ? { verdict } : {}),
   };
 }
 
@@ -164,6 +176,31 @@ export function parseDebugBatchPayload(
     results: payload.results.map((result) => {
       if (result.output.kind !== "debug") {
         throw new Error("Expected debug output in debug batch payload.");
+      }
+
+      return {
+        ...result,
+        output: result.output,
+      };
+    }),
+  };
+}
+
+export function parsePlanBatchPayload(
+  stdout: string,
+): BatchPayload<PlanBatchOutput> {
+  const payload = parseBatchPayload(stdout);
+  if (payload.command !== "plan") {
+    throw new Error(
+      `Expected plan batch payload but received ${payload.command}.`,
+    );
+  }
+
+  return {
+    ...payload,
+    results: payload.results.map((result) => {
+      if (result.output.kind !== "plan") {
+        throw new Error("Expected plan output in plan batch payload.");
       }
 
       return {

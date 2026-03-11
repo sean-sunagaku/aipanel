@@ -6,7 +6,7 @@
 Phase 1 currently supports:
 
 - providers: `claude-code`, `codex`
-- commands: `providers`, `consult`, `followup`, `debug`
+- commands: `providers`, `consult`, `followup`, `debug`, `plan`
 - persistence owned by `aipanel`: `Session`, `Run`, `Artifact`
 
 `compare` is not part of phase 1.
@@ -68,12 +68,24 @@ Debug:
 aipanel debug "この不具合の根本原因は？" [--provider <name[:model]>]... [--timeout <ms>] [--json]
 ```
 
+Plan:
+
+```bash
+aipanel plan "この計画をレビューして" [--file <path>] [--provider <name[:model]>]... [--timeout <ms>] [--json]
+```
+
 ## Good Examples
 
 Repository source execution:
 
 ```bash
 pnpm run dev consult "この設計どう？" --provider claude-code:claude-sonnet-4-5 --provider codex:codex-reviewer --json
+```
+
+Repository source execution for plan review:
+
+```bash
+pnpm run dev plan "この計画をレビューして" --file docs/plan.md --provider codex --json --timeout 600000
 ```
 
 Built CLI:
@@ -91,11 +103,12 @@ aipanel debug "この不具合の根本原因は？" --provider claude-code:clau
 ## Runtime Notes
 
 - review 系 command は repeatable `--provider` を公開する。`provider:model` を使うと model override を指定できる。同じ provider を複数回書けば別インスタンスとして並列実行される。
-- `consult` / `followup` / `debug` の `--json` 出力は常に batch shape で返る。単発でも `results.length === 1`。
+- `consult` / `followup` / `debug` / `plan` の `--json` 出力は常に batch shape で返る。単発でも `results.length === 1`。
 - `defaultProvider` in `.aipanel/profile.yml` can switch the default provider to `claude-code` or `codex`.
 - `AIPANEL_STORAGE_ROOT` overrides where sessions, runs, and artifacts are stored.
 - `followup` rebuilds context from `aipanel` session history instead of using native provider resume state as the system of record.
-- In `debug`, `--timeout` applies to each orchestrated provider call, so end-to-end runtime can be much longer than the single timeout value.
+- `plan` では positional question が必須で、`--file` は任意。添付した計画書は prompt、run ledger、session history に保存されるので、同じ session の `followup` でも再利用できる。
+- In `debug` and `plan`, `--timeout` applies to each orchestrated provider call, so end-to-end runtime can be much longer than the single timeout value.
 
 Profile example:
 
@@ -104,7 +117,7 @@ defaultProvider: claude-code
 defaultTimeoutMs: 300000
 ```
 
-> **Note**: Codex provider は起動に時間がかかるため `defaultTimeoutMs` は `300000`（5分）以上を推奨。`120000` だとタイムアウトしやすい。`debug` は各タスクごとに timeout が適用されるため、end-to-end は 3 倍以上かかる可能性がある。
+> **Note**: Codex provider は起動に時間がかかるため `defaultTimeoutMs` は `300000`（5分）以上を推奨。`120000` だとタイムアウトしやすい。`debug` と `plan` は各タスクごとに timeout が適用されるため、end-to-end は 3 倍以上かかる可能性がある。
 
 Temporary storage example:
 

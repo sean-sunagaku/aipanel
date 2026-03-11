@@ -1,4 +1,4 @@
 interface:
   display_name: "Use aipanel-cli"
-  short_description: "Guide to aipanel-cli commands and imports"
-  default_prompt: "Use $use-aipanel-cli to explain how to run consult, followup, debug, or import aipanel-cli in code."
+  short_description: "Guide to aipanel-cli commands, plan review, and storage"
+  default_prompt: "Use $use-aipanel-cli to explain how to run consult, followup, debug, or plan with aipanel-cli, and clarify storage or import limitations when needed."

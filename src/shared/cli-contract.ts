@@ -9,8 +9,13 @@ import type { ProviderName } from "./commands.js";
 import { literalTuple } from "./literalTuple.js";
 
 export const cliResponseKinds = literalTuple("providers", "batch");
-export const batchCommands = literalTuple("consult", "followup", "debug");
-export const batchOutputKinds = literalTuple("consultation", "debug");
+export const batchCommands = literalTuple(
+  "consult",
+  "followup",
+  "debug",
+  "plan",
+);
+export const batchOutputKinds = literalTuple("consultation", "debug", "plan");
 
 export type BatchCommand = (typeof batchCommands)[number];
 
@@ -30,7 +35,17 @@ export interface DebugBatchOutput {
   readonly details: string[];
 }
 
-export type BatchResultOutput = ConsultationBatchOutput | DebugBatchOutput;
+export interface PlanBatchOutput {
+  readonly kind: "plan";
+  readonly summary: string;
+  readonly details: string[];
+  readonly verdict?: "good" | "revise";
+}
+
+export type BatchResultOutput =
+  | ConsultationBatchOutput
+  | DebugBatchOutput
+  | PlanBatchOutput;
 
 export interface BatchResult<
   TOutput extends BatchResultOutput = BatchResultOutput,

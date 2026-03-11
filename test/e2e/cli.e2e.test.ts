@@ -5,6 +5,7 @@ import test from "node:test";
 
 import {
   parseBatchPayload,
+  parsePlanBatchPayload,
   parseProvidersPayload,
 } from "../support/cliPayloads.js";
 import { createCliSandbox } from "../support/cliSandbox.js";
@@ -29,12 +30,18 @@ function readStoredRecord(
   );
 }
 
-test("E2E: built CLI can complete providers, consult, followup, and debug with persistent storage", async () => {
+test("E2E: built CLI can complete providers, consult, followup, debug, and plan with persistent storage", async () => {
   const sandbox = await createCliSandbox("aipanel-e2e-");
+  const planPath = path.join(sandbox.workspace, "plan.md");
 
   await writeFile(
     path.join(sandbox.workspace, "context.md"),
     "# Context\n\nSomething is failing.\n",
+    "utf8",
+  );
+  await writeFile(
+    planPath,
+    "# Release Plan\n\n1. Update the parser\n2. Add the use case\n3. Validate the CLI\n",
     "utf8",
   );
 
@@ -127,6 +134,49 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
     assert.equal(
       getString(comparisonReport, "topic"),
       "Diagnose the likely issue in one short paragraph. (claude-code)",
+    );
+
+    const plan = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "plan",
+        "Review this release plan.",
+        "--file",
+        planPath,
+        "--json",
+      ],
+      { cwd: REPO_ROOT, env: sandbox.env },
+    );
+    assert.equal(plan.exitCode, 0, plan.stderr);
+    const planPayload = parsePlanBatchPayload(plan.stdout);
+    const planReview = planPayload.results[0];
+    assert.ok(planReview);
+    assert.equal(planReview.provider, "claude-code");
+    assert.equal(planReview.output.kind, "plan");
+    assert.equal(planReview.output.verdict, "good");
+    assert.match(
+      planReview.output.details.join("\n\n"),
+      /Plan reviewed: # Release Plan/,
+    );
+
+    const planRunDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      planPayload.runId,
+    );
+    const planRunRecord = getRecord(planRunDocument, "run");
+    assert.deepEqual(
+      getRecordArray(planRunRecord, "tasks").map((task) =>
+        getString(task, "role"),
+      ),
+      ["analyzer", "critic", "advisor"],
+    );
+    const planRunContext = getFirstRecord(planRunRecord, "runContexts");
+    assert.equal(getString(planRunContext, "filePath"), planPath);
+    assert.equal(
+      getString(planRunContext, "sourceArtifactId").startsWith("artifact_"),
+      true,
     );
   } finally {
     await sandbox.cleanup();
@@ -261,6 +311,38 @@ test("E2E: built CLI can fan out to multiple reviewers in one batch", async () =
       ),
       ["claude-code", "codex", "codex"],
     );
+  } finally {
+    await sandbox.cleanup();
+  }
+});
+
+test("E2E: built CLI renders plan text output and exits with code 2 for revise verdicts", async () => {
+  const sandbox = await createCliSandbox("aipanel-e2e-plan-text-");
+  const planPath = path.join(sandbox.workspace, "plan.md");
+
+  await writeFile(
+    planPath,
+    "# FORCE_PLAN_REVISE\n\n1. Ship immediately\n2. Skip validation\n",
+    "utf8",
+  );
+
+  try {
+    const plan = await runCli(
+      process.execPath,
+      [
+        BUILT_CLI_PATH,
+        "plan",
+        "Review this FORCE_PLAN_REVISE rollout.",
+        "--file",
+        planPath,
+      ],
+      { cwd: REPO_ROOT, env: sandbox.env },
+    );
+    assert.equal(plan.exitCode, 2, plan.stderr);
+    assert.match(plan.stdout, /command: plan/);
+    assert.match(plan.stdout, /status: completed/);
+    assert.match(plan.stdout, /review: needs-review/);
+    assert.match(plan.stdout, /verdict: revise/);
   } finally {
     await sandbox.cleanup();
   }

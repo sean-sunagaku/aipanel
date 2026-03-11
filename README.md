@@ -8,7 +8,7 @@
 
 - phase 1 実装済み
 - provider は `claude-code`, `codex`
-- 利用可能 command は `providers`, `consult`, `followup`, `debug`
+- 利用可能 command は `providers`, `consult`, `followup`, `debug`, `plan`
 - `compare` は phase 1 の対象外
 
 ## Setup
@@ -43,13 +43,14 @@ make dev
 
 ## Quick Start
 
-最短で使うならこの 4 つです。
+最短で使うならこの 5 つです。
 
 ```bash
 node dist/bin/aipanel.js providers --json
 node dist/bin/aipanel.js consult "この設計どう？" --json
 node dist/bin/aipanel.js followup --session session_xxx "この続きで確認したい" --json
 node dist/bin/aipanel.js debug "この不具合の根本原因は？" --json
+node dist/bin/aipanel.js plan "この計画をレビューして" --file docs/plan.md --json
 ```
 
 提出前の標準チェック:
@@ -177,6 +178,7 @@ node dist/bin/aipanel.js providers --json
 node dist/bin/aipanel.js consult "この設計どう？" --json
 node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --json
 node dist/bin/aipanel.js debug "この不具合の根本原因は？" --json
+node dist/bin/aipanel.js plan "この計画をレビューして" --file docs/plan.md --json
 ```
 
 ```bash
@@ -184,14 +186,16 @@ node dist/bin/aipanel.js providers [--json]
 node dist/bin/aipanel.js consult "<question>" [--provider <name[:model]>]... [--timeout <ms>] [--json]
 node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--provider <name[:model]>] [--timeout <ms>] [--json]
 node dist/bin/aipanel.js debug "<question>" [--provider <name[:model]>]... [--timeout <ms>] [--json]
+node dist/bin/aipanel.js plan "<question>" [--file <path>] [--provider <name[:model]>]... [--timeout <ms>] [--json]
 ```
 
 補足:
 
 - `--session` は `followup` 専用です。既存 session を引き継ぐときだけ指定します
-- `consult` と `debug` は現在の質問からそのまま実行します
+- `--file` は `plan` 専用です。計画書本文を prompt・Run ledger・session 履歴に残します
+- `consult`, `debug`, `plan` は現在の質問からそのまま実行します
 - 実装では `as` による型アサーションを避け、必要な分岐は `ts-pattern` を優先します
-- `consult` / `debug` に provider native session tracking はありません。継続は `aipanel` 側の session 履歴を使います
+- `followup` は provider native session tracking を正本にせず、`aipanel` 側の session 履歴を再構築して継続します。`plan --file` の添付計画書もこの履歴に残ります
 
 repo からのショートカット:
 
@@ -209,15 +213,17 @@ node dist/bin/aipanel.js consult "この設計どう？" --provider claude-code:
 node dist/bin/aipanel.js consult "この設計どう？" --provider codex:codex-reviewer --provider codex:codex-reviewer --json
 node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --provider codex:codex-reviewer --json
 node dist/bin/aipanel.js debug "この不具合の根本原因は？" --provider claude-code:claude-sonnet-4-5 --provider codex:codex-reviewer --json
+node dist/bin/aipanel.js plan "この計画をレビューして" --file docs/plan.md --provider codex --json
 ```
 
 ## Runtime Notes
 
 - review 系 command は repeatable `--provider` を公開します。`provider:model` を使うと model override を渡せます。同じ provider を複数回書けば別インスタンスとして並列実行されます
-- `consult` / `followup` / `debug` の `--json` 出力は常に batch shape です。単発でも `results.length === 1` の配列で返ります
+- `consult` / `followup` / `debug` / `plan` の `--json` 出力は常に batch shape です。単発でも `results.length === 1` の配列で返ります
 - `AIPANEL_STORAGE_ROOT` を指定すると、session / run / artifact の保存先を切り替えられます
 - `followup` は `--session` 必須です。Claude Code / Codex の native resume を正本にせず、`aipanel` 側の session 履歴再構築を基本にしています
-- `debug` の `--timeout` は orchestrated mode の各 provider call に適用されるので、合計所要時間は 3 倍近くになることがあります
+- `plan --file` は計画書本文を source artifact として保存し、同じ session に対する `followup` でも再利用できるよう session 履歴へ残します
+- `debug` と `plan` の `--timeout` は orchestrated mode の各 provider call に適用されるので、合計所要時間は 3 倍近くになることがあります
 - `--timeout` の既定値は `120000` (ms) です
 
 例:
@@ -256,7 +262,7 @@ Codex を既定 provider にしたい場合は、`defaultProvider: codex` を指
 
 - `sessions/`: `Session`, `SessionTurn`
 - `runs/`: `Run`, `RunTask`, `TaskResult`, `RunContext`, `ProviderResponse`, `NormalizedResponse`, `ComparisonReport`
-- `artifacts/`: run context, provider raw text/json, debug task outputs
+- `artifacts/`: run context, provider raw text/json, debug task outputs, plan task outputs, plan source documents
 
 返却例:
 
@@ -317,7 +323,7 @@ make audit
 テストの役割:
 
 - `test:unit`: `ResponseNormalizer`, `ContextCollector`, `SessionManager`
-- `test:integration`: built CLI + fake Claude/Codex provider で `providers/consult/followup/debug`
+- `test:integration`: built CLI + fake Claude/Codex provider で `providers/consult/followup/debug/plan`
 - `test:e2e`: built CLI の永続化込みフルフロー確認
 - integration / E2E では always-batch JSON と複数 provider 実行を確認
 
@@ -341,6 +347,7 @@ make audit
 - 実 Claude Code を使った `consult`
 - 実 Claude Code を使った `followup`
 - 実 Claude Code を使った `debug`
+- 実 Claude Code を使った `plan`
 - 実 Claude Code / Codex を混在させた batch `consult`
 
 ## Repo Skill

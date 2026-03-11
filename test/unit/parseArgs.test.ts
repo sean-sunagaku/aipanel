@@ -32,12 +32,40 @@ test("parseArgs parses repeatable providers and common flags into an immutable o
   assert.equal(parsed.command, "consult");
   assert.equal(parsed.outputFormat, "json");
   assert.equal(parsed.positionals.join(" "), "Why is this happening?");
+  assert.equal(parsed.filePath, undefined);
   assert.deepEqual(parsed.providers, [
     { name: "claude-code", model: "claude-sonnet-4-5" },
     { name: "codex", model: "codex-reviewer" },
   ]);
   assert.equal(parsed.sessionId, "sid-1");
   assert.equal(parsed.timeoutMs, 3000);
+});
+
+test("parseArgs parses plan with an optional file path", () => {
+  const parsed = parseArgs([
+    "plan",
+    "Review",
+    "this",
+    "plan",
+    "--file",
+    "./docs/plan.md",
+    "--provider",
+    "codex",
+  ]);
+
+  assert.equal(parsed.command, "plan");
+  assert.equal(parsed.positionals.join(" "), "Review this plan");
+  assert.equal(parsed.filePath, "./docs/plan.md");
+  assert.deepEqual(parsed.providers, [{ name: "codex" }]);
+});
+
+test("parseArgs parses plan without a file path", () => {
+  const parsed = parseArgs(["plan", "Review", "this", "migration"]);
+
+  assert.equal(parsed.command, "plan");
+  assert.equal(parsed.positionals.join(" "), "Review this migration");
+  assert.equal(parsed.filePath, undefined);
+  assert.deepEqual(parsed.providers, []);
 });
 
 test("parseArgs rejects unknown flags", () => {

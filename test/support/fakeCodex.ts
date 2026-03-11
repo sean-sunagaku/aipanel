@@ -21,22 +21,42 @@ const model =
   modelIndex >= 0 ? args[modelIndex + 1] ?? "configured-default" : "configured-default";
 const prompt = args.at(-1) ?? "";
 const taskFocus = prompt.match(/Task focus: ([^\\n]+)/)?.[1] ?? null;
+const conversation =
+  prompt.match(/Conversation so far:\\n([\\s\\S]+?)(?=\\n\\nCurrent question:)/)?.[1]?.trim() ??
+  null;
+const planDoc =
+  prompt.match(/Plan document:\\n([\\s\\S]+?)(?=\\n\\n(?:Previous analysis:|User request:))/)?.[1]?.trim() ??
+  null;
+const transcriptPlanDoc =
+  conversation?.match(/Plan document:\\n([\\s\\S]+?)(?=\\n\\n(?:USER|ASSISTANT):|$)/)?.[1]?.trim() ??
+  null;
 const currentQuestion =
-  prompt.match(/Current question:\\n([\\s\\S]+)/)?.[1]?.trim() ??
-  prompt.match(/Debug question:\\n([\\s\\S]+)/)?.[1]?.trim() ??
+  prompt.match(/Current question:\\n([\\s\\S]+?)(?=\\n\\nReply|$)/)?.[1]?.trim() ??
+  prompt.match(/Debug question:\\n([\\s\\S]+?)(?=\\n\\nReply|$)/)?.[1]?.trim() ??
+  prompt.match(/User request:\\n([\\s\\S]+?)(?=\\n\\nReply|$)/)?.[1]?.trim() ??
   "No question";
+const planVerdict =
+  taskFocus?.includes("PLAN_VERDICT")
+    ? prompt.includes("FORCE_PLAN_REVISE")
+      ? "revise"
+      : "good"
+    : null;
 
 const result = taskFocus
   ? [
       taskFocus,
       "Model used: " + model,
+      "Question: " + currentQuestion,
+      ...(planDoc ? ["Plan reviewed: " + planDoc.slice(0, 20)] : []),
       "- inspect the most relevant repository evidence",
       "- call out the highest-risk assumption",
       "Recommend a targeted verification step.",
+      ...(planVerdict ? ["PLAN_VERDICT: " + planVerdict] : []),
     ].join("\\n")
   : [
       "Codex answer for: " + currentQuestion,
       "Model used: " + model,
+      ...(transcriptPlanDoc ? ["Transcript reviewed: " + transcriptPlanDoc.slice(0, 20)] : []),
       "- inspect the relevant files before concluding",
       "- keep the response grounded in the available context",
       "Recommend validating the conclusion with one focused check.",

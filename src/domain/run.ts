@@ -46,7 +46,7 @@ export const taskStatuses = literalTuple(
 );
 export type TaskStatus = (typeof taskStatuses)[number];
 
-export const runCommands = literalTuple("consult", "followup", "debug");
+export const runCommands = literalTuple("consult", "followup", "debug", "plan");
 export type RunCommand = (typeof runCommands)[number];
 
 export const runModes = literalTuple("direct", "orchestrated");
@@ -58,6 +58,9 @@ export const runTaskRoles = literalTuple(
   "planner",
   "reviewer",
   "validator",
+  "analyzer",
+  "critic",
+  "advisor",
 );
 export type RunTaskRole = (typeof runTaskRoles)[number];
 
@@ -437,6 +440,9 @@ export interface RunContextProps {
   summary: string;
   question: string;
   cwd: string;
+  filePath?: string | null;
+  sourceArtifactId?: string | null;
+  sourceArtifactPath?: string | null;
   collectedAt: IsoDateString;
   artifactId?: string | null;
   artifactPath?: string | null;
@@ -453,6 +459,9 @@ export class RunContext {
   public readonly summary: string;
   public readonly question: string;
   public readonly cwd: string;
+  public readonly filePath: string | null;
+  public readonly sourceArtifactId: string | null;
+  public readonly sourceArtifactPath: string | null;
   public readonly collectedAt: IsoDateString;
   public readonly artifactId: string | null;
   public readonly artifactPath: string | null;
@@ -464,6 +473,9 @@ export class RunContext {
     this.summary = props.summary;
     this.question = props.question;
     this.cwd = props.cwd;
+    this.filePath = props.filePath ?? null;
+    this.sourceArtifactId = props.sourceArtifactId ?? null;
+    this.sourceArtifactPath = props.sourceArtifactPath ?? null;
     this.collectedAt = props.collectedAt;
     this.artifactId = props.artifactId ?? null;
     this.artifactPath = props.artifactPath ?? null;
@@ -495,6 +507,13 @@ export class RunContext {
       summary: params.summary,
       question: params.question,
       cwd: params.cwd,
+      ...(params.filePath !== undefined ? { filePath: params.filePath } : {}),
+      ...(params.sourceArtifactId !== undefined
+        ? { sourceArtifactId: params.sourceArtifactId }
+        : {}),
+      ...(params.sourceArtifactPath !== undefined
+        ? { sourceArtifactPath: params.sourceArtifactPath }
+        : {}),
       collectedAt: params.collectedAt,
       createdAt: params.createdAt ?? clock(),
       ...(params.artifactId !== undefined
@@ -530,6 +549,9 @@ export class RunContext {
       summary: this.summary,
       question: this.question,
       cwd: this.cwd,
+      filePath: this.filePath,
+      sourceArtifactId: this.sourceArtifactId,
+      sourceArtifactPath: this.sourceArtifactPath,
       collectedAt: this.collectedAt,
       artifactId: this.artifactId,
       artifactPath: this.artifactPath,

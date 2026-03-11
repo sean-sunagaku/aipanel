@@ -35,6 +35,9 @@ export const artifactKinds = literalTuple(
   "provider-response-text",
   "debug-task-output-json",
   "debug-task-output-text",
+  "plan-task-output-json",
+  "plan-task-output-text",
+  "plan-source-document",
 );
 
 export type ArtifactKind = (typeof artifactKinds)[number];

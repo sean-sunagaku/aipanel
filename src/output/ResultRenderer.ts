@@ -107,6 +107,18 @@ export class ResultRenderer {
           ...(details.length > 0 ? ["", details.join("\n\n")] : []),
         ],
       )
+      .with(
+        { kind: "plan" },
+        ({
+          summary,
+          details,
+          verdict,
+        }: Extract<BatchResultOutput, { kind: "plan" }>) => [
+          `summary: ${summary}`,
+          ...(verdict !== undefined ? [`verdict: ${verdict}`] : []),
+          ...(details.length > 0 ? ["", details.join("\n\n")] : []),
+        ],
+      )
       .exhaustive();
 
     return [

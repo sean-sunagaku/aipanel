@@ -3,6 +3,7 @@
  * このファイルは、CLI command ごとの分岐と exit code / rendering を app 層へ集め、entrypoint が個別 use case の詳細を持たないようにするために存在する。
  */
 
+import { readFile } from "node:fs/promises";
 import { match } from "ts-pattern";
 import { AipanelApp } from "./AipanelApp.js";
 import { parseArgs } from "../cli/parseArgs.js";
@@ -32,12 +33,14 @@ const usageText = [
   "  aipanel consult <question> [--provider <provider[:model]>]... [--timeout <ms>] [--json]",
   "  aipanel followup --session <id> <question> [--provider <provider[:model]>] [--timeout <ms>] [--json]",
   "  aipanel debug <question> [--provider <provider[:model]>]... [--timeout <ms>] [--json]",
+  "  aipanel plan <question> [--file <path>] [--provider <provider[:model]>]... [--timeout <ms>] [--json]",
   "",
   "Notes:",
   "  --session is only for `followup`.",
+  "  --file is only for `plan` and attaches a source document to the prompt and run ledger.",
   "  Repeat `--provider` to run multiple reviewers, including the same provider more than once.",
   "  Add `:model` inside `--provider` to override a provider's model without restoring public `--model`.",
-  "  `consult` and `debug` always start from the current question.",
+  "  `consult`, `debug`, and `plan` always start from the current question.",
 ].join("\n");
 
 const DEFAULT_TIMEOUT_MS = 120000;
@@ -59,11 +62,16 @@ export class CommandRouter {
    *
    * @param argv 処理に渡す argv。
    * @returns { responseText: string; exitCode: number } を解決する Promise。
+   * @throws `--file` を `plan` 以外へ渡したときや `followup` の前提が崩れたときに例外を投げる。
+   * @remarks command ごとに質問必須条件、`--session` 制約、`PLAN_VERDICT` 由来の exit code 分岐が異なるため、router で一括して制御する。
    */
   async route(
     argv: string[],
   ): Promise<{ responseText: string; exitCode: number }> {
     const parsed = parseArgs(argv);
+    if (parsed.filePath !== undefined && parsed.command !== "plan") {
+      throw new Error("`--file` is only supported by `plan`.");
+    }
     const providers = this.#resolveProviders(parsed.providers);
 
     const timeoutMs = parsed.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -140,6 +148,37 @@ export class CommandRouter {
         return {
           responseText: rendered.text,
           exitCode: toExitCode(result.status),
+        };
+      })
+      .with("plan", async () => {
+        const question = requireQuestion(parsed.positionals);
+        const fileContent =
+          parsed.filePath !== undefined
+            ? await readFile(parsed.filePath, "utf8")
+            : undefined;
+        const result = await this.app.planUseCase.execute({
+          question,
+          ...(fileContent !== undefined ? { fileContent } : {}),
+          ...(parsed.filePath !== undefined
+            ? { filePath: parsed.filePath }
+            : {}),
+          providers,
+          timeoutMs,
+          cwd: process.cwd(),
+        });
+        const rendered = this.app.resultRenderer.render(
+          result,
+          parsed.outputFormat,
+        );
+        const hasRevise = result.results.some(
+          (providerResult) =>
+            providerResult.output.kind === "plan" &&
+            providerResult.output.verdict === "revise",
+        );
+        const baseExitCode = toExitCode(result.status);
+        return {
+          responseText: rendered.text,
+          exitCode: hasRevise ? 2 : baseExitCode,
         };
       })
       .with("unknown", () =>
