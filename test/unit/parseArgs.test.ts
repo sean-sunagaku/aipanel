@@ -9,9 +9,6 @@ test("parseArgs defaults to help and uses text output by default", () => {
   assert.equal(parsed.command, "help");
   assert.equal(parsed.outputFormat, "text");
   assert.deepEqual(parsed.positionals, []);
-  assert.equal(parsed.files.length, 0);
-  assert.equal(parsed.diffs.length, 0);
-  assert.equal(parsed.logs.length, 0);
 });
 
 test("parseArgs parses command and flags into an immutable object", () => {
@@ -30,14 +27,6 @@ test("parseArgs parses command and flags into an immutable object", () => {
     "sid-1",
     "--timeout",
     "3000",
-    "--cwd",
-    "/tmp/work",
-    "--file",
-    "a.txt",
-    "--diff",
-    "b.patch",
-    "--log",
-    "c.log",
   ]);
 
   assert.equal(parsed.command, "consult");
@@ -47,10 +36,6 @@ test("parseArgs parses command and flags into an immutable object", () => {
   assert.equal(parsed.model, "opus");
   assert.equal(parsed.sessionId, "sid-1");
   assert.equal(parsed.timeoutMs, 3000);
-  assert.equal(parsed.cwd, "/tmp/work");
-  assert.deepEqual(parsed.files, ["a.txt"]);
-  assert.deepEqual(parsed.diffs, ["b.patch"]);
-  assert.deepEqual(parsed.logs, ["c.log"]);
 });
 
 test("parseArgs marks unknown command as unknown", () => {
@@ -59,4 +44,3 @@ test("parseArgs marks unknown command as unknown", () => {
   assert.equal(parsed.command, "unknown");
   assert.deepEqual(parsed.positionals, ["question"]);
 });
-

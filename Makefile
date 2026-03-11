@@ -7,7 +7,7 @@ BASE ?= origin/main
 AI_PROVIDER ?= codex
 AI_TIMEOUT ?= 600000
 
-.PHONY: install clean build run dev smoke worktree-add worktree-list lint lint-fix fmt fmt-check typecheck audit test test-unit test-integration test-e2e render-diagrams pack-dry-run pack verify-package publish-check publish hooks-install ai-review ai-review-deep ai-plan ai-followup
+.PHONY: install clean build run dev smoke worktree-add worktree-list lint lint-fix fmt fmt-check typecheck audit test test-unit test-integration test-e2e render-diagrams pack-dry-run pack verify-package publish-check publish hooks-install ai-review ai-review-deep ai-docs-review ai-plan ai-followup
 
 install:
 	pnpm install
@@ -98,6 +98,12 @@ ai-review-deep:
 	@git diff $(BASE)...HEAD > /tmp/aipanel-branch.patch
 	aipanel debug "このブランチの変更全体をレビューして。根本的な設計問題・テスト不足・回帰リスクを分析して" \
 		--provider $(AI_PROVIDER) --diff /tmp/aipanel-branch.patch --timeout $(AI_TIMEOUT) --json
+
+ai-docs-review:
+	@git diff --cached --quiet && echo "No staged changes." && exit 0 || true
+	@git diff --cached > /tmp/aipanel-staged.patch
+	aipanel consult "この差分の source docs と JSDoc をレビューして。特に src/ 配下では『この repo でなぜ存在するか』『何の責務を持つか』が伝わるかを見て、固定文ではなくコードから読める意図に沿って改善案を出して。先頭行は DOCS_VERDICT: pass|revise" \
+		--provider $(AI_PROVIDER) --diff /tmp/aipanel-staged.patch --timeout $(AI_TIMEOUT) --json
 
 ai-plan:
 	@test -n "$(FILE)" || (echo "Usage: make ai-plan FILE=path/to/plan.md"; exit 1)

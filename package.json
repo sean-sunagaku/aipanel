@@ -68,6 +68,9 @@
     "test:e2e": "pnpm run build && tsx --test $(find test/e2e -name '*.test.ts' -print)",
     "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e"
   },
+  "dependencies": {
+    "ts-pattern": "^5.7.4"
+  },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@types/node": "^24.0.0",

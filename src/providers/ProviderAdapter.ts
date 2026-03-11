@@ -1,4 +1,16 @@
+/**
+ * provider 境界の共通契約を定義する。
+ * このファイルは、provider call plan / result の共通契約を固定し、Claude Code と Codex の adapter を同じ境界で差し替えられるようにするために存在する。
+ */
+
 import type { ProviderName } from "../shared/commands.js";
+import type { CitationProps, UsageProps } from "../domain/value-objects.js";
+import { literalTuple } from "../shared/literalTuple.js";
+
+export const providerCallSubtypes = literalTuple("success", "failed");
+export type ProviderCallSubtype =
+  | (typeof providerCallSubtypes)[number]
+  | string;
 
 /**
  * プロバイダー呼び出しに必要な入力をまとめる。
@@ -23,21 +35,10 @@ export interface ProviderCallResult {
   model: string;
   rawText: string;
   rawJson: unknown;
-  usage: {
-    inputTokens?: number | null;
-    outputTokens?: number | null;
-    costUsd?: number | null;
-    latencyMs?: number | null;
-  };
-  externalRefs: Array<{ system: string; id: string; scope: string }>;
-  citations: Array<{
-    kind: string;
-    label?: string | null;
-    pathOrUrl?: string | null;
-    line?: number | null;
-  }>;
+  usage: UsageProps;
+  citations: CitationProps[];
   isError: boolean;
-  subtype: string | null;
+  subtype: ProviderCallSubtype | null;
 }
 
 /**

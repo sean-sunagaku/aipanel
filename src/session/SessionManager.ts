@@ -1,3 +1,8 @@
+/**
+ * SessionManager を定義する。
+ * このファイルは、session 開始・resume・turn 追加の運用操作をまとめ、継続会話の正本管理を provider native state から切り離すために存在する。
+ */
+
 import {
   Session,
   SessionTurn,
@@ -9,7 +14,6 @@ import {
   type Clock,
   type IdGenerator,
 } from "../domain/base.js";
-import { ProviderRef, type ProviderRefProps } from "../domain/value-objects.js";
 import { SessionRepository } from "./SessionRepository.js";
 
 interface SessionManagerOptions {
@@ -19,8 +23,8 @@ interface SessionManagerOptions {
 }
 
 /**
- * Session の状態更新と補助操作をまとめる。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Session の運用操作を定義する。
+ * 継続会話の正本管理と保存規約を session 層へ置き、followup が provider native state に依存しないようにする。
  */
 export class SessionManager {
   private readonly repository: SessionRepository;
@@ -35,7 +39,7 @@ export class SessionManager {
 
   /**
    * start Or Resume を担当する。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * 継続会話の正本管理と保存規約を session 層へ置き、followup が provider native state に依存しないようにする。
    *
    * @param params この処理に渡す入力。
    * @returns Session を解決する Promise。
@@ -125,29 +129,5 @@ export class SessionManager {
       content,
       artifactIds,
     });
-  }
-
-  /**
-   * Provider Ref を更新する。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
-   *
-   * @param session 処理に渡す session。
-   * @param providerRef 処理に渡す provider Ref。
-   * @returns Session を解決する Promise。
-   */
-  async updateProviderRef(
-    session: Session,
-    providerRef: ProviderRef | ProviderRefProps,
-  ): Promise<Session> {
-    const resolved = ProviderRef.from(providerRef);
-    session.upsertProviderRef(
-      new ProviderRef({
-        ...resolved.toJSON(),
-        lastUsedAt: resolved.lastUsedAt ?? this.clock(),
-      }),
-      this.clock(),
-    );
-
-    return this.repository.save(session);
   }
 }

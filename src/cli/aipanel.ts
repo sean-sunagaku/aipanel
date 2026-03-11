@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/**
+ * aipanel CLI entrypoint を定義する。
+ * このファイルは、Node CLI の最外周で argv・標準入出力・exit code を扱い、app 本体を端末実行詳細から切り離すために存在する。
+ */
 
 import { pathToFileURL } from "node:url";
 
@@ -7,10 +11,10 @@ import { CommandRouter } from "../app/CommandRouter.js";
 
 /**
  * Cli を実行して結果を受け取る。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * argv 解釈と標準入出力の責務を CLI 層へ閉じ込め、app / usecase を端末実行詳細から切り離す。
  *
  * @param argv 処理に渡す argv。
- * @param streams 標準入出力先。
+ * @param streams 処理に渡す streams。
  * @returns number を解決する Promise。
  * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
  */
@@ -37,7 +41,7 @@ export async function runCli(
 
 /**
  * main を担当する。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * argv 解釈と標準入出力の責務を CLI 層へ閉じ込め、app / usecase を端末実行詳細から切り離す。
  *
  * @returns number を解決する Promise。
  */
@@ -47,7 +51,7 @@ async function main(): Promise<number> {
 
 /**
  * Direct Execution を満たすか判定する。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * argv 解釈と標準入出力の責務を CLI 層へ閉じ込め、app / usecase を端末実行詳細から切り離す。
  *
  * @returns 条件を満たす場合は `true`。
  */

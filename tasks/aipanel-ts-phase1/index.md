@@ -4,7 +4,7 @@
 このタスク群は 2026-03-10 時点の実装ログである。2026-03-11 の cleanup で `WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder は削除されているため、関連記述は履歴として読むこと。
 
 ## Status Summary
-- `done`: 7
+- `done`: 8
 - `doing`: 0
 - `todo`: 0
 - `blocked`: 0
@@ -17,6 +17,7 @@
 5. `TASK-04` Direct mode commands
 6. `TASK-05` Debug orchestrated mode
 7. `TASK-06` Hardening and phase 2 hooks
+8. `TASK-07` Simplify CLI and internal naming
 
 ## Tracker
 
@@ -29,12 +30,13 @@
 | TASK-04 | Implement direct mode commands | done | main | TASK-02, TASK-03 | `tasks/aipanel-ts-phase1/TASK-04-direct-mode-commands.md` | `providers / consult / followup` を実装して実 Claude smoke まで確認 |
 | TASK-05 | Implement debug orchestrated mode | done | main | TASK-03, TASK-04 | `tasks/aipanel-ts-phase1/TASK-05-debug-orchestrated-mode.md` | `debug` の multi-role task flow と context artifact 追跡を実装 |
 | TASK-06 | Harden phase 1 and leave phase 2 hooks | done | main | TASK-05 | `tasks/aipanel-ts-phase1/TASK-06-hardening-and-hooks.md` | README / docs / test scripts / E2E を追加し、phase 2 hook を明文化 |
+| TASK-07 | Simplify CLI and internal naming | done | main | TASK-04, TASK-05, TASK-06 | `tasks/aipanel-ts-phase1/TASK-07-simplify-cli-and-internal-naming.md` | `RunContext` terminology、`reviewStatus` wording、`--session` の `followup` 専用性、ProviderRef 系の削除まで整理完了 |
 
 ## Active Blockers
 - None.
 
 ## Ready Queue
-- None. phase 1 実装と検証は完了。
+- None.
 
 ## Done Log
 - 2026-03-10 13:50 JST: `TASK-00` 完了。正式 docs と implementation plan を TypeScript / Node.js 前提へ更新。
@@ -43,3 +45,4 @@
 - 2026-03-10 14:44 JST: `npm run typecheck`, `npm test`, `npm run build` が通過。
 - 2026-03-10 14:44 JST: built CLI を使う integration test と E2E test を追加。
 - 2026-03-10 14:44 JST: 実 Claude Code を使う `providers / consult / followup / debug` smoke を確認。
+- 2026-03-11 15:35 JST: `TASK-07` 完了。CLI option 簡素化、`RunContext` への命名整理、ProviderRef 系の削除、`reviewStatus` への改名、`followup` の `--session` 専用明示、README / task ledger 同期、test helper 共通化、`as` 抑制方針まで反映。

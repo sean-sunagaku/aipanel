@@ -1,78 +1,58 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { createFakeClaudeBinary } from "../support/fakeClaude.js";
-import { createFakeCodexBinary } from "../support/fakeCodex.js";
-import { BUILT_CLI_PATH, REPO_ROOT } from "../support/testPaths.js";
+import {
+  parseConsultationPayload,
+  parseDebugPayload,
+  parseProvidersPayload,
+  type ConsultationPayload,
+} from "../support/cliPayloads.js";
+import { createCliSandbox } from "../support/cliSandbox.js";
+import {
+  getArray,
+  getFirstRecord,
+  getRecord,
+  getRecordArray,
+  getString,
+  parseJsonRecord,
+} from "../support/jsonRecord.js";
 import { runCli } from "../support/runCli.js";
+import { BUILT_CLI_PATH, REPO_ROOT } from "../support/testPaths.js";
 
-interface ProvidersPayload {
-  kind: "providers";
-  providers: string[];
-}
-
-interface ConsultationPayload {
-  kind: "consultation";
-  sessionId: string;
-  runId: string;
-  answer: string;
-  provider: string;
-  model: string;
-  status: "completed" | "partial";
-  validationStatus: string;
-}
-
-interface DebugPayload {
-  kind: "debug";
-  sessionId: string;
-  runId: string;
-  provider: string;
-  model: string;
-  summary: string;
-  details: string[];
-  status: "completed" | "partial";
+function readStoredRecord(
+  storageRoot: string,
+  directory: "sessions" | "runs",
+  id: string,
+): Promise<Record<string, unknown>> {
+  return readFile(path.join(storageRoot, directory, `${id}.json`), "utf8").then(
+    (text) => parseJsonRecord(text),
+  );
 }
 
 test("E2E: built CLI can complete providers, consult, followup, and debug with persistent storage", async () => {
-  const sandboxRoot = await mkdtemp(path.join(os.tmpdir(), "aipanel-e2e-"));
-  const workspace = path.join(sandboxRoot, "workspace");
-  const storageRoot = path.join(sandboxRoot, "storage");
-  const fakeBin = path.join(sandboxRoot, "fake-bin");
+  const sandbox = await createCliSandbox("aipanel-e2e-");
 
-  await mkdir(workspace, { recursive: true });
   await writeFile(
-    path.join(workspace, "context.md"),
+    path.join(sandbox.workspace, "context.md"),
     "# Context\n\nSomething is failing.\n",
     "utf8",
   );
   await writeFile(
-    path.join(workspace, "error.log"),
+    path.join(sandbox.workspace, "error.log"),
     "ERROR dependency graph is stale\n",
     "utf8",
   );
-  await createFakeClaudeBinary(fakeBin);
-  await createFakeCodexBinary(fakeBin);
-
-  const env = {
-    ...process.env,
-    PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
-    AIPANEL_STORAGE_ROOT: storageRoot,
-  };
 
   try {
     const providers = await runCli(
       process.execPath,
       [BUILT_CLI_PATH, "providers", "--json"],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(providers.exitCode, 0, providers.stderr);
-    const providersPayload = JSON.parse(providers.stdout) as ProvidersPayload;
+    const providersPayload = parseProvidersPayload(providers.stdout);
     assert.deepEqual(providersPayload.providers, ["claude-code", "codex"]);
 
     const consult = await runCli(
@@ -82,25 +62,14 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
         "consult",
         "Give a concise next step.",
         "--json",
-        "--cwd",
-        workspace,
-        "--file",
-        "context.md",
-        "--log",
-        "error.log",
         "--model",
         "claude-sonnet-4-5",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(consult.exitCode, 0, consult.stderr);
-    const consultPayload = JSON.parse(consult.stdout) as ConsultationPayload;
-    assert.equal(consultPayload.status, "completed");
-    assert.equal(consultPayload.provider, "claude-code");
-    assert.equal(consultPayload.model, "claude-sonnet-4-5");
+    const consultPayload = parseConsultationPayload(consult.stdout);
+    assertConsultation(consultPayload, "claude-code", "claude-sonnet-4-5");
 
     const followup = await runCli(
       process.execPath,
@@ -111,18 +80,13 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
         consultPayload.sessionId,
         "Now answer with one more short step.",
         "--json",
-        "--cwd",
-        workspace,
         "--model",
         "claude-sonnet-4-5",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(followup.exitCode, 0, followup.stderr);
-    const followupPayload = JSON.parse(followup.stdout) as ConsultationPayload;
+    const followupPayload = parseConsultationPayload(followup.stdout);
     assert.equal(followupPayload.sessionId, consultPayload.sessionId);
     assert.equal(followupPayload.status, "completed");
     assert.equal(followupPayload.model, "claude-sonnet-4-5");
@@ -134,96 +98,72 @@ test("E2E: built CLI can complete providers, consult, followup, and debug with p
         "debug",
         "Diagnose the likely issue in one short paragraph.",
         "--json",
-        "--cwd",
-        workspace,
-        "--file",
-        "context.md",
-        "--log",
-        "error.log",
         "--model",
         "claude-opus-4-1",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(debug.exitCode, 0, debug.stderr);
-    const debugPayload = JSON.parse(debug.stdout) as DebugPayload;
+    const debugPayload = parseDebugPayload(debug.stdout);
     assert.equal(debugPayload.status, "completed");
     assert.equal(debugPayload.provider, "claude-code");
     assert.equal(debugPayload.model, "claude-opus-4-1");
     assert.equal(debugPayload.details.length, 3);
 
-    const sessionDocument = JSON.parse(
-      await readFile(
-        path.join(storageRoot, "sessions", `${consultPayload.sessionId}.json`),
-        "utf8",
-      ),
-    ) as {
-      session: {
-        turns: Array<{ role: string }>;
-      };
-    };
-    assert.equal(sessionDocument.session.turns.length, 4);
+    const sessionDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "sessions",
+      consultPayload.sessionId,
+    );
+    assert.equal(
+      getArray(getRecord(sessionDocument, "session"), "turns").length,
+      4,
+    );
 
-    const debugRunDocument = JSON.parse(
-      await readFile(
-        path.join(storageRoot, "runs", `${debugPayload.runId}.json`),
-        "utf8",
-      ),
-    ) as {
-      run: {
-        tasks: Array<{ role: string }>;
-        providerResponses: Array<{ model: string }>;
-        comparisonReports: Array<{ topic: string }>;
-      };
-    };
+    const debugRunDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      debugPayload.runId,
+    );
+    const debugRunRecord = getRecord(debugRunDocument, "run");
     assert.deepEqual(
-      debugRunDocument.run.tasks.map((task) => task.role),
+      getRecordArray(debugRunRecord, "tasks").map((task) =>
+        getString(task, "role"),
+      ),
       ["planner", "reviewer", "validator"],
     );
     assert.deepEqual(
-      debugRunDocument.run.providerResponses.map((response) => response.model),
+      getRecordArray(debugRunRecord, "providerResponses").map((response) =>
+        getString(response, "model"),
+      ),
       ["claude-opus-4-1", "claude-opus-4-1", "claude-opus-4-1"],
     );
+    const comparisonReport = getFirstRecord(
+      debugRunRecord,
+      "comparisonReports",
+    );
     assert.equal(
-      debugRunDocument.run.comparisonReports[0]?.topic,
+      getString(comparisonReport, "topic"),
       "Diagnose the likely issue in one short paragraph.",
     );
   } finally {
-    await rm(sandboxRoot, { recursive: true, force: true });
+    await sandbox.cleanup();
   }
 });
 
 test("E2E: built CLI can use codex when explicitly selected", async () => {
-  const sandboxRoot = await mkdtemp(
-    path.join(os.tmpdir(), "aipanel-e2e-codex-"),
-  );
-  const workspace = path.join(sandboxRoot, "workspace");
-  const storageRoot = path.join(sandboxRoot, "storage");
-  const fakeBin = path.join(sandboxRoot, "fake-bin");
+  const sandbox = await createCliSandbox("aipanel-e2e-codex-");
 
-  await mkdir(workspace, { recursive: true });
-  await mkdir(storageRoot, { recursive: true });
   await writeFile(
-    path.join(workspace, "context.md"),
+    path.join(sandbox.workspace, "context.md"),
     "# Context\n\nCodex provider path.\n",
     "utf8",
   );
   await writeFile(
-    path.join(workspace, "error.log"),
+    path.join(sandbox.workspace, "error.log"),
     "WARN review budget nearly exhausted\n",
     "utf8",
   );
-  await createFakeClaudeBinary(fakeBin);
-  await createFakeCodexBinary(fakeBin);
-
-  const env = {
-    ...process.env,
-    PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
-    AIPANEL_STORAGE_ROOT: storageRoot,
-  };
 
   try {
     const consult = await runCli(
@@ -233,22 +173,14 @@ test("E2E: built CLI can use codex when explicitly selected", async () => {
         "consult",
         "Give the highest-priority review note.",
         "--json",
-        "--cwd",
-        workspace,
-        "--file",
-        "context.md",
         "--provider",
         "codex",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(consult.exitCode, 0, consult.stderr);
-    const consultPayload = JSON.parse(consult.stdout) as ConsultationPayload;
-    assert.equal(consultPayload.provider, "codex");
-    assert.equal(consultPayload.model, "configured-default");
+    const consultPayload = parseConsultationPayload(consult.stdout);
+    assertConsultation(consultPayload, "codex", "configured-default");
     assert.match(consultPayload.answer, /Codex answer/);
 
     const followup = await runCli(
@@ -260,18 +192,13 @@ test("E2E: built CLI can use codex when explicitly selected", async () => {
         consultPayload.sessionId,
         "Now summarize the followup risk.",
         "--json",
-        "--cwd",
-        workspace,
         "--provider",
         "codex",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(followup.exitCode, 0, followup.stderr);
-    const followupPayload = JSON.parse(followup.stdout) as ConsultationPayload;
+    const followupPayload = parseConsultationPayload(followup.stdout);
     assert.equal(followupPayload.provider, "codex");
     assert.equal(followupPayload.model, "configured-default");
 
@@ -282,70 +209,44 @@ test("E2E: built CLI can use codex when explicitly selected", async () => {
         "debug",
         "Review the likely regression in one paragraph.",
         "--json",
-        "--cwd",
-        workspace,
-        "--file",
-        "context.md",
-        "--log",
-        "error.log",
         "--provider",
         "codex",
         "--model",
         "codex-reviewer",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(debug.exitCode, 0, debug.stderr);
-    const debugPayload = JSON.parse(debug.stdout) as DebugPayload;
+    const debugPayload = parseDebugPayload(debug.stdout);
     assert.equal(debugPayload.provider, "codex");
     assert.equal(debugPayload.model, "codex-reviewer");
     assert.equal(debugPayload.details.length, 3);
 
-    const debugRunDocument = JSON.parse(
-      await readFile(
-        path.join(storageRoot, "runs", `${debugPayload.runId}.json`),
-        "utf8",
-      ),
-    ) as {
-      run: {
-        providerResponses: Array<{ model: string }>;
-      };
-    };
+    const debugRunDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      debugPayload.runId,
+    );
+    const debugRunRecord = getRecord(debugRunDocument, "run");
     assert.deepEqual(
-      debugRunDocument.run.providerResponses.map((response) => response.model),
+      getRecordArray(debugRunRecord, "providerResponses").map((response) =>
+        getString(response, "model"),
+      ),
       ["codex-reviewer", "codex-reviewer", "codex-reviewer"],
     );
   } finally {
-    await rm(sandboxRoot, { recursive: true, force: true });
+    await sandbox.cleanup();
   }
 });
 
 test("E2E: built CLI follows explicit --model and keeps override behavior", async () => {
-  const sandboxRoot = await mkdtemp(
-    path.join(os.tmpdir(), "aipanel-e2e-model-"),
-  );
-  const workspace = path.join(sandboxRoot, "workspace");
-  const storageRoot = path.join(sandboxRoot, "storage");
-  const fakeBin = path.join(sandboxRoot, "fake-bin");
+  const sandbox = await createCliSandbox("aipanel-e2e-model-");
 
-  await mkdir(workspace, { recursive: true });
-  await mkdir(storageRoot, { recursive: true });
   await writeFile(
-    path.join(workspace, "context.md"),
+    path.join(sandbox.workspace, "context.md"),
     "# Context\n\nModel routing check.\n",
     "utf8",
   );
-  await createFakeClaudeBinary(fakeBin);
-  await createFakeCodexBinary(fakeBin);
-
-  const env = {
-    ...process.env,
-    PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
-    AIPANEL_STORAGE_ROOT: storageRoot,
-  };
 
   try {
     const consult = await runCli(
@@ -355,36 +256,25 @@ test("E2E: built CLI follows explicit --model and keeps override behavior", asyn
         "consult",
         "Use an explicit model and verify it is used.",
         "--json",
-        "--cwd",
-        workspace,
-        "--file",
-        "context.md",
         "--model",
         "claude-sonnet-4-5",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(consult.exitCode, 0, consult.stderr);
-    const consultPayload = JSON.parse(consult.stdout) as ConsultationPayload;
-    assert.equal(consultPayload.model, "claude-sonnet-4-5");
+    const consultPayload = parseConsultationPayload(consult.stdout);
+    assertConsultation(consultPayload, "claude-code", "claude-sonnet-4-5");
     assert.match(consultPayload.answer, /Model used: claude-sonnet-4-5/);
 
-    const consultRunDocument = JSON.parse(
-      await readFile(
-        path.join(storageRoot, "runs", `${consultPayload.runId}.json`),
-        "utf8",
-      ),
-    ) as {
-      run: {
-        providerResponses: Array<{ model: string }>;
-      };
-    };
+    const consultRunDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      consultPayload.runId,
+    );
+    const consultRunRecord = getRecord(consultRunDocument, "run");
     assert.deepEqual(
-      consultRunDocument.run.providerResponses.map(
-        (response) => response.model,
+      getRecordArray(consultRunRecord, "providerResponses").map((response) =>
+        getString(response, "model"),
       ),
       ["claude-sonnet-4-5"],
     );
@@ -396,38 +286,40 @@ test("E2E: built CLI follows explicit --model and keeps override behavior", asyn
         "debug",
         "Override the explicit model for debug.",
         "--json",
-        "--cwd",
-        workspace,
-        "--file",
-        "context.md",
         "--model",
         "claude-opus-4-1",
       ],
-      {
-        cwd: REPO_ROOT,
-        env,
-      },
+      { cwd: REPO_ROOT, env: sandbox.env },
     );
     assert.equal(debug.exitCode, 0, debug.stderr);
-    const debugPayload = JSON.parse(debug.stdout) as DebugPayload;
+    const debugPayload = parseDebugPayload(debug.stdout);
     assert.equal(debugPayload.model, "claude-opus-4-1");
     assert.match(debugPayload.details[0] ?? "", /Model used: claude-opus-4-1/);
 
-    const debugRunDocument = JSON.parse(
-      await readFile(
-        path.join(storageRoot, "runs", `${debugPayload.runId}.json`),
-        "utf8",
-      ),
-    ) as {
-      run: {
-        providerResponses: Array<{ model: string }>;
-      };
-    };
+    const debugRunDocument = await readStoredRecord(
+      sandbox.storageRoot,
+      "runs",
+      debugPayload.runId,
+    );
+    const debugRunRecord = getRecord(debugRunDocument, "run");
     assert.deepEqual(
-      debugRunDocument.run.providerResponses.map((response) => response.model),
+      getRecordArray(debugRunRecord, "providerResponses").map((response) =>
+        getString(response, "model"),
+      ),
       ["claude-opus-4-1", "claude-opus-4-1", "claude-opus-4-1"],
     );
   } finally {
-    await rm(sandboxRoot, { recursive: true, force: true });
+    await sandbox.cleanup();
   }
 });
+
+function assertConsultation(
+  payload: ConsultationPayload,
+  provider: string,
+  model: string,
+): void {
+  assert.equal(payload.kind, "consultation");
+  assert.equal(payload.provider, provider);
+  assert.equal(payload.model, model);
+  assert.equal(payload.status, "completed");
+}

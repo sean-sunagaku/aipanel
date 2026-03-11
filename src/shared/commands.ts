@@ -1,4 +1,14 @@
-export type CliCommand = "help" | "providers" | "consult" | "followup" | "debug";
+/**
+ * CLI command と provider の共通定義をまとめる。
+ * このファイルは、CLI command と provider 名の canonical literal を共有し、parse / routing / usecase 間で同じ定義を使うために存在する。
+ */
+
+export type CliCommand =
+  | "help"
+  | "providers"
+  | "consult"
+  | "followup"
+  | "debug";
 export type ConsultationCommand = "consult" | "followup";
 export type ProviderName = "claude-code" | "codex";
 export type OutputFormat = "text" | "json";
@@ -18,25 +28,25 @@ export const CONSULT_COMMANDS: readonly ConsultationCommand[] = [
 ];
 
 export const PROVIDER_NAMES: readonly ProviderName[] = ["claude-code", "codex"];
-export const DEFAULT_PROVIDER: ProviderName = PROVIDER_NAMES[0];
+export const DEFAULT_PROVIDER: ProviderName = "claude-code";
 
 /**
- * CLI コマンド文字列かどうかを判定する。
- * 文字列比較で既知コマンド集合に含まれるかを見て判定する。
+ * Cli Command を満たすか判定する。
+ * 複数層で使う小さな共通契約だけを shared に寄せ、各層が同じ helper や literal を重複定義しないようにする。
  *
- * @param value 判定対象文字列。
- * @returns CLI コマンドに一致すれば true。
+ * @param value 処理に渡す value。
+ * @returns value is CliCommand。
  */
 export function isCliCommand(value: string): value is CliCommand {
   return CLI_COMMANDS.some((command) => command === value);
 }
 
 /**
- * provider 名称かどうかを判定する。
- * 定義済み provider 一覧に含まれるかを確認する。
+ * Provider Name を満たすか判定する。
+ * 複数層で使う小さな共通契約だけを shared に寄せ、各層が同じ helper や literal を重複定義しないようにする。
  *
- * @param value 判定対象文字列。
- * @returns ProviderName に一致すれば true。
+ * @param value 処理に渡す value。
+ * @returns value is ProviderName。
  */
 export function isProviderName(value: string): value is ProviderName {
   return PROVIDER_NAMES.some((provider) => provider === value);

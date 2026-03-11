@@ -1,5 +1,8 @@
 # TASK-03: Implement persistence models
 
+## Historical Note
+このタスク記録にある `ContextBundle`, `ProviderRef`, `ExternalRef` は 2026-03-11 の cleanup で整理済み。現在は `RunContext` を使い、provider native session tracking は保持しない。
+
 ## Status
 - Status: done
 - Owner: main
@@ -24,7 +27,7 @@
 - [x] `Run` aggregate root と `RunTask`, `TaskResult` entity の JSON schema を定義する
 - [x] `ContextBundle`, `ProviderResponse`, `NormalizedResponse`, `ComparisonReport` entity の JSON schema を定義する
 - [x] `Artifact` aggregate root の JSON schema を定義する
-- [x] `ProviderRef`, `Usage`, `Citation`, `TaskDependency`, `FileRef`, `DiffRef`, `LogRef`, `ConfidenceScore`, `ExternalRef` を value object として定義する
+- [x] 当時必要だった value object を定義する
 - [x] file-based repository を実装する
 - [x] round-trip test を追加する
 
@@ -48,7 +51,8 @@
 ## Decision Log
 - 2026-03-10 13:50 JST: phase 1 は DB を入れず file-based JSON で始める。ローカル単体 CLI のため
 - 2026-03-10 13:59 JST: `Session` だけでなく `Run`, `RunTask`, `TaskResult`, `Artifact`, `ContextBundle`, `ProviderResponse`, `NormalizedResponse`, `ComparisonReport` まで entity として扱う
-- 2026-03-10 13:59 JST: `ProviderRef` など identity を持たない leaf value は value object として分離する
+- 2026-03-10 13:59 JST: 当時の方針では `ProviderRef` など identity を持たない leaf value を value object として分離した
+- 2026-03-11 14:20 JST: cleanup で `ProviderRef`, `ExternalRef`, `ContextBundle` は現行設計から外し、`RunContext` 중심へ整理した
 
 ## Next Action
 - Closed

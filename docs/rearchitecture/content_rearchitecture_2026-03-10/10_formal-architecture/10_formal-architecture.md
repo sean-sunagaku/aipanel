@@ -108,7 +108,6 @@ clients
             -> ResultRenderer
 
 persistence
-  .aipanel/profile.yml
   .aipanel/sessions/
   .aipanel/runs/
   .aipanel/artifacts/

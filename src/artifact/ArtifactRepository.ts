@@ -1,12 +1,22 @@
+/**
+ * Artifact Repository を定義する。
+ * このファイルは、run 中に生成する text/json artifact の保存規約を repository として固定し、use case がファイル配置を直接扱わずに済むようにするために存在する。
+ */
+
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { Artifact } from "../domain/artifact.js";
+import {
+  Artifact,
+  type ArtifactKind,
+  type ArtifactMimeType,
+} from "../domain/artifact.js";
 import {
   defaultClock,
   defaultIdGenerator,
   type Clock,
   type IdGenerator,
 } from "../domain/base.js";
+import { buildArtifactPaths } from "./artifact-paths.js";
 
 interface ArtifactRepositoryOptions {
   storageRoot?: string;
@@ -15,18 +25,18 @@ interface ArtifactRepositoryOptions {
 }
 
 interface ArtifactWriteParams {
-  kind: string;
+  kind: ArtifactKind;
   content: string;
-  extension?: string;
+  extension?: `.${string}`;
   sessionId?: string | null;
   runId?: string | null;
   turnId?: string | null;
-  mimeType?: string | null;
+  mimeType?: ArtifactMimeType | null;
 }
 
 /**
- * Artifact の保存と復元を担当する。
- * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+ * Artifact の永続化境界を定義する。
+ * artifact の保存規約と path 解決を artifact 層へ集め、use case がファイル配置の詳細を直接扱わないようにする。
  */
 export class ArtifactRepository {
   private readonly storageRoot: string;
@@ -50,17 +60,14 @@ export class ArtifactRepository {
    */
   async writeTextArtifact(params: ArtifactWriteParams): Promise<Artifact> {
     const artifactId = this.idGenerator("artifact");
-    const runDirectory = path.join(
-      this.storageRoot,
-      "artifacts",
-      params.runId ?? "_shared",
-    );
-    const extension = params.extension ?? ".txt";
-    const contentPath = path.join(
-      runDirectory,
-      `${artifactId}${extension.startsWith(".") ? extension : `.${extension}`}`,
-    );
-    const metadataPath = path.join(runDirectory, `${artifactId}.artifact.json`);
+    const { runDirectory, contentPath, metadataPath } = buildArtifactPaths({
+      storageRoot: this.storageRoot,
+      artifactId,
+      ...(params.runId !== undefined ? { runId: params.runId } : {}),
+      ...(params.extension !== undefined
+        ? { extension: params.extension }
+        : {}),
+    });
 
     await mkdir(runDirectory, { recursive: true });
     await writeFile(contentPath, params.content, "utf8");
@@ -104,7 +111,7 @@ export class ArtifactRepository {
   async writeJsonArtifact(
     params: Omit<ArtifactWriteParams, "content" | "extension" | "mimeType"> & {
       content: unknown;
-      extension?: string;
+      extension?: `.${string}`;
     },
   ): Promise<Artifact> {
     return this.writeTextArtifact({

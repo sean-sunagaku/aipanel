@@ -1,26 +1,30 @@
+/**
+ * Debug Use Case を定義する。
+ * このファイルは、planner / reviewer / validator を使う debug orchestrated flow を実行手順としてまとめ、run ledger への記録を一貫させるために存在する。
+ */
+
 import { ComparisonEngine } from "../compare/ComparisonEngine.js";
 import { ResponseNormalizer } from "../compare/ResponseNormalizer.js";
 import type { NormalizedResponseLike } from "../compare/ResponseNormalizer.js";
-import type {
-  CitationProps,
-  ExternalRefProps,
-  UsageProps,
-} from "../domain/value-objects.js";
+import type { CitationProps, UsageProps } from "../domain/value-objects.js";
 import type { ProviderName } from "../shared/commands.js";
-import type {
-  ContextBundleLike,
-  ContextCollector,
-} from "../context/ContextCollector.js";
+import type { ContextCollector } from "../context/ContextCollector.js";
 import type { ArtifactRepository } from "../artifact/ArtifactRepository.js";
 import type { ProviderRegistry } from "../providers/ProviderRegistry.js";
 import type { ProviderCallResult } from "../providers/ProviderAdapter.js";
 import type { RunCoordinator } from "../run/RunCoordinator.js";
 import type { SessionManager } from "../session/SessionManager.js";
 import { systemClock } from "../shared/clock.js";
+import { match } from "ts-pattern";
+import type {
+  RunResultStatus,
+  RunReviewStatus,
+  RunStatus,
+  TaskStatus,
+} from "../domain/run.js";
 
 type AdapterCallResult = ProviderCallResult & {
   usage?: UsageProps | null;
-  externalRefs?: ExternalRefProps[];
   citations?: CitationProps[];
 };
 
@@ -58,12 +62,12 @@ export interface DebugResult {
   model: string;
   summary: string;
   details: string[];
-  status: "completed" | "partial";
+  status: RunResultStatus;
 }
 
 /**
- * Debug のユースケースを組み立てて実行する。
- * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+ * Debug command の実行手順を定義する。
+ * command 実行手順を use case に閉じ込め、CLI / app 層から provider 呼び出し順や state update を切り離す。
  */
 export class DebugUseCase {
   readonly sessionManager: SessionManager;
@@ -115,10 +119,6 @@ export class DebugUseCase {
   async execute({
     question,
     sessionId,
-    title,
-    files = [],
-    diffs = [],
-    logs = [],
     providerName,
     model,
     timeoutMs,
@@ -126,10 +126,6 @@ export class DebugUseCase {
   }: {
     question: string;
     sessionId?: string;
-    title?: string;
-    files?: string[];
-    diffs?: string[];
-    logs?: string[];
     providerName: ProviderName;
     model?: string;
     timeoutMs: number;
@@ -137,7 +133,7 @@ export class DebugUseCase {
   }): Promise<DebugResult> {
     const requestedModel = model;
     const session = await this.sessionManager.startOrResume({
-      title: title ?? `Debug: ${question.slice(0, 60)}`,
+      title: `Debug: ${question.slice(0, 60)}`,
       ...(sessionId ? { sessionId } : {}),
     });
     await this.sessionManager.appendUserTurn(session, question);
@@ -148,28 +144,25 @@ export class DebugUseCase {
       mode: "orchestrated",
     });
 
-    const rawContext = await this.contextCollector.collect({
-      question,
-      cwd,
-      ...(files.length > 0 ? { files } : {}),
-      ...(diffs.length > 0 ? { diffs } : {}),
-      ...(logs.length > 0 ? { logs } : {}),
-    });
+    const rawContext = await this.contextCollector.collect({ question, cwd });
     const contextArtifact = await this.artifactRepository.writeJsonArtifact({
       runId: run.runId,
       sessionId: session.sessionId,
-      kind: "context-bundle",
+      kind: "run-context",
       content: rawContext,
     });
-    this.runCoordinator.createContextBundle(
-      run,
-      this.#toContextBundleProps(run.runId, rawContext, contextArtifact),
-    );
+    this.runCoordinator.createRunContext(run, {
+      summary: rawContext.summary,
+      question: rawContext.question,
+      cwd: rawContext.cwd,
+      collectedAt: rawContext.collectedAt,
+      artifactId: contextArtifact.artifactId,
+      artifactPath: contextArtifact.path,
+    });
     run.transition("planned", this.clock.nowIso());
     await this.runCoordinator.save(run);
 
     const adapter = this.providerRegistry.get(providerName);
-    const contextText = this.contextCollector.formatForPrompt(rawContext);
     const normalizedResponses: NormalizedResponseLike[] = [];
     const details: string[] = [];
     let resolvedModel = requestedModel ?? "configured-default";
@@ -179,7 +172,6 @@ export class DebugUseCase {
       const prompt = [
         "You are an AI coding assistant running under aipanel debug orchestrated mode.",
         `Task focus: ${taskSpec.instruction}`,
-        contextText ? `Context:\n${contextText}` : "",
         `Debug question:\n${question}`,
         "Reply concisely with findings, evidence, and actionable next steps when relevant.",
       ]
@@ -231,7 +223,6 @@ export class DebugUseCase {
         rawJsonRef: jsonArtifact.path,
         usage: providerCall.usage ?? null,
         latencyMs: providerCall.usage?.latencyMs ?? null,
-        externalRefs: providerCall.externalRefs ?? [],
       });
 
       const normalized = this.responseNormalizer.normalize({
@@ -262,10 +253,11 @@ export class DebugUseCase {
         confidence: normalized.confidence,
         sourceArtifactIds: [jsonArtifact.artifactId, textArtifact.artifactId],
       });
-      task.transition(
-        providerCall.isError ? "failed" : "completed",
-        this.clock.nowIso(),
-      );
+      const taskResultStatus = match(providerCall.isError)
+        .returnType<TaskStatus>()
+        .with(true, () => "failed")
+        .otherwise(() => "completed");
+      task.transition(taskResultStatus, this.clock.nowIso());
       await this.runCoordinator.save(run);
 
       details.push(`[${taskSpec.label}] ${providerCall.rawText}`);
@@ -286,8 +278,24 @@ export class DebugUseCase {
     const recommendation =
       reportDraft.recommendation ?? "No recommendation available.";
     run.finalSummary = recommendation;
-    run.validationStatus = hasError ? "needs-review" : "validated";
-    run.transition(hasError ? "partial" : "completed", this.clock.nowIso());
+    const runTransition = match(hasError)
+      .returnType<{
+        reviewStatus: RunReviewStatus;
+        transitionStatus: RunStatus;
+        resultStatus: RunResultStatus;
+      }>()
+      .with(true, () => ({
+        reviewStatus: "needs-review",
+        transitionStatus: "partial",
+        resultStatus: "partial",
+      }))
+      .otherwise(() => ({
+        reviewStatus: "ready",
+        transitionStatus: "completed",
+        resultStatus: "completed",
+      }));
+    run.reviewStatus = runTransition.reviewStatus;
+    run.transition(runTransition.transitionStatus, this.clock.nowIso());
     await this.runCoordinator.save(run);
 
     await this.sessionManager.appendAssistantTurn(
@@ -303,46 +311,7 @@ export class DebugUseCase {
       model: resolvedModel,
       summary: recommendation,
       details,
-      status: hasError ? "partial" : "completed",
-    };
-  }
-
-  /**
-   * #to Context Bundle Props を担当する。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
-   *
-   * @param runId 対象を識別する ID。
-   * @param rawContext 処理に渡す raw Context。
-   * @param contextArtifact 処理に渡す context Artifact。
-   * @returns 処理結果。
-   */
-  #toContextBundleProps(
-    runId: string,
-    rawContext: ContextBundleLike,
-    contextArtifact: { artifactId: string; path: string },
-  ) {
-    return {
-      runId,
-      summary: rawContext.summary,
-      files: rawContext.files.map((file) => ({
-        path: file.path,
-        purpose: file.purpose,
-        checksum: file.checksum,
-      })),
-      diffs: rawContext.diffs.map((diff) => ({
-        path: diff.path,
-        summary: diff.summary,
-      })),
-      logs: rawContext.logs.map((log) => ({
-        path: log.path,
-        source: log.source,
-        capturedAt: log.capturedAt,
-      })),
-      metadata: {
-        ...rawContext.metadata,
-        artifactId: contextArtifact.artifactId,
-        artifactPath: contextArtifact.path,
-      },
+      status: runTransition.resultStatus,
     };
   }
 }

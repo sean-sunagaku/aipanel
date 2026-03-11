@@ -43,7 +43,6 @@ const result = taskFocus
     ].join("\\n");
 
 const events = [
-  { type: "thread.started", thread_id: "fake-codex-thread" },
   { type: "turn.started" },
   {
     type: "item.completed",

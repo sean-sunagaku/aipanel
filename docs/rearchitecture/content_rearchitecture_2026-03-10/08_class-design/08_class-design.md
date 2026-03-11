@@ -77,8 +77,7 @@
 
 | Name | 役割 |
 |---|---|
-| `CommandRouter` | CLI command を適切なユースケースへ振り分ける |
-| `ProfileLoader` | `.aipanel/profile.yml` を読み、既定 provider や project 設定を解決する |
+| `CommandRouter` | CLI 入力を正規化し、`provider` / `model` / `timeoutMs` を補完した `UserIntent` を適切なユースケースへ振り分ける |
 | `ContextCollector` | ファイル、差分、ログ、対象パスを集めて `ContextBundle` を組み立てる |
 | `ProviderRegistry` | provider 名から adapter を解決する |
 | `ResponseNormalizer` | provider ごとの返答を `NormalizedResponse` に変換する |
@@ -127,7 +126,7 @@ CLI
 
 | Package | 主な型 |
 |---|---|
-| `src/app` | `CommandRouter`, `ProfileLoader` |
+| `src/app` | `CommandRouter` |
 | `src/usecases` | `ConsultUseCase`, `DebugUseCase`, `FollowupUseCase`, `ListProvidersUseCase` |
 | `src/domain` | `Session`, `SessionTurn`, `Run`, `RunTask`, `TaskResult`, `ContextBundle`, `ProviderResponse`, `NormalizedResponse`, `Artifact`, `ComparisonReport`, value objects |
 | `src/context` | `ContextCollector`, `ContextSource` 実装 |

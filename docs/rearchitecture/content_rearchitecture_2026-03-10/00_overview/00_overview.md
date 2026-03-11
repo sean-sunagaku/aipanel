@@ -41,7 +41,7 @@
 - `provider portability`: 当面は Claude Code 単独で進めつつ、将来の追加に対応できること
 - `session continuity`: follow-up 可能な session を `aipanel` 側で保持する
 - `comparable outputs`: compare しやすい共通出力形へ正規化する
-- `cross-project reuse`: repo ごとの差分を profile / config に逃がせるようにする
+- `cross-project reuse`: repo ごとの差分を設定方針として閉じる想定
 - `future extensibility`: 後から multi-agent, MCP, local daemon を足せる
 
 ## Non-Goals

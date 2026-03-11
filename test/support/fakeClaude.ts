@@ -36,7 +36,6 @@ const result = taskFocus
 const response = {
   result,
   model,
-  session_id: "fake-claude-session",
   subtype: "success",
   is_error: false,
   total_cost_usd: 0.001,

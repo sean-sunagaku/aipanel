@@ -35,7 +35,6 @@ clients
             -> result renderer
 
 storage
-  .aipanel/profile.yml
   .aipanel/sessions/
   .aipanel/runs/
   .aipanel/artifacts/

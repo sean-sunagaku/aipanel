@@ -41,6 +41,25 @@ pnpm run dev providers --json
 make dev
 ```
 
+## Quick Start
+
+最短で使うならこの 4 つです。
+
+```bash
+node dist/bin/aipanel.js providers --json
+node dist/bin/aipanel.js consult "この設計どう？" --json
+node dist/bin/aipanel.js followup --session session_xxx "この続きで確認したい" --json
+node dist/bin/aipanel.js debug "この不具合の根本原因は？" --json
+```
+
+提出前の標準チェック:
+
+```bash
+pnpm run lint
+pnpm run typecheck
+pnpm test
+```
+
 ## Worktree Shortcut
 
 `aipanel` 直下の `.worktree/` に Git worktree を増やしたいときは、以下のショートカットが使えます。
@@ -111,12 +130,28 @@ make publish
 
 ## Commands
 
+最短スタート:
+
+```bash
+node dist/bin/aipanel.js providers --json
+node dist/bin/aipanel.js consult "この設計どう？" --json
+node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --json
+node dist/bin/aipanel.js debug "この不具合の根本原因は？" --json
+```
+
 ```bash
 node dist/bin/aipanel.js providers [--json]
-node dist/bin/aipanel.js consult "<question>" [--provider <name>] [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--provider <name>] [--cwd <dir>] [--model <name>] [--timeout <ms>] [--json]
-node dist/bin/aipanel.js debug "<question>" [--provider <name>] [--cwd <dir>] [--file <path>] [--diff <path>] [--log <path>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js consult "<question>" [--provider <name>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js followup --session <sessionId> "<question>" [--provider <name>] [--model <name>] [--timeout <ms>] [--json]
+node dist/bin/aipanel.js debug "<question>" [--provider <name>] [--model <name>] [--timeout <ms>] [--json]
 ```
+
+補足:
+
+- `--session` は `followup` 専用です。既存 session を引き継ぐときだけ指定します
+- `consult` と `debug` は現在の質問からそのまま実行します
+- 実装では `as` による型アサーションを避け、必要な分岐は `ts-pattern` を優先します
+- `consult` / `debug` に provider native session tracking はありません。継続は `aipanel` 側の session 履歴を使います
 
 repo からのショートカット:
 
@@ -130,19 +165,18 @@ make run ARGS='debug "この不具合の根本原因は？" --json --timeout 600
 
 ```bash
 node dist/bin/aipanel.js consult "この設計どう？" --json
-node dist/bin/aipanel.js consult "このログから原因わかる？" --cwd ./repo --log logs/app.log --file src/server.ts --model sonnet --json
-node dist/bin/aipanel.js consult "この差分レビューして" --provider codex --cwd ./repo --file src/server.ts --log logs/app.log --json
+node dist/bin/aipanel.js consult "この設計どう？" --provider codex --model sonnet --json
 node dist/bin/aipanel.js followup --session session_xxx "この修正方針で進めていい？" --model sonnet --json
-node dist/bin/aipanel.js debug "この不具合の根本原因は？" --cwd ./repo --file src/cache.ts --log logs/error.log --model sonnet --json
+node dist/bin/aipanel.js debug "この不具合の根本原因は？" --model sonnet --json
 ```
 
 ## Runtime Notes
 
-- `--cwd` は provider 実行ディレクトリだけでなく、`--file`, `--diff`, `--log` の相対パス解決にも使われます
 - `--model` は選択した provider にそのまま渡されます。未指定時は `.aipanel/profile.yml` の `defaultModel` を優先し、さらに未設定なら provider 側の既定を使います
 - `AIPANEL_STORAGE_ROOT` を指定すると、session / run / artifact の保存先を切り替えられます
-- `followup` は Claude Code / Codex の native resume を正本にせず、`aipanel` 側の session 履歴再構築を基本にしています
+- `followup` は `--session` 必須です。Claude Code / Codex の native resume を正本にせず、`aipanel` 側の session 履歴再構築を基本にしています
 - `debug` の `--timeout` は orchestrated mode の各 provider call に適用されるので、合計所要時間は 3 倍近くになることがあります
+- `--timeout` の既定値は `120000` (ms) です
 
 例:
 
@@ -179,9 +213,9 @@ Codex を既定 provider にしたい場合は、`defaultProvider: codex` を指
 
 主な保存内容:
 
-- `sessions/`: `Session`, `SessionTurn`, `ProviderRef`
-- `runs/`: `Run`, `RunTask`, `TaskResult`, `ContextBundle`, `ProviderResponse`, `NormalizedResponse`, `ComparisonReport`
-- `artifacts/`: context bundle, provider raw text/json, debug task outputs
+- `sessions/`: `Session`, `SessionTurn`
+- `runs/`: `Run`, `RunTask`, `TaskResult`, `RunContext`, `ProviderResponse`, `NormalizedResponse`, `ComparisonReport`
+- `artifacts/`: run context, provider raw text/json, debug task outputs
 
 ## Tests
 
@@ -211,7 +245,7 @@ make audit
 - `test:unit`: `ResponseNormalizer`, `ContextCollector`, `SessionManager`
 - `test:integration`: built CLI + fake Claude/Codex provider で `providers/consult/followup/debug`
 - `test:e2e`: built CLI の永続化込みフルフロー確認
-- integration / E2E では `defaultModel` fallback と `--model` override の両方を確認
+- integration / E2E では `--model` override が効くことを確認
 
 ## Verified Smoke Checks
 

@@ -1,3 +1,8 @@
+/**
+ * AipanelApp を定義する。
+ * このファイルは、CLI entrypoint から use case・repository・provider adapter を組み立てる application root を repo 内で一箇所に置くために存在する。
+ */
+
 import path from "node:path";
 
 import { ArtifactRepository } from "../artifact/ArtifactRepository.js";
@@ -15,15 +20,13 @@ import { ConsultUseCase } from "../usecases/ConsultUseCase.js";
 import { DebugUseCase } from "../usecases/DebugUseCase.js";
 import { FollowupUseCase } from "../usecases/FollowupUseCase.js";
 import { ListProvidersUseCase } from "../usecases/ListProvidersUseCase.js";
-import { ProfileLoader } from "./ProfileLoader.js";
 import { DEFAULT_PROVIDER } from "../shared/commands.js";
 
 /**
- * Aipanel App の責務を一箇所にまとめる。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Aipanel App を app 層の責務として定義する。
+ * CLI entrypoint と use case・provider・renderer の接続責務を app 層へ集め、個々の command 実装が composition details を持たないようにする。
  */
 export class AipanelApp {
-  readonly profileLoader: ProfileLoader;
   readonly resultRenderer: ResultRenderer;
   readonly providerRegistry: ProviderRegistry;
   readonly listProvidersUseCase: ListProvidersUseCase;
@@ -39,7 +42,6 @@ export class AipanelApp {
     storageRoot?: string;
     cwd?: string;
   } = {}) {
-    this.profileLoader = new ProfileLoader(storageRoot);
     this.resultRenderer = new ResultRenderer();
 
     const sessionRepository = new SessionRepository({ storageRoot });

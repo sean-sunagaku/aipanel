@@ -1,7 +1,7 @@
 # TASK-02: Scaffold Node CLI foundation
 
 ## Historical Note
-このタスク記録にある `WorkflowSelector` は 2026-03-11 の cleanup で削除済み。
+このタスク記録にある `WorkflowSelector` は 2026-03-11 の cleanup で削除済み。`ProviderRef` 補助保存前提の記述も同日の cleanup で廃止済み。
 
 ## Status
 - Status: done
@@ -31,7 +31,7 @@
 
 ## Progress Log
 - 2026-03-10 13:50 JST: タスク作成
-- 2026-03-10 14:00 JST: `TASK-01` 完了を受けて着手。`claude-code` adapter は JSON `subtype` 判定と `ProviderRef` 補助保存前提で進める
+- 2026-03-10 14:00 JST: `TASK-01` 完了を受けて着手。当時は `claude-code` adapter を JSON `subtype` 判定と `ProviderRef` 補助保存前提で進めた
 - 2026-03-10 14:06 JST: multi-agent 実装へ切り替え。worker 1 に `package.json`, `src/cli`, `src/app`, `src/providers`, `src/output` を担当させ、main は統合を担当する
 - 2026-03-10 14:43 JST: `bin/aipanel.ts` と `src/cli/aipanel.ts` の entrypoint を統合し、`dist/bin/aipanel.js` が build 後の canonical executable になるように修正
 - 2026-03-10 14:43 JST: `providers` command の text / JSON 出力と CLI help を確認

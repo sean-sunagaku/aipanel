@@ -1,5 +1,12 @@
+/**
+ * CommandRouter と CLI usage 定義をまとめる。
+ * このファイルは、CLI command ごとの分岐と exit code / rendering を app 層へ集め、entrypoint が個別 use case の詳細を持たないようにするために存在する。
+ */
+
+import { match } from "ts-pattern";
 import { AipanelApp } from "./AipanelApp.js";
-import { parseArgs, type CliCommand, type ParsedCommand } from "../cli/parseArgs.js";
+import { parseArgs } from "../cli/parseArgs.js";
+import type { RunResultStatus } from "../domain/run.js";
 
 /**
  * Question を必須として検証する。
@@ -18,24 +25,23 @@ function requireQuestion(positionals: readonly string[]): string {
 
   return question;
 }
-
-type RouterResult = { responseText: string; exitCode: number };
-type RouteHandler = () => Promise<RouterResult>;
-
 const usageText = [
   "Usage:",
   "  aipanel providers [--json]",
-  "  aipanel consult <question> [--provider <name>] [--model <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
-  "  aipanel followup --session <id> <question> [--provider <name>] [--model <name>] [--json]",
-  "  aipanel debug <question> [--provider <name>] [--model <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
+  "  aipanel consult <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
+  "  aipanel followup --session <id> <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
+  "  aipanel debug <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
+  "",
+  "Notes:",
+  "  --session is only for `followup`.",
+  "  `consult` and `debug` always start from the current question.",
 ].join("\n");
 
 const DEFAULT_TIMEOUT_MS = 120000;
 
-
 /**
- * Command Router の責務を一箇所にまとめる。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Command の振り分け役を定義する。
+ * CLI entrypoint と use case・provider・renderer の接続責務を app 層へ集め、個々の command 実装が composition details を持たないようにする。
  */
 export class CommandRouter {
   readonly app: AipanelApp;
@@ -50,41 +56,41 @@ export class CommandRouter {
    *
    * @param argv 処理に渡す argv。
    * @returns { responseText: string; exitCode: number } を解決する Promise。
-   * @throws 実行に必要な前提を満たせない場合。
-   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
    */
-  async route(argv: string[]): Promise<{ responseText: string; exitCode: number }> {
+  async route(
+    argv: string[],
+  ): Promise<{ responseText: string; exitCode: number }> {
     const parsed = parseArgs(argv);
     const selectedAdapter = this.app.providerRegistry.get(parsed.providerName);
     const providerName = selectedAdapter.name;
-    const model =
-      parsed.model ?? selectedAdapter.defaultModel;
+    const model = parsed.model ?? selectedAdapter.defaultModel;
     const timeoutMs = parsed.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const toExitCode = (status: RunResultStatus): number =>
+      match(status)
+        .with("completed", () => 0)
+        .with("partial", () => 2)
+        .exhaustive();
 
-    const knownRoutes = {
-      help: (): Promise<RouterResult> => {
-        return Promise.resolve({ responseText: usageText, exitCode: 0 });
-      },
-      providers: async (): Promise<RouterResult> => {
+    return match(parsed.command)
+      .with("help", () =>
+        Promise.resolve({ responseText: usageText, exitCode: 0 }),
+      )
+      .with("providers", async () => {
         const result = await this.app.listProvidersUseCase.execute();
         const rendered = this.app.resultRenderer.render(
           result,
           parsed.outputFormat,
         );
         return { responseText: rendered.text, exitCode: 0 };
-      },
-      consult: async (): Promise<RouterResult> => {
+      })
+      .with("consult", async () => {
         const result = await this.app.consultUseCase.execute({
           command: "consult",
           question: requireQuestion(parsed.positionals),
-          files: [...parsed.files],
-          diffs: [...parsed.diffs],
-          logs: [...parsed.logs],
           providerName,
           timeoutMs,
-          cwd: parsed.cwd ?? process.cwd(),
+          cwd: process.cwd(),
           ...(model !== undefined ? { model } : {}),
-          ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
@@ -92,10 +98,10 @@ export class CommandRouter {
         );
         return {
           responseText: rendered.text,
-          exitCode: result.status === "partial" ? 2 : 0,
+          exitCode: toExitCode(result.status),
         };
-      },
-      followup: async (): Promise<RouterResult> => {
+      })
+      .with("followup", async () => {
         if (!parsed.sessionId) {
           throw new Error("`followup` requires --session <id>.");
         }
@@ -103,12 +109,9 @@ export class CommandRouter {
         const result = await this.app.followupUseCase.execute({
           question: requireQuestion(parsed.positionals),
           sessionId: parsed.sessionId,
-          files: [...parsed.files],
-          diffs: [...parsed.diffs],
-          logs: [...parsed.logs],
           providerName,
           timeoutMs,
-          cwd: parsed.cwd ?? process.cwd(),
+          cwd: process.cwd(),
           ...(model !== undefined ? { model } : {}),
         });
         const rendered = this.app.resultRenderer.render(
@@ -117,20 +120,16 @@ export class CommandRouter {
         );
         return {
           responseText: rendered.text,
-          exitCode: result.status === "partial" ? 2 : 0,
+          exitCode: toExitCode(result.status),
         };
-      },
-      debug: async (): Promise<RouterResult> => {
+      })
+      .with("debug", async () => {
         const result = await this.app.debugUseCase.execute({
           question: requireQuestion(parsed.positionals),
-          files: [...parsed.files],
-          diffs: [...parsed.diffs],
-          logs: [...parsed.logs],
           providerName,
           timeoutMs,
-          cwd: parsed.cwd ?? process.cwd(),
+          cwd: process.cwd(),
           ...(model !== undefined ? { model } : {}),
-          ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
@@ -138,18 +137,12 @@ export class CommandRouter {
         );
         return {
           responseText: rendered.text,
-          exitCode: result.status === "partial" ? 2 : 0,
+          exitCode: toExitCode(result.status),
         };
-      },
-    } satisfies Record<CliCommand, RouteHandler>;
-
-    const routes: Record<ParsedCommand, RouteHandler> = {
-      unknown: (): Promise<RouterResult> => {
-        return Promise.resolve({ responseText: usageText, exitCode: 1 });
-      },
-      ...knownRoutes,
-    };
-
-    return routes[parsed.command]();
+      })
+      .with("unknown", () =>
+        Promise.resolve({ responseText: usageText, exitCode: 1 }),
+      )
+      .exhaustive();
   }
 }

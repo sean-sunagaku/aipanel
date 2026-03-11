@@ -19,6 +19,11 @@ const RISKY_PATH_PATTERN =
 const SERIALIZATION_NAME_PATTERN = /^(fromJSON|toJSON)$/;
 const PROTECTED_PATH_PATTERN =
   /src\/(artifact|cli|providers|run|session|usecases)\//;
+const GENERIC_CLASS_SUMMARY_PATTERN = /の責務を一箇所にまとめる。?$/;
+const GENERIC_CLASS_PURPOSE_PATTERNS = [
+  /^責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。?$/,
+  /^値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。?$/,
+];
 
 /**
  * `src` 配下の TypeScript ファイルを再帰的に列挙する。
@@ -201,9 +206,30 @@ export function validateDeclaration(record) {
     errors.push("要約行がプレースホルダー的です。");
   }
 
+  if (
+    record.kind === "class" &&
+    summaryLine &&
+    GENERIC_CLASS_SUMMARY_PATTERN.test(summaryLine)
+  ) {
+    errors.push(
+      "class の要約行は『何の役か』を repo 文脈で直接書いてください。",
+    );
+  }
+
   if (record.isRisky && detailLines.length === 0) {
     errors.push(
       "重要な宣言は要約の直後に、目的や設計上の意味を JSDoc で補足してください。",
+    );
+  }
+
+  if (
+    record.kind === "class" &&
+    detailLines.some((line) =>
+      GENERIC_CLASS_PURPOSE_PATTERNS.some((pattern) => pattern.test(line)),
+    )
+  ) {
+    errors.push(
+      "class の目的説明は generic な定型文ではなく、この repo での役割を直接書いてください。",
     );
   }
 
@@ -290,6 +316,62 @@ export function getLeadingJsDoc(sourceText, node) {
   }
 
   return null;
+}
+
+/**
+ * ファイル先頭の overview JSDoc を取得する。
+ */
+export function getFileOverviewJsDoc(sourceText) {
+  const shebangMatch = sourceText.match(/^(#!.*\n)/);
+  const shebang = shebangMatch?.[1] ?? "";
+  const body = shebang ? sourceText.slice(shebang.length) : sourceText;
+  const match = body.match(/^\s*(\/\*\*[\s\S]*?\*\/)\s*(?=import|export)/);
+
+  if (!match) {
+    return null;
+  }
+
+  const offset = shebang.length + (match.index ?? 0);
+  return {
+    rawText: match[1],
+    pos: offset,
+    end: offset + match[1].length,
+  };
+}
+
+/**
+ * ファイル先頭 overview の契約を検査する。
+ */
+export function validateFileOverview(filePath, sourceText) {
+  const relativePath = normalizePath(path.relative(REPO_ROOT, filePath));
+  const errors = [];
+
+  if (!relativePath.startsWith("src/")) {
+    return errors;
+  }
+
+  const overview = getFileOverviewJsDoc(sourceText);
+  if (!overview) {
+    return ["ファイル先頭に overview JSDoc がありません。"];
+  }
+
+  const proseLines = normalizeCommentLines(overview.rawText).filter(
+    (line) => !line.startsWith("@"),
+  );
+
+  if (proseLines.length < 2) {
+    errors.push(
+      "overview JSDoc は 2 行以上で、概要と存在理由を書いてください。",
+    );
+  }
+
+  if (!proseLines.some((line) => line.includes("このファイル"))) {
+    errors.push(
+      "overview JSDoc には `このファイルは...` の形で存在理由を書いてください。",
+    );
+  }
+
+  return errors;
 }
 
 /**

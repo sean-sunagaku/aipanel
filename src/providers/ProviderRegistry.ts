@@ -1,3 +1,8 @@
+/**
+ * ProviderRegistry を定義する。
+ * このファイルは、利用可能 provider の一覧・既定値・name 解決を一箇所で管理し、app/usecase が adapter 配列の詳細を持たないようにするために存在する。
+ */
+
 import type { ProviderAdapter } from "./ProviderAdapter.js";
 import type { ProviderName } from "../shared/commands.js";
 
@@ -7,8 +12,8 @@ interface ProviderRegistryOptions {
 }
 
 /**
- * Provider を名前で解決できるように管理する。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Provider の解決表を管理する。
+ * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
  */
 export class ProviderRegistry {
   readonly #adapters: Map<ProviderName, ProviderAdapter>;
@@ -23,9 +28,9 @@ export class ProviderRegistry {
 
   /**
    * 項目 を一覧化する。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
    *
-   * @returns 収集した string の一覧。
+   * @returns 収集した ProviderName の一覧。
    */
   list(): ProviderName[] {
     return [...this.#adapters.keys()].sort((first, second) =>
@@ -35,7 +40,7 @@ export class ProviderRegistry {
 
   /**
    * Default Model を取得する。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
    *
    * @param name 処理に渡す name。
    * @returns string | undefined。
@@ -46,7 +51,7 @@ export class ProviderRegistry {
 
   /**
    * 対象の値 を取得する。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
    *
    * @param name 処理に渡す name。
    * @returns ProviderAdapter。

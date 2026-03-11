@@ -1,3 +1,8 @@
+/**
+ * CLI 引数の解析ルールを定義する。
+ * このファイルは、argv を `aipanel` 内部の不変 command 入力へ変換し、後続層でフラグ解釈を再実装しないようにするために存在する。
+ */
+
 import {
   type CliCommand,
   isCliCommand,
@@ -19,20 +24,18 @@ export interface ParsedArgs {
   readonly providerName: ProviderName | undefined;
   readonly model: string | undefined;
   readonly timeoutMs: number | undefined;
-  readonly cwd: string | undefined;
-  readonly files: readonly string[];
-  readonly diffs: readonly string[];
-  readonly logs: readonly string[];
 }
 
 /**
- * Flag の値を取り出す。
- * `--flag` の次トークンを値として取得し、未指定なら明示エラーにする。
+ * Flag Value を読み取る。
+ * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
  *
- * @param args CLI 引数。
- * @param index 取得対象のインデックス。
- * @param flag 期待しているフラグ名。
- * @returns 取得した文字列。
+ * @param args 処理に渡す args。
+ * @param index 処理に渡す index。
+ * @param flag 処理に渡す flag。
+ * @returns 生成または整形した文字列。
+ * @throws 入力や参照先が前提を満たさない場合。
+ * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
  */
 function readFlagValue(args: string[], index: number, flag: string): string {
   const value = args[index];
@@ -45,7 +48,12 @@ function readFlagValue(args: string[], index: number, flag: string): string {
 
 /**
  * Args を内部表現へ解釈する。
- * 値の形は `ParsedArgs` として不変に公開し、呼び出し側で再解釈を繰り返さない。
+ * 入力の解釈や追跡に必要な前処理をここでまとめ、後続処理を単純に保つ。
+ *
+ * @param argv 処理に渡す argv。
+ * @returns ParsedArgs。
+ * @throws 入力や参照先が前提を満たさない場合。
+ * @remarks 入力形式や分岐ごとの差異をここで揃えているため、条件分岐を変更すると後続処理の前提も変わる。
  */
 export function parseArgs(argv: string[]): ParsedArgs {
   const [command = "help", ...rest] = argv;
@@ -54,15 +62,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
     : "unknown";
 
   const positionals: string[] = [];
-  const files: string[] = [];
-  const diffs: string[] = [];
-  const logs: string[] = [];
 
   let sessionId: string | undefined;
   let providerName: ProviderName | undefined;
   let model: string | undefined;
   let timeoutMs: number | undefined;
-  let cwd: string | undefined;
   let outputFormat: OutputFormat = "text";
 
   for (let index = 0; index < rest.length; index += 1) {
@@ -108,30 +112,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
-    if (token === "--cwd") {
-      cwd = readFlagValue(rest, index + 1, "--cwd");
-      index += 1;
-      continue;
-    }
-
-    if (token === "--file") {
-      files.push(readFlagValue(rest, index + 1, "--file"));
-      index += 1;
-      continue;
-    }
-
-    if (token === "--diff") {
-      diffs.push(readFlagValue(rest, index + 1, "--diff"));
-      index += 1;
-      continue;
-    }
-
-    if (token === "--log") {
-      logs.push(readFlagValue(rest, index + 1, "--log"));
-      index += 1;
-      continue;
-    }
-
     positionals.push(token);
   }
 
@@ -143,9 +123,5 @@ export function parseArgs(argv: string[]): ParsedArgs {
     providerName,
     model,
     timeoutMs,
-    cwd,
-    files: Object.freeze(files),
-    diffs: Object.freeze(diffs),
-    logs: Object.freeze(logs),
   });
 }

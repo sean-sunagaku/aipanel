@@ -1,0 +1,4 @@
+interface:
+  display_name: "Source docs review"
+  short_description: "Review and repair src docs with repo-specific purpose"
+  default_prompt: "Use $source-docs-review to improve file headers and JSDoc in src so they explain why each file or symbol exists in this repository."

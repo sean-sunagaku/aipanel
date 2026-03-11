@@ -1,3 +1,8 @@
+/**
+ * ComparisonEngine を定義する。
+ * このファイルは、複数 provider の normalized response を比較結果へ落とし込み、debug の recommendation 生成責務を use case から分離するために存在する。
+ */
+
 import type { NormalizedResponseLike } from "./ResponseNormalizer.js";
 
 interface ComparisonReportData {
@@ -11,8 +16,8 @@ interface ComparisonReportData {
 }
 
 /**
- * Comparison Engine の責務を一箇所にまとめる。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Comparison の中核ロジックを定義する。
+ * provider 応答の要約・差分化を compare 層へ閉じ込め、run/usecase が raw text 比較を直接抱え込まないようにする。
  */
 export class ComparisonEngine {
   /**

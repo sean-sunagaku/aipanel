@@ -1,15 +1,22 @@
+/**
+ * RunCoordinator を定義する。
+ * このファイルは、Run ledger へ child entity を追加する手順をまとめ、use case が task / response / report の生成規約を重複実装しないようにするために存在する。
+ */
+
 import {
   ComparisonReport,
-  ContextBundle,
   NormalizedResponse,
   ProviderResponse,
+  type RunCommand,
+  type RunMode,
   Run,
+  RunContext,
   RunTask,
   TaskResult,
   type ComparisonReportProps,
-  type ContextBundleProps,
   type NormalizedResponseProps,
   type ProviderResponseProps,
+  type RunContextProps,
   type RunTaskProps,
   type TaskResultProps,
 } from "../domain/run.js";
@@ -28,8 +35,8 @@ interface RunCoordinatorOptions {
 }
 
 /**
- * Run Coordinator の責務を一箇所にまとめる。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Run の組み立て役を定義する。
+ * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
  */
 export class RunCoordinator {
   private readonly repository: RunRepository;
@@ -44,7 +51,7 @@ export class RunCoordinator {
 
   /**
    * Run を生成して返す。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
    *
    * @param params この処理に渡す入力。
    * @returns Run を解決する Promise。
@@ -52,8 +59,8 @@ export class RunCoordinator {
    */
   async createRun(params: {
     sessionId?: string | null;
-    command: string;
-    mode?: string;
+    command: RunCommand;
+    mode?: RunMode;
   }): Promise<Run> {
     const run = Run.create({
       command: params.command,
@@ -70,7 +77,7 @@ export class RunCoordinator {
 
   /**
    * Task を生成して返す。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
    *
    * @param run 処理に渡す run。
    * @param params この処理に渡す入力。
@@ -92,31 +99,31 @@ export class RunCoordinator {
   }
 
   /**
-   * Context Bundle を生成して返す。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Run Context を生成して返す。
+   * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
    *
    * @param run 処理に渡す run。
    * @param params この処理に渡す入力。
-   * @returns ContextBundle。
+   * @returns RunContext。
    */
-  createContextBundle(
+  createRunContext(
     run: Run,
-    params: Omit<ContextBundleProps, "contextId" | "runId" | "createdAt">,
-  ): ContextBundle {
-    const contextBundle = ContextBundle.create({
+    params: Omit<RunContextProps, "runContextId" | "runId" | "createdAt">,
+  ): RunContext {
+    const runContext = RunContext.create({
       ...params,
       runId: run.runId,
       clock: this.clock,
       idGenerator: this.idGenerator,
     });
 
-    run.addContextBundle(contextBundle, this.clock());
-    return contextBundle;
+    run.addRunContext(runContext, this.clock());
+    return runContext;
   }
 
   /**
    * Provider Response を生成して返す。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
    *
    * @param run 処理に渡す run。
    * @param params この処理に渡す入力。
@@ -138,7 +145,7 @@ export class RunCoordinator {
 
   /**
    * Normalized Response を生成して返す。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
    *
    * @param run 処理に渡す run。
    * @param params この処理に渡す入力。
@@ -160,7 +167,7 @@ export class RunCoordinator {
 
   /**
    * Task Result を生成して返す。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
    *
    * @param run 処理に渡す run。
    * @param params この処理に渡す入力。
@@ -182,7 +189,7 @@ export class RunCoordinator {
 
   /**
    * Comparison Report を生成して返す。
-   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   * Run ledger の生成・保存・検証を run 層に集め、use case が record 整形や child entity 生成を重複実装しないようにする。
    *
    * @param run 処理に渡す run。
    * @param params この処理に渡す入力。

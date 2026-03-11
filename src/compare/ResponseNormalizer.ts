@@ -1,33 +1,31 @@
+/**
+ * ResponseNormalizer と正規化 helper を定義する。
+ * このファイルは、provider ごとの raw text 差分を summary / findings / suggestions へ揃え、run ledger と comparison が同じ前提で扱えるようにするために存在する。
+ */
+
+import type {
+  CitationProps,
+  ConfidenceScoreProps,
+} from "../domain/value-objects.js";
+import type { ProviderName } from "../shared/commands.js";
+
 interface ProviderResponseLike {
   normalizedResponseId?: string;
-  provider: string;
+  provider: ProviderName;
   rawText?: string;
-  citations?: Array<{
-    kind: string;
-    label?: string | null;
-    pathOrUrl?: string | null;
-    line?: number | null;
-  }>;
+  citations?: CitationProps[];
   isError?: boolean;
 }
 
 export interface NormalizedResponseLike {
   normalizedResponseId: string;
   taskId: string;
-  provider: string;
+  provider: ProviderName;
   summary: string;
   findings: string[];
   suggestions: string[];
-  citations: Array<{
-    kind: string;
-    label?: string | null;
-    pathOrUrl?: string | null;
-    line?: number | null;
-  }>;
-  confidence: {
-    level: "low" | "medium" | "high";
-    reason?: string | null;
-  };
+  citations: CitationProps[];
+  confidence: ConfidenceScoreProps;
 }
 
 /**
@@ -87,8 +85,8 @@ function extractSuggestions(lines: string[]): string[] {
 }
 
 /**
- * Response Normalizer の責務を一箇所にまとめる。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Response Normalizer をこの repo の責務単位として定義する。
+ * provider 応答の要約・差分化を compare 層へ閉じ込め、run/usecase が raw text 比較を直接抱え込まないようにする。
  */
 export class ResponseNormalizer {
   /**

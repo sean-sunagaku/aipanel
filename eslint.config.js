@@ -37,17 +37,25 @@ export default tseslint.config(
     },
   })),
   {
+    files: ["**/*.ts"],
+    plugins: {
+      "source-comments": sourceCommentPlugin,
+    },
+    rules: {
+      // Avoid type assertions (like `as`) as they silently bypass type-level intent.
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
+    },
+  },
+  {
     files: ["src/**/*.ts"],
     plugins: {
       "source-comments": sourceCommentPlugin,
     },
     rules: {
       "source-comments/source-comment-contract": "error",
-      // Avoid type assertions (like `as`) as they silently bypass type-level intent.
-      "@typescript-eslint/consistent-type-assertions": [
-        "error",
-        { assertionStyle: "never" },
-      ],
     },
   },
 );
