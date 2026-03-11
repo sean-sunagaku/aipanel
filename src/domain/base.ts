@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 1;
 
 export type IsoDateString = string;
 export type Clock = () => IsoDateString;
@@ -29,9 +29,10 @@ export function ensureArray<T>(value: T[] | null | undefined): T[] {
  * @returns T。
  */
 export function compactObject<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, item]) => item !== undefined),
-  ) as T;
+  const serialized = JSON.stringify(value, (_, current) =>
+    current === undefined ? undefined : current,
+  );
+  return JSON.parse(serialized);
 }
 
 /**
@@ -50,5 +51,5 @@ export function optionalProp<K extends string, V>(
     return {};
   }
 
-  return { [key]: value } as Partial<Record<K, V>>;
+  return { [key]: value };
 }

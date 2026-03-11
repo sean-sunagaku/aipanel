@@ -5,20 +5,7 @@ import type {
   ProviderCallPlan,
   ProviderCallResult,
 } from "./ProviderAdapter.js";
-
-interface ClaudeJsonResponse {
-  result?: string;
-  model?: string;
-  session_id?: string;
-  subtype?: string;
-  is_error?: boolean;
-  total_cost_usd?: number;
-  duration_ms?: number;
-  usage?: {
-    input_tokens?: number;
-    output_tokens?: number;
-  };
-}
+import type { ProviderName } from "../shared/commands.js";
 
 /**
  * Success Subtype を満たすか判定する。
@@ -111,8 +98,8 @@ async function runClaude(plan: ProviderCallPlan): Promise<string> {
  * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
  */
 export class ClaudeCodeAdapter implements ProviderAdapter {
-  readonly name = "claude-code" as const;
-  readonly defaultModel = "sonnet" as const;
+  readonly name: ProviderName = "claude-code";
+  readonly defaultModel = "sonnet";
 
   /**
    * call を担当する。
@@ -123,11 +110,10 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
    */
   async call(input: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runClaude(input);
-    const parsed = JSON.parse(stdout) as ClaudeJsonResponse;
+    const parsed = JSON.parse(stdout);
     const model = parsed.model ?? input.model ?? "sonnet";
     const subtype = parsed.subtype ?? null;
-    const isError =
-      parsed.is_error === true || !isSuccessSubtype(parsed.subtype);
+    const isError = parsed.is_error === true || !isSuccessSubtype(parsed.subtype);
     const externalRefs = parsed.session_id
       ? [
           {

@@ -1,13 +1,12 @@
 import type { ConsultationResult } from "../usecases/ConsultUseCase.js";
 import type { DebugResult } from "../usecases/DebugUseCase.js";
+import type { OutputFormat } from "../shared/commands.js";
 import { match } from "ts-pattern";
 
 type RenderedOutput = {
   text: string;
   json: Record<string, unknown>;
 };
-
-type OutputFormat = "text" | "json";
 
 type RenderableResult =
   | { kind: "providers"; providers: string[] }
@@ -34,10 +33,7 @@ export class ResultRenderer {
     const rendered = match(result)
       .with({ kind: "providers" }, ({ providers }) => ({
         text: providers.join("\n"),
-        json: {
-          kind: "providers" as const,
-          providers,
-        },
+        json: { kind: "providers", providers },
       }))
       .with({ kind: "consultation" }, (r) => ({
         text: [

@@ -1,25 +1,43 @@
-export const CLI_COMMANDS = [
+export type CliCommand = "help" | "providers" | "consult" | "followup" | "debug";
+export type ConsultationCommand = "consult" | "followup";
+export type ProviderName = "claude-code" | "codex";
+export type OutputFormat = "text" | "json";
+
+export const CLI_COMMANDS: readonly CliCommand[] = [
   "help",
   "providers",
   "consult",
   "followup",
   "debug",
-] as const;
-export type CliCommand = (typeof CLI_COMMANDS)[number];
+];
 export type ParsedCommand = CliCommand | "unknown";
 
-export const CONSULT_COMMANDS = ["consult", "followup"] as const;
-export type ConsultationCommand = (typeof CONSULT_COMMANDS)[number];
+export const CONSULT_COMMANDS: readonly ConsultationCommand[] = [
+  "consult",
+  "followup",
+];
 
-export const PROVIDER_NAMES = ["claude-code", "codex"] as const;
-export type ProviderName = (typeof PROVIDER_NAMES)[number];
+export const PROVIDER_NAMES: readonly ProviderName[] = ["claude-code", "codex"];
 export const DEFAULT_PROVIDER: ProviderName = PROVIDER_NAMES[0];
-export type OutputFormat = "text" | "json";
 
+/**
+ * CLI コマンド文字列かどうかを判定する。
+ * 文字列比較で既知コマンド集合に含まれるかを見て判定する。
+ *
+ * @param value 判定対象文字列。
+ * @returns CLI コマンドに一致すれば true。
+ */
 export function isCliCommand(value: string): value is CliCommand {
-  return (CLI_COMMANDS as readonly string[]).includes(value);
+  return CLI_COMMANDS.some((command) => command === value);
 }
 
+/**
+ * provider 名称かどうかを判定する。
+ * 定義済み provider 一覧に含まれるかを確認する。
+ *
+ * @param value 判定対象文字列。
+ * @returns ProviderName に一致すれば true。
+ */
 export function isProviderName(value: string): value is ProviderName {
-  return (PROVIDER_NAMES as readonly string[]).includes(value);
+  return PROVIDER_NAMES.some((provider) => provider === value);
 }

@@ -43,6 +43,11 @@ export default tseslint.config(
     },
     rules: {
       "source-comments/source-comment-contract": "error",
+      // Avoid type assertions (like `as`) as they silently bypass type-level intent.
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
     },
   },
 );

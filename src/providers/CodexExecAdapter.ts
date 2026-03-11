@@ -5,6 +5,7 @@ import type {
   ProviderCallPlan,
   ProviderCallResult,
 } from "./ProviderAdapter.js";
+import type { ProviderName } from "../shared/commands.js";
 
 interface CodexJsonLine {
   type?: string;
@@ -36,7 +37,7 @@ function parseJsonLines(stdout: string): CodexJsonLine[] {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as CodexJsonLine);
+    .map((line) => JSON.parse(line));
 }
 
 /**
@@ -184,7 +185,7 @@ async function runCodex(plan: ProviderCallPlan): Promise<string> {
  * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
  */
 export class CodexExecAdapter implements ProviderAdapter {
-  readonly name = "codex" as const;
+  readonly name: ProviderName = "codex";
 
   /**
    * call を担当する。

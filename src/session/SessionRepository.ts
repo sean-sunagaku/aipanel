@@ -52,11 +52,18 @@ export class SessionRepository {
     const filePath = path.join(sessionsDirectory, `${sessionId}.json`);
     try {
       const raw = await readFile(filePath, "utf8");
-      const parsed = JSON.parse(raw) as SessionDocument | SessionProps;
-      return Session.fromJSON("session" in parsed ? parsed.session : parsed);
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && "session" in parsed) {
+        return Session.fromJSON(parsed.session);
+      }
+
+      return Session.fromJSON(parsed);
     } catch (error: unknown) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return null;
+      if (error instanceof Error) {
+        const code = Object.getOwnPropertyDescriptor(error, "code")?.value;
+        if (code === "ENOENT") {
+          return null;
+        }
       }
 
       throw error;

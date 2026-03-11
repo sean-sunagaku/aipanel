@@ -1,3 +1,4 @@
+import type { ProviderName } from "../shared/commands.js";
 import type { ProviderRegistry } from "../providers/ProviderRegistry.js";
 
 /**
@@ -17,9 +18,12 @@ export class ListProvidersUseCase {
    *
    * @returns 処理結果。
    */
-  async execute() {
+  async execute(): Promise<{
+    readonly kind: "providers";
+    providers: ProviderName[];
+  }> {
     return {
-      kind: "providers" as const,
+      kind: "providers",
       providers: this.providerRegistry.list(),
     };
   }

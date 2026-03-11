@@ -28,7 +28,9 @@ export class ProviderRegistry {
    * @returns 収集した string の一覧。
    */
   list(): ProviderName[] {
-    return [...this.#adapters.keys()].sort() as ProviderName[];
+    return [...this.#adapters.keys()].sort((first, second) =>
+      first.localeCompare(second),
+    );
   }
 
   /**

@@ -24,7 +24,13 @@ type AdapterCallResult = ProviderCallResult & {
   citations?: CitationProps[];
 };
 
-const DEBUG_TASKS = [
+type DebugTaskSpec = {
+  role: "planner" | "reviewer" | "validator";
+  label: string;
+  instruction: string;
+};
+
+const DEBUG_TASKS: DebugTaskSpec[] = [
   {
     role: "planner",
     label: "root-cause",
@@ -42,7 +48,7 @@ const DEBUG_TASKS = [
     instruction:
       "Propose the safest next steps or fixes and call out regression risks.",
   },
-] as const;
+];
 
 export interface DebugResult {
   kind: "debug";
