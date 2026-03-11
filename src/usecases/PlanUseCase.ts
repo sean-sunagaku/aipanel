@@ -108,9 +108,7 @@ const PLAN_TASKS: PlanTaskSpec[] = [
  * @param text provider から返った生テキスト。
  * @returns 抽出できた verdict。見つからなければ `undefined`。
  */
-function extractPlanVerdict(
-  text: string,
-): "good" | "revise" | undefined {
+function extractPlanVerdict(text: string): "good" | "revise" | undefined {
   const matches = [...text.matchAll(/PLAN_VERDICT:\s*(good|revise)/gi)];
   const lastMatch = matches.at(-1);
   const verdict = lastMatch?.[1]?.toLowerCase();
@@ -128,6 +126,7 @@ function extractPlanVerdict(
  *
  * @param filePath `--file` で渡されたパス。
  * @returns artifact 保存に使う拡張子。
+ * @remarks markdown 系は拡張子を保持し、それ以外は text artifact として `.txt` に正規化する。
  */
 function getDocumentExtension(filePath?: string): ".md" | ".markdown" | ".txt" {
   if (filePath?.endsWith(".md")) {
@@ -148,7 +147,9 @@ function getDocumentExtension(filePath?: string): ".md" | ".markdown" | ".txt" {
  * @param filePath `--file` で渡されたパス。
  * @returns artifact metadata に保存する MIME type。
  */
-function getDocumentMimeType(filePath?: string): "text/markdown" | "text/plain" {
+function getDocumentMimeType(
+  filePath?: string,
+): "text/markdown" | "text/plain" {
   if (filePath?.endsWith(".md") || filePath?.endsWith(".markdown")) {
     return "text/markdown";
   }
@@ -226,6 +227,7 @@ export class PlanUseCase {
    * @param input この処理に渡す入力。
    * @returns BatchPayload<PlanBatchOutput> を解決する Promise。
    * @throws provider が 1 件も指定されていない場合。
+   * @remarks source document artifact、session transcript、provider ごとの 3 段 task、comparison report を同じ run に束ねるため、分岐と保存順序をこの method に集約している。
    */
   async execute(input: PlanInput): Promise<BatchPayload<PlanBatchOutput>> {
     if (input.providers.length === 0) {
@@ -271,22 +273,24 @@ export class PlanUseCase {
     const sourceArtifact =
       input.fileContent !== undefined
         ? await this.artifactRepository.writeTextArtifact({
-        runId: run.runId,
-        ...(singleProviderSession !== undefined
-          ? { sessionId: singleProviderSession.session.sessionId }
-          : {}),
-        kind: "plan-source-document",
-        content: input.fileContent,
-        extension: getDocumentExtension(input.filePath),
-        mimeType: getDocumentMimeType(input.filePath),
-      })
+            runId: run.runId,
+            ...(singleProviderSession !== undefined
+              ? { sessionId: singleProviderSession.session.sessionId }
+              : {}),
+            kind: "plan-source-document",
+            content: input.fileContent,
+            extension: getDocumentExtension(input.filePath),
+            mimeType: getDocumentMimeType(input.filePath),
+          })
         : undefined;
 
     this.runCoordinator.createRunContext(run, {
       summary: rawContext.summary,
       question: rawContext.question,
       cwd: rawContext.cwd,
-      ...(rawContext.filePath !== undefined ? { filePath: rawContext.filePath } : {}),
+      ...(rawContext.filePath !== undefined
+        ? { filePath: rawContext.filePath }
+        : {}),
       ...(sourceArtifact !== undefined
         ? {
             sourceArtifactId: sourceArtifact.artifactId,
@@ -310,32 +314,34 @@ export class PlanUseCase {
 
     run.transition("planned", this.clock.nowIso());
 
-    const providerExecutions = providerSessions.map((providerSession, index) => {
-      const taskExecutions = PLAN_TASKS.map((taskSpec) => {
-        const task = this.runCoordinator.createTask(run, {
-          taskKind: "provider-review",
-          role: taskSpec.role,
-          provider: providerSession.provider.name,
-          dependsOn: [],
-          status: "queued",
-          input: {
-            label: taskSpec.label,
-            reviewerOrder: index + 1,
-          },
+    const providerExecutions = providerSessions.map(
+      (providerSession, index) => {
+        const taskExecutions = PLAN_TASKS.map((taskSpec) => {
+          const task = this.runCoordinator.createTask(run, {
+            taskKind: "provider-review",
+            role: taskSpec.role,
+            provider: providerSession.provider.name,
+            dependsOn: [],
+            status: "queued",
+            input: {
+              label: taskSpec.label,
+              reviewerOrder: index + 1,
+            },
+          });
+
+          return {
+            spec: taskSpec,
+            task,
+            prompt: "",
+          };
         });
 
         return {
-          spec: taskSpec,
-          task,
-          prompt: "",
+          ...providerSession,
+          taskExecutions,
         };
-      });
-
-      return {
-        ...providerSession,
-        taskExecutions,
-      };
-    });
+      },
+    );
 
     run.transition("running", this.clock.nowIso());
     await this.runCoordinator.save(run);
@@ -383,6 +389,7 @@ export class PlanUseCase {
    * @param providerExecution 対象 provider の実行文脈。
    * @param input plan 入力。
    * @returns 実行結果と step 一覧。
+   * @remarks 前段成功時だけ出力を後段 prompt に注入し、途中で失敗した provider では残り task を `skipped` として扱う。
    */
   async #executeProviderSteps(
     providerExecution: ProviderPlanExecution,
@@ -461,6 +468,7 @@ export class PlanUseCase {
    * @param question plan 対象の質問。
    * @param providerStep provider 単位の step 実行結果。
    * @returns provider 単位の batch result。
+   * @remarks advisor の raw output を summary の source of truth にしつつ、error と `PLAN_VERDICT: revise` の両方を review-needed 判定へ畳み込む。
    */
   async #recordProviderSteps(
     run: Run,
@@ -493,7 +501,10 @@ export class PlanUseCase {
             details.push(recorded.detail);
             normalizedResponses.push(recorded.normalized);
             hasError ||= adapterResult.isError ?? false;
-            if ((adapterResult.isError ?? false) && errorMessage === undefined) {
+            if (
+              (adapterResult.isError ?? false) &&
+              errorMessage === undefined
+            ) {
               errorMessage = adapterResult.rawText;
             }
             if (taskExecution.spec.role === "advisor") {
@@ -734,6 +745,7 @@ export class PlanUseCase {
    * @param input plan 入力。
    * @param previousOutputs 直前までの成功出力。
    * @returns provider call に渡す prompt。
+   * @remarks 同じ source document を各段階へ渡しつつ、critic と advisor にだけ前段要約を注入できるよう空 section を除去して組み立てる。
    */
   #buildTaskPrompt(
     taskSpec: PlanTaskSpec,
@@ -791,9 +803,7 @@ export class PlanUseCase {
    * @param results 集約対象の batch result 一覧。
    * @returns run summary。
    */
-  #buildBatchSummary(
-    results: readonly BatchResult<PlanBatchOutput>[],
-  ): string {
+  #buildBatchSummary(results: readonly BatchResult<PlanBatchOutput>[]): string {
     const summaries = results
       .map((result) => `${result.provider}: ${result.output.summary}`.trim())
       .filter((value) => value.length > 0);

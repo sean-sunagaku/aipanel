@@ -62,6 +62,8 @@ export class CommandRouter {
    *
    * @param argv 処理に渡す argv。
    * @returns { responseText: string; exitCode: number } を解決する Promise。
+   * @throws `--file` を `plan` 以外へ渡したときや `followup` の前提が崩れたときに例外を投げる。
+   * @remarks command ごとに質問必須条件、`--session` 制約、`PLAN_VERDICT` 由来の exit code 分岐が異なるため、router で一括して制御する。
    */
   async route(
     argv: string[],
@@ -157,7 +159,9 @@ export class CommandRouter {
         const result = await this.app.planUseCase.execute({
           question,
           ...(fileContent !== undefined ? { fileContent } : {}),
-          ...(parsed.filePath !== undefined ? { filePath: parsed.filePath } : {}),
+          ...(parsed.filePath !== undefined
+            ? { filePath: parsed.filePath }
+            : {}),
           providers,
           timeoutMs,
           cwd: process.cwd(),

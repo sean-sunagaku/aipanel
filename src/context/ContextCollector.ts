@@ -45,6 +45,7 @@ export class ContextCollector {
    *
    * @param options この宣言に必要なオプション。
    * @returns RunContextLike を解決する Promise。
+   * @remarks `plan --file` だけは source document の存在を summary と `filePath` に反映し、それ以外の command では prompt-only 実行としてそろえる。
    */
   async collect({
     question,

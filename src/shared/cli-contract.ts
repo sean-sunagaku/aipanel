@@ -9,7 +9,12 @@ import type { ProviderName } from "./commands.js";
 import { literalTuple } from "./literalTuple.js";
 
 export const cliResponseKinds = literalTuple("providers", "batch");
-export const batchCommands = literalTuple("consult", "followup", "debug", "plan");
+export const batchCommands = literalTuple(
+  "consult",
+  "followup",
+  "debug",
+  "plan",
+);
 export const batchOutputKinds = literalTuple("consultation", "debug", "plan");
 
 export type BatchCommand = (typeof batchCommands)[number];
