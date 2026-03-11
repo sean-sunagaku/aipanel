@@ -6,6 +6,7 @@
 ## Validation
 
 - [ ] `pnpm run lint` completed successfully
+- [ ] `pnpm run typecheck` completed successfully
 - [ ] `pnpm run test` (if behavior changes)
 - [ ] Any docs updated (if applicable)
 
