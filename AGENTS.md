@@ -16,5 +16,5 @@
 
 ## Validation
 
-- repo-private Skill の静的検査は `npm run check:agent-skills` で行う。
+- repo-private Skill の静的検査は `pnpm run check:agent-skills` で行う。
 - `scripts/architecture/` は draw.io/SVG の renderer なので、`.agents/skills/aipanel-diagrams/` がそれを使う間は残す。

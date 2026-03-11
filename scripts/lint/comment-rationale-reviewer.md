@@ -4,7 +4,7 @@
 
 ## 使い方
 
-- `npm run docs:context` を実行して `reports/symbol-context.json` を生成する
+- `pnpm run docs:context` を実行して `reports/symbol-context.json` を生成する
 - `needsPurposeReview: true` の宣言だけを対象にして SubAgent へ渡す
 - SubAgent には「コードにない意図を断定しない」ことを明示する
 

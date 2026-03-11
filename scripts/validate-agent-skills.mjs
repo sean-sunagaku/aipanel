@@ -190,7 +190,7 @@ if (errors.length === 0) {
   );
   assertIncludes(
     agentsMarkdown,
-    "`npm run check:agent-skills`",
+    "`pnpm run check:agent-skills`",
     errors,
     "AGENTS.md",
   );

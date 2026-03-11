@@ -12,6 +12,27 @@ function run(command, args, options = {}) {
   });
 }
 
+function parseTrailingJson(output) {
+  const trimmed = output.trim();
+  const objectStart = trimmed.lastIndexOf("\n{");
+  const arrayStart = trimmed.lastIndexOf("\n[");
+  const jsonStart = Math.max(objectStart, arrayStart);
+  const jsonText =
+    jsonStart >= 0
+      ? trimmed.slice(jsonStart + 1)
+      : trimmed.startsWith("{") || trimmed.startsWith("[")
+        ? trimmed
+        : "";
+
+  if (!jsonText) {
+    throw new Error(
+      "Could not locate JSON payload in `pnpm pack --json` output.",
+    );
+  }
+
+  return JSON.parse(jsonText);
+}
+
 const installRoot = mkdtempSync(path.join(tmpdir(), "aipanel-package-"));
 const packageName = JSON.parse(
   readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"),
@@ -19,24 +40,30 @@ const packageName = JSON.parse(
 let tarballPath;
 
 try {
-  const packOutput = run("npm", ["pack", "--json"]);
-  const packResult = JSON.parse(packOutput);
+  const packOutput = run("pnpm", ["pack", "--json"]);
+  const packResult = parseTrailingJson(packOutput);
   const tarballFileName = Array.isArray(packResult)
     ? packResult[0]?.filename
-    : undefined;
+    : packResult?.filename;
 
   if (!tarballFileName) {
     throw new Error(
-      "Could not determine tarball filename from `npm pack --json`.",
+      "Could not determine tarball filename from `pnpm pack --json`.",
     );
   }
 
   tarballPath = path.resolve(tarballFileName);
 
-  run("npm", ["install", "--prefix", installRoot, tarballPath]);
+  run("pnpm", ["add", "--dir", installRoot, tarballPath]);
 
-  const binaryPath = path.join(installRoot, "node_modules", ".bin", "aipanel");
-  const providersOutput = run(binaryPath, ["providers", "--json"]);
+  const providersOutput = run("pnpm", [
+    "--dir",
+    installRoot,
+    "exec",
+    "aipanel",
+    "providers",
+    "--json",
+  ]);
   const providersPayload = JSON.parse(providersOutput);
   const providers = Array.isArray(providersPayload.providers)
     ? providersPayload.providers
