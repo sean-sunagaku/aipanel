@@ -23,6 +23,10 @@ interface SessionTurnProps {
   createdAt: IsoDateString;
 }
 
+/**
+ * Session Turn の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class SessionTurn {
   public readonly turnId: string;
   public readonly sessionId: string;
@@ -40,6 +44,13 @@ export class SessionTurn {
     this.createdAt = props.createdAt;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns SessionTurn。
+   */
   static create(
     params: Omit<SessionTurnProps, "turnId" | "createdAt"> & {
       turnId?: string;
@@ -61,10 +72,23 @@ export class SessionTurn {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns SessionTurn。
+   */
   static fromJSON(input: SessionTurnProps): SessionTurn {
     return new SessionTurn(input);
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns SessionTurnProps。
+   */
   toJSON(): SessionTurnProps {
     return compactObject({
       turnId: this.turnId,
@@ -88,6 +112,10 @@ export interface SessionProps {
   turns?: SessionTurnProps[];
 }
 
+/**
+ * Session の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class Session {
   public readonly schemaVersion: number;
   public readonly sessionId: string;
@@ -113,6 +141,13 @@ export class Session {
     );
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns Session。
+   */
   static create(
     params: {
       sessionId?: string;
@@ -148,10 +183,26 @@ export class Session {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns Session。
+   */
   static fromJSON(input: SessionProps): Session {
     return new Session(input);
   }
 
+  /**
+   * Turn を既存データへ追加する。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param turn 処理に渡す turn。
+   * @param updatedAt 処理に渡す updated At。
+   * @throws 処理を継続できない状態を検出した場合。
+   * @remarks 状態更新や保存の順序が前提になるため、分岐条件を変えるときは前後の整合性も一緒に見直す。
+   */
   appendTurn(
     turn: SessionTurn,
     updatedAt: IsoDateString = defaultClock(),
@@ -166,6 +217,14 @@ export class Session {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * Turn を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns SessionTurn。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   createTurn(
     params: Omit<SessionTurnProps, "sessionId" | "turnId" | "createdAt"> & {
       turnId?: string;
@@ -189,6 +248,13 @@ export class Session {
     return turn;
   }
 
+  /**
+   * Provider Ref を更新する。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param providerRef 処理に渡す provider Ref。
+   * @param updatedAt 処理に渡す updated At。
+   */
   upsertProviderRef(
     providerRef: ProviderRef | ProviderRefProps,
     updatedAt: IsoDateString = defaultClock(),
@@ -207,12 +273,24 @@ export class Session {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * Transcript を後続処理向けに組み立てる。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @returns 生成または整形した文字列。
+   */
   buildTranscript(): string {
     return this.turns
       .map((turn) => `${turn.role.toUpperCase()}: ${turn.content}`)
       .join("\n\n");
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns SessionProps。
+   */
   toJSON(): SessionProps {
     return compactObject({
       schemaVersion: this.schemaVersion,

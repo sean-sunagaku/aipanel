@@ -3,5 +3,6 @@ node_modules/
 .worktree/
 .aipanel/
 .serena/
+reports/
 npm-debug.log*
 *.tgz

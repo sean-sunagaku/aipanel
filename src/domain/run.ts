@@ -51,6 +51,10 @@ export interface RunTaskProps {
   updatedAt: IsoDateString;
 }
 
+/**
+ * Run Task の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class RunTask {
   public readonly taskId: string;
   public readonly runId: string;
@@ -78,6 +82,14 @@ export class RunTask {
     this.updatedAt = props.updatedAt;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns RunTask。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   static create(
     params: Omit<RunTaskProps, "taskId" | "createdAt" | "updatedAt"> & {
       taskId?: string;
@@ -108,10 +120,24 @@ export class RunTask {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns RunTask。
+   */
   static fromJSON(input: RunTaskProps): RunTask {
     return new RunTask(input);
   }
 
+  /**
+   * 状態を次の段階へ遷移させる。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param status 処理に渡す status。
+   * @param updatedAt 処理に渡す updated At。
+   */
   transition(
     status: TaskStatus,
     updatedAt: IsoDateString = defaultClock(),
@@ -120,6 +146,12 @@ export class RunTask {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns RunTaskProps。
+   */
   toJSON(): RunTaskProps {
     return compactObject({
       taskId: this.taskId,
@@ -147,6 +179,10 @@ export interface TaskResultProps {
   createdAt: IsoDateString;
 }
 
+/**
+ * Task Result の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class TaskResult {
   public readonly resultId: string;
   public readonly taskId: string;
@@ -170,6 +206,14 @@ export class TaskResult {
     this.createdAt = props.createdAt;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns TaskResult。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   static create(
     params: Omit<TaskResultProps, "resultId" | "createdAt"> & {
       resultId?: string;
@@ -199,10 +243,23 @@ export class TaskResult {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns TaskResult。
+   */
   static fromJSON(input: TaskResultProps): TaskResult {
     return new TaskResult(input);
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns TaskResultProps。
+   */
   toJSON(): TaskResultProps {
     return compactObject({
       resultId: this.resultId,
@@ -228,6 +285,10 @@ export interface ContextBundleProps {
   createdAt: IsoDateString;
 }
 
+/**
+ * Context Bundle の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class ContextBundle {
   public readonly contextId: string;
   public readonly runId: string;
@@ -249,6 +310,14 @@ export class ContextBundle {
     this.createdAt = props.createdAt;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns ContextBundle。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   static create(
     params: Omit<ContextBundleProps, "contextId" | "createdAt"> & {
       contextId?: string;
@@ -272,10 +341,23 @@ export class ContextBundle {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns ContextBundle。
+   */
   static fromJSON(input: ContextBundleProps): ContextBundle {
     return new ContextBundle(input);
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns ContextBundleProps。
+   */
   toJSON(): ContextBundleProps {
     return compactObject({
       contextId: this.contextId,
@@ -303,6 +385,10 @@ export interface ProviderResponseProps {
   createdAt: IsoDateString;
 }
 
+/**
+ * Provider Response の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class ProviderResponse {
   public readonly responseId: string;
   public readonly taskId: string;
@@ -330,6 +416,14 @@ export class ProviderResponse {
     this.createdAt = props.createdAt;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns ProviderResponse。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   static create(
     params: Omit<ProviderResponseProps, "responseId" | "createdAt"> & {
       responseId?: string;
@@ -363,10 +457,23 @@ export class ProviderResponse {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns ProviderResponse。
+   */
   static fromJSON(input: ProviderResponseProps): ProviderResponse {
     return new ProviderResponse(input);
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns ProviderResponseProps。
+   */
   toJSON(): ProviderResponseProps {
     return compactObject({
       responseId: this.responseId,
@@ -395,6 +502,10 @@ export interface NormalizedResponseProps {
   createdAt: IsoDateString;
 }
 
+/**
+ * Normalized Response の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class NormalizedResponse {
   public readonly normalizedResponseId: string;
   public readonly taskId: string;
@@ -420,6 +531,14 @@ export class NormalizedResponse {
     this.createdAt = props.createdAt;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns NormalizedResponse。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   static create(
     params: Omit<
       NormalizedResponseProps,
@@ -454,10 +573,23 @@ export class NormalizedResponse {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns NormalizedResponse。
+   */
   static fromJSON(input: NormalizedResponseProps): NormalizedResponse {
     return new NormalizedResponse(input);
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns NormalizedResponseProps。
+   */
   toJSON(): NormalizedResponseProps {
     return compactObject({
       normalizedResponseId: this.normalizedResponseId,
@@ -484,6 +616,10 @@ export interface ComparisonReportProps {
   createdAt: IsoDateString;
 }
 
+/**
+ * Comparison Report の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class ComparisonReport {
   public readonly reportId: string;
   public readonly runId: string;
@@ -505,6 +641,14 @@ export class ComparisonReport {
     this.createdAt = props.createdAt;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns ComparisonReport。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   static create(
     params: Omit<ComparisonReportProps, "reportId" | "createdAt"> & {
       reportId?: string;
@@ -536,10 +680,23 @@ export class ComparisonReport {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns ComparisonReport。
+   */
   static fromJSON(input: ComparisonReportProps): ComparisonReport {
     return new ComparisonReport(input);
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns ComparisonReportProps。
+   */
   toJSON(): ComparisonReportProps {
     return compactObject({
       reportId: this.reportId,
@@ -573,6 +730,10 @@ export interface RunProps {
   comparisonReports?: ComparisonReportProps[];
 }
 
+/**
+ * Run の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class Run {
   public readonly schemaVersion: number;
   public readonly runId: string;
@@ -620,6 +781,13 @@ export class Run {
     );
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns Run。
+   */
   static create(params: {
     runId?: string;
     sessionId?: string | null;
@@ -647,10 +815,24 @@ export class Run {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns Run。
+   */
   static fromJSON(input: RunProps): Run {
     return new Run(input);
   }
 
+  /**
+   * 状態を次の段階へ遷移させる。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param status 処理に渡す status。
+   * @param updatedAt 処理に渡す updated At。
+   */
   transition(
     status: RunStatus,
     updatedAt: IsoDateString = defaultClock(),
@@ -659,6 +841,15 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * add Task を担当する。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param task 処理に渡す task。
+   * @param updatedAt 処理に渡す updated At。
+   * @throws 処理を継続できない状態を検出した場合。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   addTask(task: RunTask, updatedAt: IsoDateString = defaultClock()): void {
     if (task.runId !== this.runId) {
       throw new Error(
@@ -670,6 +861,13 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * add Task Result を担当する。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param taskResult 処理に渡す task Result。
+   * @param updatedAt 処理に渡す updated At。
+   */
   addTaskResult(
     taskResult: TaskResult,
     updatedAt: IsoDateString = defaultClock(),
@@ -678,6 +876,15 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * add Context Bundle を担当する。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param contextBundle 処理に渡す context Bundle。
+   * @param updatedAt 処理に渡す updated At。
+   * @throws 処理を継続できない状態を検出した場合。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   addContextBundle(
     contextBundle: ContextBundle,
     updatedAt: IsoDateString = defaultClock(),
@@ -692,6 +899,13 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * add Provider Response を担当する。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param providerResponse 処理に渡す provider Response。
+   * @param updatedAt 処理に渡す updated At。
+   */
   addProviderResponse(
     providerResponse: ProviderResponse,
     updatedAt: IsoDateString = defaultClock(),
@@ -700,6 +914,13 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * add Normalized Response を担当する。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param normalizedResponse 処理に渡す normalized Response。
+   * @param updatedAt 処理に渡す updated At。
+   */
   addNormalizedResponse(
     normalizedResponse: NormalizedResponse,
     updatedAt: IsoDateString = defaultClock(),
@@ -708,6 +929,15 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * add Comparison Report を担当する。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param comparisonReport 処理に渡す comparison Report。
+   * @param updatedAt 処理に渡す updated At。
+   * @throws 処理を継続できない状態を検出した場合。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   addComparisonReport(
     comparisonReport: ComparisonReport,
     updatedAt: IsoDateString = defaultClock(),
@@ -722,6 +952,12 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns RunProps。
+   */
   toJSON(): RunProps {
     return compactObject({
       schemaVersion: this.schemaVersion,

@@ -54,6 +54,10 @@ export interface DebugResult {
   status: "completed" | "partial";
 }
 
+/**
+ * Debug のユースケースを組み立てて実行する。
+ * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+ */
 export class DebugUseCase {
   readonly sessionManager: SessionManager;
   readonly runCoordinator: RunCoordinator;
@@ -93,6 +97,14 @@ export class DebugUseCase {
     this.clock = clock;
   }
 
+  /**
+   * execute を担当する。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param options この宣言に必要なオプション。
+   * @returns DebugResult を解決する Promise。
+   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
+   */
   async execute({
     question,
     sessionId,
@@ -288,6 +300,15 @@ export class DebugUseCase {
     };
   }
 
+  /**
+   * #to Context Bundle Props を担当する。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param runId 対象を識別する ID。
+   * @param rawContext 処理に渡す raw Context。
+   * @param contextArtifact 処理に渡す context Artifact。
+   * @returns 処理結果。
+   */
   #toContextBundleProps(
     runId: string,
     rawContext: ContextBundleLike,

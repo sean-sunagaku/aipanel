@@ -23,6 +23,10 @@ interface ArtifactProps {
   sizeBytes?: number | null;
 }
 
+/**
+ * Artifact の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 export class Artifact {
   public readonly schemaVersion: number;
   public readonly artifactId: string;
@@ -50,6 +54,13 @@ export class Artifact {
     this.sizeBytes = props.sizeBytes ?? null;
   }
 
+  /**
+   * 新しい値 を生成して返す。
+   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns Artifact。
+   */
   static create(
     params: Omit<ArtifactProps, "artifactId" | "createdAt"> & {
       artifactId?: string;
@@ -75,10 +86,23 @@ export class Artifact {
     });
   }
 
+  /**
+   * 保存形式の値からインスタンスへ復元する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param input この処理に渡す入力。
+   * @returns Artifact。
+   */
   static fromJSON(input: ArtifactProps): Artifact {
     return new Artifact(input);
   }
 
+  /**
+   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @returns ArtifactProps。
+   */
   toJSON(): ArtifactProps {
     return compactObject({
       schemaVersion: this.schemaVersion,

@@ -47,6 +47,10 @@ export interface ConsultationResult {
   validationStatus: string;
 }
 
+/**
+ * Consult のユースケースを組み立てて実行する。
+ * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+ */
 export class ConsultUseCase {
   readonly sessionManager: SessionManager;
   readonly runCoordinator: RunCoordinator;
@@ -82,6 +86,14 @@ export class ConsultUseCase {
     this.clock = clock;
   }
 
+  /**
+   * execute を担当する。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param input この処理に渡す入力。
+   * @returns ConsultationResult を解決する Promise。
+   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
+   */
   async execute(input: ConsultationInput): Promise<ConsultationResult> {
     const model = input.model;
     const session = await this.sessionManager.startOrResume({
@@ -232,6 +244,16 @@ export class ConsultUseCase {
     };
   }
 
+  /**
+   * #build Prompt を担当する。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param transcript 処理に渡す transcript。
+   * @param question ユーザーから渡された質問内容。
+   * @param contextText 処理に渡す context Text。
+   * @returns 生成または整形した文字列。
+   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
+   */
   #buildPrompt(
     transcript: string,
     question: string,
@@ -248,6 +270,15 @@ export class ConsultUseCase {
     return sections.join("\n\n");
   }
 
+  /**
+   * #to Context Bundle Props を担当する。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param runId 対象を識別する ID。
+   * @param rawContext 処理に渡す raw Context。
+   * @param contextArtifact 処理に渡す context Artifact。
+   * @returns 処理結果。
+   */
   #toContextBundleProps(
     runId: string,
     rawContext: ContextBundleLike,
@@ -278,6 +309,15 @@ export class ConsultUseCase {
     };
   }
 
+  /**
+   * #extract Provider Ref を担当する。
+   * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+   *
+   * @param externalRefs 処理に渡す external Refs。
+   * @param provider 利用するプロバイダー名。
+   * @param cwd 処理の基準ディレクトリ。
+   * @returns ProviderRefProps | null。
+   */
   #extractProviderRef(
     externalRefs: ExternalRefProps[],
     provider: string,

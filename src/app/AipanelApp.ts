@@ -17,6 +17,10 @@ import { FollowupUseCase } from "../usecases/FollowupUseCase.js";
 import { ListProvidersUseCase } from "../usecases/ListProvidersUseCase.js";
 import { ProfileLoader } from "./ProfileLoader.js";
 
+/**
+ * Aipanel App の責務を一箇所にまとめる。
+ * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ */
 export class AipanelApp {
   readonly profileLoader: ProfileLoader;
   readonly resultRenderer: ResultRenderer;
