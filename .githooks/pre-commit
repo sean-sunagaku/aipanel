@@ -1,0 +1,26 @@
+#!/bin/bash
+# aipanel self-review: staged diff の軽量レビュー (non-blocking)
+# blocking にしたい場合は最後の exit 0 を verdict 判定に変える
+
+set -euo pipefail
+
+# staged changes がなければスキップ
+if git diff --cached --quiet; then
+  exit 0
+fi
+
+echo "[aipanel] Reviewing staged changes..."
+
+git diff --cached > /tmp/aipanel-staged.patch
+
+RESULT=$(aipanel consult \
+  "この差分をレビューして。重大なバグ・回帰リスク・設計上の問題だけ指摘して。先頭行は REVIEW_VERDICT: pass|warn|block" \
+  --provider codex \
+  --diff /tmp/aipanel-staged.patch \
+  --timeout 300000 \
+  --json 2>&1) || true
+
+echo "$RESULT" | head -20
+
+# non-blocking: 常に通す (blocking にするなら verdict を parse して exit 1)
+exit 0

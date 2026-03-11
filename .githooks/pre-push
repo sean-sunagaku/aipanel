@@ -1,0 +1,33 @@
+#!/bin/bash
+# aipanel self-review: push 前のブランチ全体レビュー (non-blocking)
+
+set -euo pipefail
+
+BASE="origin/main"
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# main/master への直 push はスキップ
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+  exit 0
+fi
+
+# ブランチの差分がなければスキップ
+if git diff "${BASE}...HEAD" --quiet 2>/dev/null; then
+  exit 0
+fi
+
+echo "[aipanel] Deep reviewing branch ${BRANCH} against ${BASE}..."
+
+git diff "${BASE}...HEAD" > /tmp/aipanel-branch.patch
+
+RESULT=$(aipanel debug \
+  "このブランチの変更全体をレビューして。根本的な設計問題・テスト不足・回帰リスクを分析して" \
+  --provider codex \
+  --diff /tmp/aipanel-branch.patch \
+  --timeout 300000 \
+  --json 2>&1) || true
+
+echo "$RESULT" | head -30
+
+# non-blocking: 常に通す
+exit 0
