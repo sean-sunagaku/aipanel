@@ -3,8 +3,9 @@ SHELL := /bin/bash
 DIAGRAM_SPEC := docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams/source/current-implementation-diagrams.spec.json
 DIAGRAM_OUTPUT_DIR := docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams
 ARGS ?= providers --json
+BASE ?= HEAD
 
-.PHONY: install clean build run dev smoke lint lint-fix fmt fmt-check typecheck audit test test-unit test-integration test-e2e render-diagrams pack-dry-run pack verify-package publish-check publish
+.PHONY: install clean build run dev smoke worktree-add worktree-list lint lint-fix fmt fmt-check typecheck audit test test-unit test-integration test-e2e render-diagrams pack-dry-run pack verify-package publish-check publish
 
 install:
 	npm install
@@ -23,6 +24,13 @@ dev:
 
 smoke: build
 	node dist/bin/aipanel.js providers --json
+
+worktree-add:
+	@if [ -z "$(BRANCH)" ]; then echo "Usage: make worktree-add BRANCH=feature/foo [BASE=main]"; exit 1; fi
+	node scripts/add-worktree.mjs "$(BRANCH)" --base "$(BASE)"
+
+worktree-list:
+	git worktree list
 
 lint:
 	npm run lint
