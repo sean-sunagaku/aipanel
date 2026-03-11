@@ -1,15 +1,14 @@
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { Artifact } from "../domain/artifact.js";
 import {
-  Artifact,
   defaultClock,
   defaultIdGenerator,
-  type ArtifactProps,
   type Clock,
   type IdGenerator,
-} from "../domain/index.js";
+} from "../domain/base.js";
 
-export interface ArtifactRepositoryOptions {
+interface ArtifactRepositoryOptions {
   storageRoot?: string;
   clock?: Clock;
   idGenerator?: IdGenerator;
@@ -37,43 +36,19 @@ export class ArtifactRepository {
     this.idGenerator = options.idGenerator ?? defaultIdGenerator;
   }
 
-  get artifactsDirectory(): string {
-    return path.join(this.storageRoot, "artifacts");
-  }
-
-  runDirectory(runId?: string | null): string {
-    return path.join(this.artifactsDirectory, runId ?? "_shared");
-  }
-
-  metadataPathFor(artifactId: string, runId?: string | null): string {
-    return path.join(this.runDirectory(runId), `${artifactId}.artifact.json`);
-  }
-
-  async saveMetadata(artifact: Artifact): Promise<Artifact> {
-    const metadataPath =
-      artifact.metadataPath ??
-      this.metadataPathFor(artifact.artifactId, artifact.runId);
-    await mkdir(path.dirname(metadataPath), { recursive: true });
-    await writeFile(
-      metadataPath,
-      JSON.stringify(artifact.toJSON(), null, 2),
-      "utf8",
-    );
-    return Artifact.fromJSON({
-      ...artifact.toJSON(),
-      metadataPath,
-    });
-  }
-
   async writeTextArtifact(params: ArtifactWriteParams): Promise<Artifact> {
     const artifactId = this.idGenerator("artifact");
-    const runDirectory = this.runDirectory(params.runId);
+    const runDirectory = path.join(
+      this.storageRoot,
+      "artifacts",
+      params.runId ?? "_shared",
+    );
     const extension = params.extension ?? ".txt";
     const contentPath = path.join(
       runDirectory,
       `${artifactId}${extension.startsWith(".") ? extension : `.${extension}`}`,
     );
-    const metadataPath = this.metadataPathFor(artifactId, params.runId);
+    const metadataPath = path.join(runDirectory, `${artifactId}.artifact.json`);
 
     await mkdir(runDirectory, { recursive: true });
     await writeFile(contentPath, params.content, "utf8");
@@ -94,8 +69,17 @@ export class ArtifactRepository {
       ...(params.mimeType !== undefined ? { mimeType: params.mimeType } : {}),
     });
 
-    await this.saveMetadata(artifact);
-    return artifact;
+    const resolvedMetadataPath = artifact.metadataPath ?? metadataPath;
+    await mkdir(path.dirname(resolvedMetadataPath), { recursive: true });
+    await writeFile(
+      resolvedMetadataPath,
+      JSON.stringify(artifact.toJSON(), null, 2),
+      "utf8",
+    );
+    return Artifact.fromJSON({
+      ...artifact.toJSON(),
+      metadataPath: resolvedMetadataPath,
+    });
   }
 
   async writeJsonArtifact(
@@ -110,45 +94,5 @@ export class ArtifactRepository {
       extension: params.extension ?? ".json",
       mimeType: "application/json",
     });
-  }
-
-  async get(
-    artifactId: string,
-    runId?: string | null,
-  ): Promise<Artifact | null> {
-    try {
-      const raw = await readFile(
-        this.metadataPathFor(artifactId, runId),
-        "utf8",
-      );
-      const parsed = JSON.parse(raw) as ArtifactProps;
-      return Artifact.fromJSON(parsed);
-    } catch (error: unknown) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return null;
-      }
-
-      throw error;
-    }
-  }
-
-  async listByRun(runId?: string | null): Promise<Artifact[]> {
-    const directory = this.runDirectory(runId);
-    await mkdir(directory, { recursive: true });
-    const entries = await readdir(directory, { withFileTypes: true });
-    const artifacts = await Promise.all(
-      entries
-        .filter(
-          (entry) => entry.isFile() && entry.name.endsWith(".artifact.json"),
-        )
-        .map(async (entry) => {
-          const artifactId = entry.name.replace(/\.artifact\.json$/u, "");
-          return this.get(artifactId, runId);
-        }),
-    );
-
-    return artifacts
-      .filter((artifact): artifact is Artifact => Boolean(artifact))
-      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 }

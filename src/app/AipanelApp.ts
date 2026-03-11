@@ -4,19 +4,17 @@ import { ArtifactRepository } from "../artifact/ArtifactRepository.js";
 import { ComparisonEngine } from "../compare/ComparisonEngine.js";
 import { ContextCollector } from "../context/ContextCollector.js";
 import { ResultRenderer } from "../output/ResultRenderer.js";
-import {
-  ClaudeCodeAdapter,
-  CodexExecAdapter,
-  ProviderRegistry,
-} from "../providers/index.js";
-import { RunCoordinator, RunRepository } from "../run/index.js";
-import { SessionManager, SessionRepository } from "../session/index.js";
-import {
-  ConsultUseCase,
-  DebugUseCase,
-  FollowupUseCase,
-  ListProvidersUseCase,
-} from "../usecases/index.js";
+import { ClaudeCodeAdapter } from "../providers/ClaudeCodeAdapter.js";
+import { CodexExecAdapter } from "../providers/CodexExecAdapter.js";
+import { ProviderRegistry } from "../providers/ProviderRegistry.js";
+import { RunCoordinator } from "../run/RunCoordinator.js";
+import { RunRepository } from "../run/RunRepository.js";
+import { SessionManager } from "../session/SessionManager.js";
+import { SessionRepository } from "../session/SessionRepository.js";
+import { ConsultUseCase } from "../usecases/ConsultUseCase.js";
+import { DebugUseCase } from "../usecases/DebugUseCase.js";
+import { FollowupUseCase } from "../usecases/FollowupUseCase.js";
+import { ListProvidersUseCase } from "../usecases/ListProvidersUseCase.js";
 import { ProfileLoader } from "./ProfileLoader.js";
 
 export class AipanelApp {

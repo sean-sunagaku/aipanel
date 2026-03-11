@@ -5,9 +5,9 @@ import { createId } from "../shared/ids.js";
 import { systemClock } from "../shared/clock.js";
 import { readText } from "../shared/file-system.js";
 
-export type ContextEntryKind = "file" | "diff" | "log";
+type ContextEntryKind = "file" | "diff" | "log";
 
-export interface ContextEntry {
+interface ContextEntry {
   path: string;
   absolutePath: string;
   purpose: ContextEntryKind;
@@ -32,7 +32,7 @@ export interface ContextBundleLike {
   };
 }
 
-export interface ContextCollectInput {
+interface ContextCollectInput {
   question?: string;
   files?: string[];
   diffs?: string[];

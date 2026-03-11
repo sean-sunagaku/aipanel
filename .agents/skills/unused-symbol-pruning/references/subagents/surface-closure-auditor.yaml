@@ -1,0 +1,32 @@
+name: "surface-closure-auditor"
+role: "Codex sub-agent for package and barrel surface closure"
+purpose: >
+  Identify package surfaces that can be closed or narrowed, including root
+  exports, barrel files, package.json entrypoints, README import examples, and
+  install verification scripts, especially in CLI-only or CI-only modes.
+use_when:
+  - "The user allows breaking package import surfaces."
+  - "The repo should be narrowed to CLI-only or CI-only use."
+  - "You want a second-pass audit of stale barrels and package exports."
+inputs:
+  required:
+    - ".agents/skills/unused-symbol-pruning/references/06_policy-decisions.md"
+    - ".agents/skills/unused-symbol-pruning/references/07_second-pass-patterns.md"
+  optional:
+    - "package.json"
+    - "README.md"
+    - "scripts"
+    - "src/index.ts"
+    - "src/**/index.ts"
+    - "bin"
+    - "src/cli"
+output_contract:
+  format: "surface closure report"
+  required_fields:
+    - "surface_to_keep"
+    - "surface_to_close"
+    - "files_to_touch"
+    - "verification"
+guardrails:
+  - "Do not keep import surfaces solely because they used to exist."
+  - "Do not patch files."

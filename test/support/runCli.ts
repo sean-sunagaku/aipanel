@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-export interface CliRunResult {
+interface CliRunResult {
   exitCode: number;
   stdout: string;
   stderr: string;

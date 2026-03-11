@@ -51,29 +51,6 @@ try {
     );
   }
 
-  const importCheckOutput = run(
-    "node",
-    [
-      "--input-type=module",
-      "--eval",
-      [
-        `const root = await import(${JSON.stringify(packageName)});`,
-        `const domain = await import(${JSON.stringify(`${packageName}/domain`)});`,
-        "const summary = {",
-        "  rootExports: ['AipanelApp', 'CommandRouter', 'runCli', 'Session', 'Run'].filter((key) => key in root),",
-        "  hasDomainSession: typeof domain.Session === 'function',",
-        "  hasDomainRun: typeof domain.Run === 'function',",
-        "};",
-        "if (!summary.rootExports.includes('AipanelApp') || !summary.rootExports.includes('runCli') || !summary.hasDomainSession || !summary.hasDomainRun) {",
-        "  throw new Error(`Import verification failed: ${JSON.stringify(summary)}`);",
-        "}",
-        "console.log(JSON.stringify(summary));",
-      ].join("\n"),
-    ],
-    { cwd: installRoot },
-  );
-  const importCheck = JSON.parse(importCheckOutput);
-
   process.stdout.write(
     `${JSON.stringify(
       {
@@ -81,7 +58,6 @@ try {
         tarball: path.basename(tarballPath),
         installedInto: installRoot,
         providers,
-        importCheck,
       },
       null,
       2,

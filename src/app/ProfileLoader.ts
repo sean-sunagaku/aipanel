@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { pathExists, readText } from "../shared/file-system.js";
 
-export interface Profile {
+interface Profile {
   defaultProvider: string;
   defaultModel?: string;
   defaultTimeoutMs: number;
@@ -51,21 +51,18 @@ export class ProfileLoader {
     this.storageRoot = storageRoot;
   }
 
-  get profilePath(): string {
-    return path.join(this.storageRoot, "profile.yml");
-  }
-
   async load(): Promise<Profile> {
     const defaults: Profile = {
       defaultProvider: "claude-code",
       defaultTimeoutMs: 120000,
     };
+    const profilePath = path.join(this.storageRoot, "profile.yml");
 
-    if (!(await pathExists(this.profilePath))) {
+    if (!(await pathExists(profilePath))) {
       return defaults;
     }
 
-    const text = await readText(this.profilePath, "utf8");
+    const text = await readText(profilePath, "utf8");
     return {
       ...defaults,
       ...parseSimpleYaml(text),

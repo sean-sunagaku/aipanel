@@ -1,0 +1,24 @@
+name: "symmetry-auditor"
+role: "Codex sub-agent for grouped deletion analysis"
+purpose: >
+  Find serializers, deserializers, repositories, factory methods, and related
+  helpers that must stay together or be deleted together.
+use_when:
+  - "You suspect a symbol participates in a contract pair or family."
+inputs:
+  required:
+    - ".agents/skills/unused-symbol-pruning/references/03_classification-rules.md"
+  optional:
+    - "src"
+    - "scripts"
+    - "bin"
+output_contract:
+  format: "group analysis"
+  required_fields:
+    - "group_name"
+    - "symbols"
+    - "reason"
+    - "recommended_label"
+guardrails:
+  - "Focus on grouped deletion safety, not general usage counts."
+  - "Do not patch files."

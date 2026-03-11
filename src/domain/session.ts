@@ -11,10 +11,10 @@ import {
 } from "./base.js";
 import { ProviderRef, type ProviderRefProps } from "./value-objects.js";
 
-export type SessionStatus = "active" | "archived" | "closed";
-export type SessionTurnRole = "user" | "assistant" | "system";
+type SessionStatus = "active";
+export type SessionTurnRole = "user" | "assistant";
 
-export interface SessionTurnProps {
+interface SessionTurnProps {
   turnId: string;
   sessionId: string;
   role: SessionTurnRole;

@@ -2,7 +2,8 @@
 
 import { pathToFileURL } from "node:url";
 
-import { AipanelApp, CommandRouter } from "../app/index.js";
+import { AipanelApp } from "../app/AipanelApp.js";
+import { CommandRouter } from "../app/CommandRouter.js";
 
 export async function runCli(
   argv: string[] = process.argv.slice(2),

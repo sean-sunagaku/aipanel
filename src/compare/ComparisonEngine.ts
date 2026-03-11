@@ -1,5 +1,14 @@
-import type { ComparisonReportData } from "../shared/contracts.js";
 import type { NormalizedResponseLike } from "./ResponseNormalizer.js";
+
+interface ComparisonReportData {
+  reportId: string | null;
+  runId: string | null;
+  topic: string;
+  responseIds: string[];
+  agreements: string[];
+  differences: string[];
+  recommendation: string | null;
+}
 
 export class ComparisonEngine {
   compare(

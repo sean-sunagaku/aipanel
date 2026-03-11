@@ -4,7 +4,7 @@ import type {
   ExternalRefProps,
   ProviderRefProps,
   UsageProps,
-} from "../domain/index.js";
+} from "../domain/value-objects.js";
 import type {
   ContextBundleLike,
   ContextCollector,
@@ -22,7 +22,7 @@ type AdapterCallResult = ProviderCallResult & {
   citations?: CitationProps[];
 };
 
-export interface ConsultationInput {
+interface ConsultationInput {
   command: "consult" | "followup";
   question: string;
   sessionId?: string;

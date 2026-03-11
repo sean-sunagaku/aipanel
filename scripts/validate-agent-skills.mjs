@@ -2,30 +2,100 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 const rootDir = process.cwd();
-const skillDir = ".agent/skills/aipanel-diagrams";
-const requiredFiles = [
-  `${skillDir}/SKILL.md`,
-  `${skillDir}/agents/openai.yaml`,
-  `${skillDir}/references/00_overview.md`,
-  `${skillDir}/references/01_generation-workflow.md`,
-  `${skillDir}/references/02_source-map.md`,
-  `${skillDir}/references/03_subagent-workflow.md`,
-  `${skillDir}/references/04_diagram-bundle-template.json`,
-  `${skillDir}/references/05_subagent-prompt-template.md`,
-  `${skillDir}/references/subagents/drawio-diagrammer.yaml`,
+const skillConfigs = [
+  {
+    skillDir: ".agents/skills/aipanel-diagrams",
+    requiredFiles: [
+      "SKILL.md",
+      "agents/openai.yaml",
+      "references/00_overview.md",
+      "references/01_generation-workflow.md",
+      "references/02_source-map.md",
+      "references/03_subagent-workflow.md",
+      "references/04_diagram-bundle-template.json",
+      "references/05_subagent-prompt-template.md",
+      "references/subagents/drawio-diagrammer.yaml",
+    ],
+    forbiddenPaths: ["docs/skills/aipanel-diagrams", "skills/aipanel-diagrams"],
+    staleReferencePatterns: [
+      "docs/skills/aipanel-diagrams",
+      "/.agent/skills/aipanel-diagrams",
+      "/.codex/skills/aipanel-diagrams",
+      "/Users/babashunsuke/.codex/skills/aipanel-diagrams",
+      "/Users/babashunsuke/.agents/skills/aipanel-diagrams",
+    ],
+    jsonFiles: ["references/04_diagram-bundle-template.json"],
+    contentChecks: [
+      {
+        relativePath: "SKILL.md",
+        includes: [
+          "Prefer a sub-agent to draft the bundle spec JSON",
+          "node scripts/architecture/render-diagram-bundle.mjs",
+        ],
+      },
+      {
+        relativePath: "agents/openai.yaml",
+        includes: ['display_name: "AIPanel Diagrams"', "sub-agent"],
+      },
+    ],
+  },
+  {
+    skillDir: ".agents/skills/unused-symbol-pruning",
+    requiredFiles: [
+      "SKILL.md",
+      "agents/openai.yaml",
+      "references/00_overview.md",
+      "references/01_workflow.md",
+      "references/02_subagent-roles.md",
+      "references/03_classification-rules.md",
+      "references/04_verification-checklist.md",
+      "references/05_subagent-prompt-template.md",
+      "references/06_policy-decisions.md",
+      "references/07_second-pass-patterns.md",
+      "references/subagents/batch-planner.yaml",
+      "references/subagents/candidate-extractor.yaml",
+      "references/subagents/module-export-auditor.yaml",
+      "references/subagents/public-surface-auditor.yaml",
+      "references/subagents/refuter.yaml",
+      "references/subagents/runtime-usage-auditor.yaml",
+      "references/subagents/surface-closure-auditor.yaml",
+      "references/subagents/symmetry-auditor.yaml",
+      "scripts/inventory-unused-symbols.mjs",
+    ],
+    forbiddenPaths: [
+      "docs/skills/unused-symbol-pruning",
+      "skills/unused-symbol-pruning",
+    ],
+    staleReferencePatterns: [
+      "docs/skills/unused-symbol-pruning",
+      "/.agent/skills/unused-symbol-pruning",
+      "/.codex/skills/unused-symbol-pruning",
+      "/Users/babashunsuke/.codex/skills/unused-symbol-pruning",
+      "/Users/babashunsuke/.agents/skills/unused-symbol-pruning",
+    ],
+    jsonFiles: [],
+    contentChecks: [
+      {
+        relativePath: "SKILL.md",
+        includes: [
+          "node .agents/skills/unused-symbol-pruning/scripts/inventory-unused-symbols.mjs",
+          "references/06_policy-decisions.md",
+          "references/07_second-pass-patterns.md",
+        ],
+      },
+      {
+        relativePath: "agents/openai.yaml",
+        includes: [
+          'display_name: "Unused Symbol Pruning"',
+          "dead code and surface pruning",
+        ],
+      },
+    ],
+  },
+];
+const requiredRootFiles = [
   "AGENTS.md",
   "scripts/architecture/render-diagram-bundle.mjs",
-];
-const forbiddenPaths = [
-  "docs/skills/aipanel-diagrams",
-  "skills/aipanel-diagrams",
-];
-const staleReferencePatterns = [
-  "docs/skills/aipanel-diagrams",
-  "/.codex/skills/aipanel-diagrams",
-  "/.agents/skills/aipanel-diagrams",
-  "/Users/babashunsuke/.codex/skills/aipanel-diagrams",
-  "/Users/babashunsuke/.agents/skills/aipanel-diagrams",
 ];
 
 function resolveFromRoot(relativePath) {
@@ -69,50 +139,31 @@ function assertExcludes(text, snippet, errors, label) {
 
 const errors = [];
 
-for (const relativePath of requiredFiles) {
+for (const relativePath of requiredRootFiles) {
   if (!existsSync(resolveFromRoot(relativePath))) {
     errors.push(`Missing required file: ${relativePath}`);
   }
 }
 
-for (const relativePath of forbiddenPaths) {
-  if (existsSync(resolveFromRoot(relativePath))) {
-    errors.push(`Forbidden path still exists: ${relativePath}`);
+for (const config of skillConfigs) {
+  for (const requiredFile of config.requiredFiles) {
+    const relativePath = path.posix.join(config.skillDir, requiredFile);
+
+    if (!existsSync(resolveFromRoot(relativePath))) {
+      errors.push(`Missing required file: ${relativePath}`);
+    }
+  }
+
+  for (const relativePath of config.forbiddenPaths) {
+    if (existsSync(resolveFromRoot(relativePath))) {
+      errors.push(`Forbidden path still exists: ${relativePath}`);
+    }
   }
 }
 
 if (errors.length === 0) {
-  const skillMarkdown = readUtf8(`${skillDir}/SKILL.md`);
-  const openAiConfig = readUtf8(`${skillDir}/agents/openai.yaml`);
   const agentsMarkdown = readUtf8("AGENTS.md");
-  const bundleTemplate = readUtf8(
-    `${skillDir}/references/04_diagram-bundle-template.json`,
-  );
 
-  assertIncludes(
-    skillMarkdown,
-    "Prefer a sub-agent to draft the bundle spec JSON",
-    errors,
-    `${skillDir}/SKILL.md`,
-  );
-  assertIncludes(
-    skillMarkdown,
-    "node scripts/architecture/render-diagram-bundle.mjs",
-    errors,
-    `${skillDir}/SKILL.md`,
-  );
-  assertIncludes(
-    openAiConfig,
-    'display_name: "AIPanel Diagrams"',
-    errors,
-    `${skillDir}/agents/openai.yaml`,
-  );
-  assertIncludes(
-    openAiConfig,
-    "sub-agent",
-    errors,
-    `${skillDir}/agents/openai.yaml`,
-  );
   assertIncludes(
     agentsMarkdown,
     "`skills/` は公開用・配布用の Skill だけに使う。",
@@ -121,7 +172,19 @@ if (errors.length === 0) {
   );
   assertIncludes(
     agentsMarkdown,
-    "repo-private な Codex Skill は `.agent/skills/` 配下に置く。",
+    "repo-private な Codex Skill は `.agents/skills/` 配下に置く。",
+    errors,
+    "AGENTS.md",
+  );
+  assertIncludes(
+    agentsMarkdown,
+    "`.agents/skills/aipanel-diagrams/`",
+    errors,
+    "AGENTS.md",
+  );
+  assertIncludes(
+    agentsMarkdown,
+    "`.agents/skills/unused-symbol-pruning/`",
     errors,
     "AGENTS.md",
   );
@@ -138,26 +201,39 @@ if (errors.length === 0) {
     "AGENTS.md",
   );
 
-  try {
-    JSON.parse(bundleTemplate);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    errors.push(
-      `Invalid JSON in ${skillDir}/references/04_diagram-bundle-template.json: ${message}`,
-    );
-  }
+  for (const config of skillConfigs) {
+    for (const check of config.contentChecks) {
+      const relativePath = path.posix.join(config.skillDir, check.relativePath);
+      const content = readUtf8(relativePath);
 
-  for (const relativePath of collectFiles(skillDir)) {
-    const extension = path.extname(relativePath);
-
-    if (![".md", ".yaml", ".yml", ".json"].includes(extension)) {
-      continue;
+      for (const snippet of check.includes) {
+        assertIncludes(content, snippet, errors, relativePath);
+      }
     }
 
-    const content = readUtf8(relativePath);
+    for (const jsonFile of config.jsonFiles) {
+      const relativePath = path.posix.join(config.skillDir, jsonFile);
 
-    for (const pattern of staleReferencePatterns) {
-      assertExcludes(content, pattern, errors, relativePath);
+      try {
+        JSON.parse(readUtf8(relativePath));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push(`Invalid JSON in ${relativePath}: ${message}`);
+      }
+    }
+
+    for (const relativePath of collectFiles(config.skillDir)) {
+      const extension = path.extname(relativePath);
+
+      if (![".md", ".yaml", ".yml", ".json"].includes(extension)) {
+        continue;
+      }
+
+      const content = readUtf8(relativePath);
+
+      for (const pattern of config.staleReferencePatterns) {
+        assertExcludes(content, pattern, errors, relativePath);
+      }
     }
   }
 }
@@ -175,9 +251,11 @@ if (errors.length > 0) {
 process.stdout.write(
   [
     "Agent skill validation passed.",
-    `- checked required files under ${skillDir}`,
-    "- confirmed deprecated docs/skills and skills paths are absent",
+    ...skillConfigs.map(
+      (config) => `- checked required files under ${config.skillDir}`,
+    ),
+    "- confirmed deprecated docs/skills and legacy .agent paths are absent",
     "- confirmed AGENTS.md documents placement and validation rules",
-    "- confirmed diagram bundle template JSON parses cleanly",
+    "- confirmed required JSON reference files parse cleanly",
   ].join("\n") + "\n",
 );

@@ -1,6 +1,6 @@
 import type { ProviderAdapter } from "./ProviderAdapter.js";
 
-export interface ProviderRegistryOptions {
+interface ProviderRegistryOptions {
   adapters: ProviderAdapter[];
   defaultProvider: string;
 }
@@ -32,9 +32,5 @@ export class ProviderRegistry {
     }
 
     return adapter;
-  }
-
-  get defaultProvider(): string {
-    return this.#defaultProvider;
   }
 }

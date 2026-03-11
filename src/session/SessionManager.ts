@@ -1,17 +1,18 @@
 import {
   Session,
   SessionTurn,
-  ProviderRef,
+  type SessionTurnRole,
+} from "../domain/session.js";
+import {
   defaultClock,
   defaultIdGenerator,
   type Clock,
   type IdGenerator,
-  type ProviderRefProps,
-  type SessionTurnRole,
-} from "../domain/index.js";
+} from "../domain/base.js";
+import { ProviderRef, type ProviderRefProps } from "../domain/value-objects.js";
 import { SessionRepository } from "./SessionRepository.js";
 
-export interface SessionManagerOptions {
+interface SessionManagerOptions {
   repository: SessionRepository;
   clock?: Clock;
   idGenerator?: IdGenerator;
@@ -101,10 +102,6 @@ export class SessionManager {
       this.clock(),
     );
 
-    return this.repository.save(session);
-  }
-
-  async save(session: Session): Promise<Session> {
     return this.repository.save(session);
   }
 }
