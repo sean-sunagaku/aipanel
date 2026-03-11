@@ -1,5 +1,8 @@
 # Data Flow
 
+## Current Code Note
+2026-03-11 時点の現行コードでは `compare` command は存在せず、orchestrated flow は `debug` の内部実装として扱う。専用の `WorkflowSelector` や `src/orchestrator/*` も存在しない。
+
 ## Note
 `Broker + Orchestrator` 前提の詳細な実行フローは [Broker + Orchestrator Internal Design](../../broker_orchestrator_design_2026-03-10/00_overview/00_overview.md) を参照する。
 
@@ -60,43 +63,20 @@ user command with session id
 - provider 固有 thread ID は `providerRefs` として session に保持する
 - resume できない provider は `aipanel` 側の turn 履歴から再構築する
 
-## Flow 3: compare
-
-```text
-user command with multiple providers
-  -> CommandRouter
-  -> CompareUseCase
-  -> ContextCollector
-  -> SessionManager(start or resume)
-  -> ProviderRegistry
-  -> ProviderAdapter A
-  -> ProviderAdapter B
-  -> ResponseNormalizer
-  -> ComparisonEngine
-  -> SessionRepository(save report)
-  -> ArtifactRepository(save comparison artifact)
-  -> ResultRenderer
-```
-
-### compare の重要点
-- provider ごとの raw text をそのまま並べるだけではなく、共通 schema に正規化してから比較する
-- compare 結果は 1 つの `ComparisonReport` として保存する
-- 「一致点」「差分」「推奨アクション」は分けて出力する
-
-## Flow 4: debug
+## Flow 3: debug
 
 ```text
 user command with logs / files / question
   -> CommandRouter
   -> DebugUseCase
-  -> ContextCollector(logs, diffs, target files)
-  -> ArtifactRepository(store raw inputs)
+  -> ContextCollector
   -> SessionManager(start or resume)
   -> ProviderRegistry
-  -> ProviderAdapter
+  -> ProviderAdapter(role-based repeated calls)
   -> ResponseNormalizer
-  -> SessionRepository(save turn)
-  -> ArtifactRepository(save debug bundle)
+  -> ComparisonEngine
+  -> SessionRepository(save turns)
+  -> ArtifactRepository(save debug artifacts)
   -> ResultRenderer
 ```
 
@@ -107,7 +87,7 @@ user command with logs / files / question
 
 ## Error And Retry Flow
 - `ProviderAdapter` の失敗は provider 単位で記録する
-- compare 実行時は、一部 provider が失敗しても部分成功として扱えるようにする
+- debug 実行時は、一部 task が失敗しても部分成功として扱えるようにする
 - timeout と retry は `ProviderCallPlan` に含める
 - session 保存は provider 実行後だけでなく、開始時にも最低限の metadata を残す
 
@@ -118,7 +98,7 @@ user command with logs / files / question
 | command 受付直後 | session metadata, intent summary |
 | context 収集後 | context summary, artifact refs |
 | provider 応答後 | raw response, normalized response |
-| compare 完了後 | comparison report |
+| debug 集約後 | comparison report |
 | renderer 出力直前 | final summary, exit status |
 
 ## Sequence Sketch
@@ -134,18 +114,20 @@ sequenceDiagram
     participant G as ComparisonEngine
     participant O as ResultRenderer
 
-    U->>R: aipanel compare --providers a,b
+    U->>R: aipanel debug "Why is it failing?" --log error.log
     R->>C: collect context
     C-->>R: ContextBundle
     R->>S: start or resume session
     S-->>R: Session
-    R->>P: call provider A / B
-    P-->>R: ProviderResponse[]
-    R->>N: normalize responses
-    N-->>R: NormalizedResponse[]
-    R->>G: build comparison
+    loop planner / reviewer / validator
+        R->>P: call provider for role task
+        P-->>R: ProviderResponse
+        R->>N: normalize response
+        N-->>R: NormalizedResponse
+    end
+    R->>G: build aggregated report
     G-->>R: ComparisonReport
-    R->>S: save turns and report
+    R->>S: save turns
     R->>O: render final result
     O-->>U: terminal output
 ```

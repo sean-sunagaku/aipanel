@@ -1,5 +1,8 @@
 # Phase 01: Project Foundation
 
+## Historical Note
+この phase 記録は当時の実装計画ログである。ここで導入した `WorkflowSelector` は 2026-03-11 の整理で削除済み。
+
 ## Goal
 CLI アプリとしての最小骨格と、Claude Code adapter の差し込み口を作る。
 

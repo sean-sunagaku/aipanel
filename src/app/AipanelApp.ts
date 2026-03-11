@@ -18,11 +18,9 @@ import {
   ListProvidersUseCase,
 } from "../usecases/index.js";
 import { ProfileLoader } from "./ProfileLoader.js";
-import { WorkflowSelector } from "./WorkflowSelector.js";
 
 export class AipanelApp {
   readonly profileLoader: ProfileLoader;
-  readonly workflowSelector: WorkflowSelector;
   readonly resultRenderer: ResultRenderer;
   readonly providerRegistry: ProviderRegistry;
   readonly listProvidersUseCase: ListProvidersUseCase;
@@ -39,7 +37,6 @@ export class AipanelApp {
     cwd?: string;
   } = {}) {
     this.profileLoader = new ProfileLoader(storageRoot);
-    this.workflowSelector = new WorkflowSelector();
     this.resultRenderer = new ResultRenderer();
 
     const sessionRepository = new SessionRepository({ storageRoot });

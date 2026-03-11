@@ -1,5 +1,8 @@
 # Phase 04: Debug Orchestrated Mode
 
+## Historical Note
+この checklist は実装計画時点のものであり、現在は専用の `PlanBuilder` / `TaskScheduler` / `TaskExecutor` / `ResultMerger` / `ValidationRunner` module を持たない。現行の orchestrated `debug` は `DebugUseCase` の内部フローとして実装されている。
+
 ## Goal
 Claude Code 単独でも `Run` 配下で複数 task を管理できる orchestrated mode を `debug` に導入する。
 

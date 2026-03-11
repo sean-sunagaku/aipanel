@@ -1,5 +1,8 @@
 # Broker + Orchestrator Internal Design Overview
 
+## Historical Note
+このディレクトリは設計比較の履歴資料である。2026-03-11 時点の現行コードには、ここで比較している `WorkflowSelector`、`CompareUseCase`、`src/orchestrator/*` 専用クラス群は存在しない。
+
 ## Purpose
 このディレクトリは、`CLI Broker` を採用したあと、その内部をどの責務単位で設計するかを比較するためのサブシリーズである。
 

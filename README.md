@@ -9,7 +9,7 @@
 - phase 1 実装済み
 - provider は `claude-code`, `codex`
 - 利用可能 command は `providers`, `consult`, `followup`, `debug`
-- `compare` は phase 2 予約で、内部 placeholder のみ残している
+- `compare` は phase 1 の対象外
 
 ## Setup
 
@@ -38,6 +38,36 @@ build 前に source から直接試すなら:
 ```bash
 npm run dev -- providers --json
 make dev
+```
+
+## Worktree Shortcut
+
+`aipanel` 直下の `.worktree/` に Git worktree を増やしたいときは、以下のショートカットが使えます。
+
+```bash
+npm run worktree:add -- feature/debug-ui
+make worktree-add BRANCH=feature/debug-ui
+```
+
+補足:
+
+- 既存の local branch があればその branch をそのまま開きます
+- `origin/<branch>` だけ存在する場合は tracking branch を作ります
+- どちらもない場合は `HEAD` から新しい branch を作ります
+- 配置先は `.worktree/<branch>` です
+
+base を変えたい場合:
+
+```bash
+npm run worktree:add -- feature/debug-ui --base origin/main
+make worktree-add BRANCH=feature/debug-ui BASE=origin/main
+```
+
+一覧確認:
+
+```bash
+npm run worktree:list
+make worktree-list
 ```
 
 ## Package Install

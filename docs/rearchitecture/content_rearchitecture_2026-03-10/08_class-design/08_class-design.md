@@ -1,5 +1,8 @@
 # Class Design
 
+## Current Code Note
+2026-03-11 時点の現行コードでは、専用の `WorkflowSelector`、`src/orchestrator/*`、phase 2 placeholder の `CompareUseCase` は存在しない。以下では current implementation と future option を分けて記す。
+
 ## Note
 `CLI Broker` の一般設計だけでなく、`Broker + Orchestrator` の内部設計を 5 パターン比較した詳細版は [Broker + Orchestrator Internal Design](../../broker_orchestrator_design_2026-03-10/00_overview/00_overview.md) を参照する。
 
@@ -65,11 +68,10 @@
 
 | Service | 役割 | 主な依存先 |
 |---|---|---|
-| `ConsultUseCase` | 単発相談を実行する | `ContextCollector`, `ProviderRegistry`, `SessionRepository`, `ResultRenderer` |
-| `DebugUseCase` | ログや失敗ケースを含む相談を実行する | `ContextCollector`, `ArtifactRepository`, `ProviderRegistry`, `SessionRepository`, `RunRepository` |
-| `FollowupUseCase` | 既存 session に続けて問い合わせる | `SessionRepository`, `RunRepository`, `ProviderRegistry`, `ResultRenderer` |
-| `CompareUseCase` | 複数 provider の結果を比較する | `ContextCollector`, `ProviderRegistry`, `ResponseNormalizer`, `ComparisonEngine`, `SessionRepository`, `RunRepository` |
-| `ListProvidersUseCase` | 利用可能 provider を一覧表示する | `ProviderRegistry`, `ResultRenderer` |
+| `ConsultUseCase` | 単発相談を実行する | `ContextCollector`, `ProviderRegistry`, `SessionManager`, `RunCoordinator`, `ArtifactRepository` |
+| `DebugUseCase` | 複数 role の debug 相談を実行する | `ContextCollector`, `ArtifactRepository`, `ProviderRegistry`, `SessionManager`, `RunCoordinator`, `ComparisonEngine` |
+| `FollowupUseCase` | 既存 session に続けて問い合わせる | `ConsultUseCase` |
+| `ListProvidersUseCase` | 利用可能 provider を一覧表示する | `ProviderRegistry` |
 
 ## Coordinators And Support Objects
 
@@ -98,6 +100,7 @@
 | `IdGenerator` | session / turn / artifact ID を安定生成する |
 
 ## Optional Phase-Two Objects
+この節のオブジェクトは将来案であり、2026-03-11 時点の現行コードには存在しない。
 
 | Name | 役割 |
 |---|---|
@@ -125,7 +128,7 @@ CLI
 | Package | 主な型 |
 |---|---|
 | `src/app` | `CommandRouter`, `ProfileLoader` |
-| `src/usecases` | `ConsultUseCase`, `DebugUseCase`, `FollowupUseCase`, `CompareUseCase`, `ListProvidersUseCase` |
+| `src/usecases` | `ConsultUseCase`, `DebugUseCase`, `FollowupUseCase`, `ListProvidersUseCase` |
 | `src/domain` | `Session`, `SessionTurn`, `Run`, `RunTask`, `TaskResult`, `ContextBundle`, `ProviderResponse`, `NormalizedResponse`, `Artifact`, `ComparisonReport`, value objects |
 | `src/context` | `ContextCollector`, `ContextSource` 実装 |
 | `src/providers` | `ProviderRegistry`, `ProviderAdapter` 実装群 |
@@ -142,16 +145,14 @@ classDiagram
     CommandRouter --> ConsultUseCase
     CommandRouter --> DebugUseCase
     CommandRouter --> FollowupUseCase
-    CommandRouter --> CompareUseCase
     ConsultUseCase --> ContextCollector
     ConsultUseCase --> ProviderRegistry
     ConsultUseCase --> SessionManager
     ConsultUseCase --> RunCoordinator
     DebugUseCase --> ArtifactRepository
-    FollowupUseCase --> SessionRepository
-    FollowupUseCase --> RunCoordinator
-    CompareUseCase --> ResponseNormalizer
-    CompareUseCase --> ComparisonEngine
+    DebugUseCase --> ResponseNormalizer
+    DebugUseCase --> ComparisonEngine
+    FollowupUseCase --> ConsultUseCase
     ProviderRegistry --> ProviderAdapter
     SessionManager --> SessionRepository
     RunCoordinator --> RunRepository

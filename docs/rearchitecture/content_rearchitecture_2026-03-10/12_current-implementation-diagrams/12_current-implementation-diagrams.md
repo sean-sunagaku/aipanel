@@ -33,7 +33,7 @@ Codex sub-agent が spec JSON を作成し、この renderer が `.drawio` と `
 - followup は provider native resume を正本にせず、保存済み Session と context artifact から継続する。
 
 ### debug-orchestrated-data-flow
-- debug の orchestrated flow を独立させ、planner / reviewer / validator が RunTask として記録される様子を見る。
+- debug の orchestrated flow を独立させ、planner / reviewer / validator が `DebugUseCase` 内で `RunTask` として記録される様子を見る。
 - phase 1 では同一 provider の role 別連続実行だが、ledger 上では複数 task / result / artifact に分かれる。
 
 ### core-class-diagram
@@ -47,6 +47,6 @@ Codex sub-agent が spec JSON を作成し、この renderer が `.drawio` と `
 ## Canonical Data Structure Notes
 
 - Session は aggregate root で、turns[] と providerRefs[] を保持する。
-- Run は aggregate root で、tasks[]、taskResults[]、contextBundles[]、providerResponses[]、normalizedResponses[]、comparisonReports[] を保持する。
+- Run は aggregate root で、tasks[]、taskResults[]、contextBundles[]、providerResponses[]、normalizedResponses[]、comparisonReport を保持する。
 - Artifact は raw provider response、context snapshot、export file を保存する補助 root である。
 - provider native state は ProviderRef / ExternalRef として参照だけ保持し、canonical history そのものは aipanel 側に持たせる。

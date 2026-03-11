@@ -1,5 +1,8 @@
 # Option 2: CLI Broker
 
+## Historical Note
+2026-03-11 時点の現行コードでは、専用の `WorkflowSelector` や `src/orchestrator/*` は削除されている。以下は broker 案を比較するための設計オプション資料であり、現在の実装構成そのものではない。
+
 ## Summary
 `aipanel` 自体を中核 CLI とし、context 収集、provider 呼び出し、session 管理、比較、出力正規化を 1 つの broker に集約する構成である。  
 さらに難しいケースでは、broker の内部で planner / executor / merger / validator を管理し、multi-agent 的な実行も同じ基盤の上で扱う。

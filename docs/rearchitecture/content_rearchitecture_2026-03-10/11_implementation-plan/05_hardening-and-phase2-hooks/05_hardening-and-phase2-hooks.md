@@ -1,5 +1,8 @@
 # Phase 05: Hardening And Phase 2 Hooks
 
+## Historical Note
+この checklist は phase 2 を見据えた計画メモである。`CompareUseCase` placeholder は 2026-03-11 の整理で削除済みで、`compare` command は現行コードに存在しない。
+
 ## Goal
 phase 1 の完成度を上げつつ、phase 2 の multi-provider / compare / richer multi-agent に備える。
 

@@ -1,5 +1,9 @@
 # Phase 03: Direct Mode Commands
 
+## Historical Note
+この文書は設計比較または実装履歴の資料であり、2026-03-11 時点の現行コード構成とは一部異なる。`WorkflowSelector`、`src/orchestrator/*`、`CompareUseCase` placeholder などへの言及は履歴として読むこと。
+
+
 ## Goal
 最小 UX として `consult`, `followup`, `providers` を使える状態にする。
 

@@ -1,5 +1,8 @@
 # TASK-05: Implement debug orchestrated mode
 
+## Historical Note
+このタスク記録で言及している `PlanBuilder` / `TaskScheduler` / `TaskExecutor` / `ResultMerger` / `ValidationRunner` は当時の実装形であり、2026-03-11 の cleanup で削除済み。現行コードでは `DebugUseCase` が role-based task flow を直接持つ。
+
 ## Status
 - Status: done
 - Owner: main
