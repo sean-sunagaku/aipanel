@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { SessionManager, SessionRepository } from "../../src/session/index.js";
+import { SessionManager } from "../../src/session/SessionManager.js";
+import { SessionRepository } from "../../src/session/SessionRepository.js";
 
 test("SessionManager persists turns and provider refs", async () => {
   const storageRoot = await mkdtemp(path.join(os.tmpdir(), "aipanel-session-"));

@@ -5,7 +5,7 @@ import type {
   CitationProps,
   ExternalRefProps,
   UsageProps,
-} from "../domain/index.js";
+} from "../domain/value-objects.js";
 import type {
   ContextBundleLike,
   ContextCollector,

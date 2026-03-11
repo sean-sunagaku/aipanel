@@ -6,21 +6,22 @@ import {
   Run,
   RunTask,
   TaskResult,
+  type ComparisonReportProps,
+  type ContextBundleProps,
+  type NormalizedResponseProps,
+  type ProviderResponseProps,
+  type RunTaskProps,
+  type TaskResultProps,
+} from "../domain/run.js";
+import {
   defaultClock,
   defaultIdGenerator,
   type Clock,
-  type ComparisonReportProps,
-  type ContextBundleProps,
   type IdGenerator,
-  type NormalizedResponseProps,
-  type ProviderResponseProps,
-  type RunStatus,
-  type RunTaskProps,
-  type TaskResultProps,
-} from "../domain/index.js";
+} from "../domain/base.js";
 import { RunRepository } from "./RunRepository.js";
 
-export interface RunCoordinatorOptions {
+interface RunCoordinatorOptions {
   repository: RunRepository;
   clock?: Clock;
   idGenerator?: IdGenerator;
@@ -41,8 +42,6 @@ export class RunCoordinator {
     sessionId?: string | null;
     command: string;
     mode?: string;
-    planVersion?: string;
-    plan?: Record<string, unknown> | null;
   }): Promise<Run> {
     const run = Run.create({
       command: params.command,
@@ -52,8 +51,6 @@ export class RunCoordinator {
         ? { sessionId: params.sessionId }
         : {}),
       ...(params.mode ? { mode: params.mode } : {}),
-      ...(params.planVersion ? { planVersion: params.planVersion } : {}),
-      ...(params.plan !== undefined ? { plan: params.plan } : {}),
     });
 
     return this.repository.save(run);
@@ -144,35 +141,6 @@ export class RunCoordinator {
 
     run.addComparisonReport(comparisonReport, this.clock());
     return comparisonReport;
-  }
-
-  transition(run: Run, status: RunStatus): Run {
-    run.transition(status, this.clock());
-    return run;
-  }
-
-  complete(
-    run: Run,
-    params: {
-      finalSummary?: string | null;
-      validationStatus?: string | null;
-    } = {},
-  ): Run {
-    run.complete({
-      updatedAt: this.clock(),
-      ...(params.finalSummary !== undefined
-        ? { finalSummary: params.finalSummary }
-        : {}),
-      ...(params.validationStatus !== undefined
-        ? { validationStatus: params.validationStatus }
-        : {}),
-    });
-    return run;
-  }
-
-  fail(run: Run, message: string, status: RunStatus = "failed"): Run {
-    run.fail(message, status, this.clock());
-    return run;
   }
 
   async save(run: Run): Promise<Run> {

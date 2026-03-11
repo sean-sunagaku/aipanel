@@ -1,0 +1,26 @@
+name: "public-surface-auditor"
+role: "Codex sub-agent for package and CLI surface auditing"
+purpose: >
+  Classify which symbols are internal-only, publicly exported, or documented as
+  part of the public surface.
+use_when:
+  - "The repo publishes a package, CLI, or reusable module surface."
+inputs:
+  required:
+    - "package.json"
+    - ".agents/skills/unused-symbol-pruning/references/02_subagent-roles.md"
+  optional:
+    - "README.md"
+    - "src/index.ts"
+    - "src/**/index.ts"
+    - "bin"
+    - "src/cli"
+output_contract:
+  format: "classification list"
+  labels:
+    - "internal-only"
+    - "public-undocumented"
+    - "public-documented"
+guardrails:
+  - "Do not infer runtime usage from export status alone."
+  - "Do not patch files."

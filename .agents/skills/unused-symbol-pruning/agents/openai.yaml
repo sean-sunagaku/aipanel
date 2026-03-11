@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unused Symbol Pruning"
+  short_description: "Sub-agent-led dead code and surface pruning"
+  default_prompt: "Use $unused-symbol-pruning to audit unused methods, fields, exports, barrel files, CLI helpers, and validators with sub-agents before deleting them safely."

@@ -27,17 +27,14 @@ import {
   type UsageProps,
 } from "./value-objects.js";
 
-export type RunStatus =
+type RunStatus =
   | "created"
   | "planned"
   | "running"
-  | "merged"
-  | "validated"
   | "completed"
-  | "failed"
   | "partial";
 
-export type TaskStatus =
+type TaskStatus =
   | "created"
   | "queued"
   | "running"
@@ -569,13 +566,10 @@ export interface RunProps {
   command: string;
   mode: string;
   status: RunStatus;
-  planVersion: string;
   createdAt: IsoDateString;
   updatedAt: IsoDateString;
-  plan?: Record<string, unknown> | null;
   finalSummary?: string | null;
   validationStatus?: string | null;
-  errorMessage?: string | null;
   tasks?: RunTaskProps[];
   taskResults?: TaskResultProps[];
   contextBundles?: ContextBundleProps[];
@@ -591,13 +585,10 @@ export class Run {
   public readonly command: string;
   public readonly mode: string;
   public status: RunStatus;
-  public readonly planVersion: string;
   public readonly createdAt: IsoDateString;
   public updatedAt: IsoDateString;
-  public plan: Record<string, unknown> | null;
   public finalSummary: string | null;
   public validationStatus: string | null;
-  public errorMessage: string | null;
   public tasks: RunTask[];
   public taskResults: TaskResult[];
   public contextBundles: ContextBundle[];
@@ -612,13 +603,10 @@ export class Run {
     this.command = props.command;
     this.mode = props.mode;
     this.status = props.status;
-    this.planVersion = props.planVersion;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
-    this.plan = props.plan ?? null;
     this.finalSummary = props.finalSummary ?? null;
     this.validationStatus = props.validationStatus ?? null;
-    this.errorMessage = props.errorMessage ?? null;
     this.tasks = ensureArray(props.tasks).map((item) => RunTask.fromJSON(item));
     this.taskResults = ensureArray(props.taskResults).map((item) =>
       TaskResult.fromJSON(item),
@@ -643,8 +631,6 @@ export class Run {
     command: string;
     mode?: string;
     status?: RunStatus;
-    planVersion?: string;
-    plan?: Record<string, unknown> | null;
     createdAt?: IsoDateString;
     updatedAt?: IsoDateString;
     clock?: Clock;
@@ -661,8 +647,6 @@ export class Run {
       command: params.command,
       mode: params.mode ?? "direct",
       status: params.status ?? "created",
-      planVersion: params.planVersion ?? "phase1",
-      plan: params.plan ?? null,
       createdAt,
       updatedAt,
     });
@@ -670,14 +654,6 @@ export class Run {
 
   static fromJSON(input: RunProps): Run {
     return new Run(input);
-  }
-
-  setPlan(
-    plan: Record<string, unknown> | null,
-    updatedAt: IsoDateString = defaultClock(),
-  ): void {
-    this.plan = plan;
-    this.updatedAt = updatedAt;
   }
 
   transition(
@@ -751,29 +727,6 @@ export class Run {
     this.updatedAt = updatedAt;
   }
 
-  complete(
-    params: {
-      finalSummary?: string | null;
-      validationStatus?: string | null;
-      updatedAt?: IsoDateString;
-    } = {},
-  ): void {
-    this.finalSummary = params.finalSummary ?? this.finalSummary;
-    this.validationStatus = params.validationStatus ?? this.validationStatus;
-    this.status = "completed";
-    this.updatedAt = params.updatedAt ?? defaultClock();
-  }
-
-  fail(
-    message: string,
-    status: RunStatus = "failed",
-    updatedAt: IsoDateString = defaultClock(),
-  ): void {
-    this.errorMessage = message;
-    this.status = status;
-    this.updatedAt = updatedAt;
-  }
-
   toJSON(): RunProps {
     return compactObject({
       schemaVersion: this.schemaVersion,
@@ -782,13 +735,10 @@ export class Run {
       command: this.command,
       mode: this.mode,
       status: this.status,
-      planVersion: this.planVersion,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
-      plan: this.plan,
       finalSummary: this.finalSummary,
       validationStatus: this.validationStatus,
-      errorMessage: this.errorMessage,
       tasks: this.tasks.map((item) => item.toJSON()),
       taskResults: this.taskResults.map((item) => item.toJSON()),
       contextBundles: this.contextBundles.map((item) => item.toJSON()),

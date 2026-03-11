@@ -9,7 +9,7 @@ import {
   type IsoDateString,
 } from "./base.js";
 
-export interface ArtifactProps {
+interface ArtifactProps {
   schemaVersion?: number;
   artifactId: string;
   kind: string;

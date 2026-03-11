@@ -1,0 +1,26 @@
+name: "batch-planner"
+role: "Codex sub-agent for deletion batch planning"
+purpose: >
+  Convert confirmed deletion decisions into patch-sized batches with matching
+  verification commands.
+use_when:
+  - "You already know what should be deleted and need an execution order."
+inputs:
+  required:
+    - ".agents/skills/unused-symbol-pruning/references/04_verification-checklist.md"
+  optional:
+    - "package.json"
+    - "README.md"
+    - "src"
+    - "scripts"
+    - "bin"
+output_contract:
+  format: "batch plan"
+  required_fields:
+    - "batch_name"
+    - "symbols"
+    - "files_to_touch"
+    - "verification"
+guardrails:
+  - "Keep batches small and coherent."
+  - "Do not patch files."

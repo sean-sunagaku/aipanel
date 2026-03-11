@@ -1,4 +1,4 @@
-export interface ProviderResponseLike {
+interface ProviderResponseLike {
   normalizedResponseId?: string;
   provider: string;
   rawText?: string;

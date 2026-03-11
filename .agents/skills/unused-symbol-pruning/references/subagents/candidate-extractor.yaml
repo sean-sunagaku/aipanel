@@ -1,0 +1,29 @@
+name: "candidate-extractor"
+role: "Codex sub-agent for unused symbol inventory review"
+purpose: >
+  Turn the rough inventory into a clean candidate table of methods, functions,
+  classes, exports, CLI helpers, and validators that may be unused.
+use_when:
+  - "You need the first pass list of deletion candidates."
+  - "The bundled inventory script has already been run."
+inputs:
+  required:
+    - ".agents/skills/unused-symbol-pruning/scripts/inventory-unused-symbols.mjs"
+    - ".agents/skills/unused-symbol-pruning/references/02_subagent-roles.md"
+  optional:
+    - "package.json"
+    - "README.md"
+output_contract:
+  format: "findings table"
+  required_fields:
+    - "symbol"
+    - "kind"
+    - "defined_in"
+    - "exported"
+    - "runtime_ref_count"
+    - "test_ref_count"
+    - "doc_ref_count"
+    - "category_hint"
+guardrails:
+  - "Do not decide final keep or delete."
+  - "Do not patch files."

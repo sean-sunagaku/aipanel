@@ -1,12 +1,12 @@
 import type { ConsultationResult } from "../usecases/ConsultUseCase.js";
 import type { DebugResult } from "../usecases/DebugUseCase.js";
 
-export type RenderedOutput = {
+type RenderedOutput = {
   text: string;
   json: Record<string, unknown>;
 };
 
-export type RenderableResult =
+type RenderableResult =
   | { kind: "providers"; providers: string[] }
   | ConsultationResult
   | DebugResult;
