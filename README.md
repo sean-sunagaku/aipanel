@@ -14,8 +14,9 @@
 ## Setup
 
 ```bash
-npm install
-npm run build
+corepack enable
+pnpm install
+pnpm run build
 ```
 
 `Makefile` を使う場合は以下でも同じです。
@@ -29,14 +30,14 @@ make build
 
 ```bash
 node dist/bin/aipanel.js providers --json
-npm start -- providers --json
+pnpm start providers --json
 make smoke
 ```
 
 build 前に source から直接試すなら:
 
 ```bash
-npm run dev -- providers --json
+pnpm run dev providers --json
 make dev
 ```
 
@@ -45,7 +46,7 @@ make dev
 `aipanel` 直下の `.worktree/` に Git worktree を増やしたいときは、以下のショートカットが使えます。
 
 ```bash
-npm run worktree:add -- feature/debug-ui
+pnpm run worktree:add feature/debug-ui
 make worktree-add BRANCH=feature/debug-ui
 ```
 
@@ -59,14 +60,14 @@ make worktree-add BRANCH=feature/debug-ui
 base を変えたい場合:
 
 ```bash
-npm run worktree:add -- feature/debug-ui --base origin/main
+pnpm run worktree:add feature/debug-ui --base origin/main
 make worktree-add BRANCH=feature/debug-ui BASE=origin/main
 ```
 
 一覧確認:
 
 ```bash
-npm run worktree:list
+pnpm run worktree:list
 make worktree-list
 ```
 
@@ -75,18 +76,20 @@ make worktree-list
 公開後は package として install できます。
 
 ```bash
-npm install -g aipanel-cli
+pnpm add -g aipanel-cli
 aipanel providers --json
 ```
 
-2026-03-10 JST 時点で、registry 経由の `npm install aipanel-cli` と `aipanel providers --json` まで確認済みです。
+2026-03-11 JST 時点で、registry 経由の `pnpm add --dir "$tmpdir" aipanel-cli` と `pnpm --dir "$tmpdir" exec aipanel providers --json` まで確認済みです。
 
 公開前のローカル確認は tarball か `Makefile` で行えます。
 
 ```bash
-tarball="$(npm pack)"
-npm install -g "./${tarball}"
-aipanel providers --json
+tmpdir="$(mktemp -d)"
+pnpm pack --out aipanel-cli-local.tgz
+pnpm add --dir "$tmpdir" "$(pwd)/aipanel-cli-local.tgz"
+pnpm --dir "$tmpdir" exec aipanel providers --json
+rm -f aipanel-cli-local.tgz
 ```
 
 ```bash
@@ -118,8 +121,8 @@ node dist/bin/aipanel.js debug "<question>" [--provider <name>] [--cwd <dir>] [-
 repo からのショートカット:
 
 ```bash
-npm start -- providers --json
-npm run dev -- consult "この設計どう？" --json
+pnpm start providers --json
+pnpm run dev consult "この設計どう？" --json
 make run ARGS='debug "この不具合の根本原因は？" --json --timeout 60000'
 ```
 
@@ -183,14 +186,14 @@ Codex を既定 provider にしたい場合は、`defaultProvider: codex` を指
 ## Tests
 
 ```bash
-npm run lint
-npm run fmt:check
-npm run typecheck
-npm run test:unit
-npm run test:integration
-npm run test:e2e
-npm test
-npm run audit
+pnpm run lint
+pnpm run fmt:check
+pnpm run typecheck
+pnpm run test:unit
+pnpm run test:integration
+pnpm run test:e2e
+pnpm test
+pnpm run audit
 ```
 
 `Makefile` 経由でも同じ確認ができます。
@@ -212,19 +215,20 @@ make audit
 
 ## Verified Smoke Checks
 
-2026-03-10 JST 時点で、以下を実行確認済みです。
+2026-03-11 JST 時点で、以下を実行確認済みです。
 
-- `npm run lint`
-- `npm run fmt:check`
-- `npm run typecheck`
-- `npm test`
-- `npm run audit`
-- `npm run build`
-- `npm run verify:package`
-- `npm run dev -- providers --json`
-- `npm start -- providers --json`
+- `pnpm run lint`
+- `pnpm run fmt:check`
+- `pnpm run typecheck`
+- `pnpm test`
+- `pnpm run audit`
+- `pnpm run build`
+- `pnpm run verify:package`
+- `pnpm run dev providers --json`
+- `pnpm start providers --json`
 - `make smoke`
-- `npm install --prefix "$tmpdir" aipanel-cli`
+- `pnpm add --dir "$tmpdir" aipanel-cli`
+- `pnpm --dir "$tmpdir" exec aipanel providers --json`
 - `node dist/bin/aipanel.js providers --json`
 - 実 Claude Code を使った `consult`
 - 実 Claude Code を使った `followup`
@@ -234,7 +238,7 @@ make audit
 ## Repo Skill
 
 - 公開用の `aipanel-cli` 利用ガイド Skill は [skills/use-aipanel-cli/SKILL.md](./skills/use-aipanel-cli/SKILL.md) にあります
-- `npx skills add sean-sunagaku/aipanel --skill use-aipanel-cli` で install できます
+- `pnpm dlx skills add sean-sunagaku/aipanel --skill use-aipanel-cli` で install できます
 - install / build / command usage / TypeScript import / storage layout の入口を 1 本にまとめています
 
 ## Architecture Docs
@@ -248,5 +252,5 @@ make audit
 - [Class Design](./docs/rearchitecture/content_rearchitecture_2026-03-10/08_class-design/08_class-design.md)
 - [Data Flow](./docs/rearchitecture/content_rearchitecture_2026-03-10/09_data-flow/09_data-flow.md)
 - [Broker + Orchestrator Internal Design](./docs/rearchitecture/broker_orchestrator_design_2026-03-10/00_overview/00_overview.md)
-- [NPM Package Distribution](./docs/distribution/npm-package.md)
+- [Package Distribution](./docs/distribution/npm-package.md)
 - [Usage Improvement Notes](./docs/usage-review/aipanel-usage-improvements_2026-03-10.md)

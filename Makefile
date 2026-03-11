@@ -8,19 +8,19 @@ BASE ?= HEAD
 .PHONY: install clean build run dev smoke worktree-add worktree-list lint lint-fix fmt fmt-check typecheck audit test test-unit test-integration test-e2e render-diagrams pack-dry-run pack verify-package publish-check publish
 
 install:
-	npm install
+	pnpm install
 
 clean:
-	npm run clean
+	pnpm run clean
 
 build:
-	npm run build
+	pnpm run build
 
 run: build
 	node dist/bin/aipanel.js $(ARGS)
 
 dev:
-	npx tsx bin/aipanel.ts $(ARGS)
+	pnpm run dev $(ARGS)
 
 smoke: build
 	node dist/bin/aipanel.js providers --json
@@ -33,49 +33,49 @@ worktree-list:
 	git worktree list
 
 lint:
-	npm run lint
+	pnpm run lint
 
 lint-fix:
-	npm run lint:fix
+	pnpm run lint:fix
 
 fmt:
-	npm run fmt
+	pnpm run fmt
 
 fmt-check:
-	npm run fmt:check
+	pnpm run fmt:check
 
 typecheck:
-	npm run typecheck
+	pnpm run typecheck
 
 audit:
-	npm run audit
+	pnpm run audit
 
 test:
-	npm test
+	pnpm test
 
 test-unit:
-	npm run test:unit
+	pnpm run test:unit
 
 test-integration:
-	npm run test:integration
+	pnpm run test:integration
 
 test-e2e:
-	npm run test:e2e
+	pnpm run test:e2e
 
 render-diagrams:
 	node scripts/architecture/render-diagram-bundle.mjs "$(DIAGRAM_SPEC)" "$(DIAGRAM_OUTPUT_DIR)"
 
 pack-dry-run:
-	npm run pack:dry-run
+	pnpm run pack:dry-run
 
 pack:
-	npm pack
+	pnpm pack
 
 verify-package:
-	npm run verify:package
+	pnpm run verify:package
 
 publish-check:
-	npm run publish:check
+	pnpm run publish:check
 
 publish:
-	npm run publish:public
+	pnpm run publish:public

@@ -19,8 +19,8 @@ Give copy-pastable examples first, then add the minimum explanation needed to av
 2. Read [references/cli-usage.md](references/cli-usage.md) for command syntax, setup, runtime behavior, profile defaults, and provider-specific notes.
 3. Read [references/imports-and-storage.md](references/imports-and-storage.md) for exported APIs, subpath imports, domain entities, and persistence layout.
 4. Answer with commands or code snippets that match the user's environment:
-   - source execution: `npm run dev -- ...`
-   - built CLI: `npm start -- ...` or `node dist/bin/aipanel.js ...`
+   - source execution: `pnpm run dev ...`
+   - built CLI: `pnpm start ...` or `node dist/bin/aipanel.js ...`
    - installed package: `aipanel ...`
 5. Mention the current phase-1 scope when it matters:
    - supported providers: `claude-code`, `codex`
@@ -30,7 +30,7 @@ Give copy-pastable examples first, then add the minimum explanation needed to av
 ## Guidance
 
 - Prefer examples that include the exact command shape the user can run immediately.
-- Distinguish clearly between local repo usage and npm-installed usage.
+- Distinguish clearly between local repo usage and package-installed usage.
 - When `--cwd` appears, explain that relative paths for `--file`, `--diff`, and `--log` are also resolved against that directory.
 - When answering `followup` questions, mention that `aipanel` reconstructs session context itself instead of treating native provider resume state as the source of truth.
 - When users ask about installation or publishing, use package name `aipanel-cli`.

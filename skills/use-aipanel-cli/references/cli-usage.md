@@ -16,16 +16,17 @@ Phase 1 currently supports:
 Build from the repository:
 
 ```bash
-npm install
-npm run build
+corepack enable
+pnpm install
+pnpm run build
 ```
 
 Quick checks:
 
 ```bash
 node dist/bin/aipanel.js providers --json
-npm start -- providers --json
-npm run dev -- providers --json
+pnpm start providers --json
+pnpm run dev providers --json
 ```
 
 `make install`, `make build`, `make smoke`, and `make dev` are equivalent shortcuts when `Makefile` is available.
@@ -35,7 +36,7 @@ npm run dev -- providers --json
 The published package name is `aipanel-cli`.
 
 ```bash
-npm install -g aipanel-cli
+pnpm add -g aipanel-cli
 aipanel providers --json
 ```
 
@@ -75,13 +76,13 @@ aipanel debug "この不具合の根本原因は？" [--provider <name>] [--cwd 
 Repository source execution:
 
 ```bash
-npm run dev -- consult "このログから原因わかる？" --cwd ./repo --log logs/app.log --file src/server.ts --model sonnet --json
+pnpm run dev consult "このログから原因わかる？" --cwd ./repo --log logs/app.log --file src/server.ts --model sonnet --json
 ```
 
 Built CLI:
 
 ```bash
-npm start -- consult "この差分レビューして" --provider codex --cwd ./repo --file src/server.ts --log logs/app.log --json
+pnpm start consult "この差分レビューして" --provider codex --cwd ./repo --file src/server.ts --log logs/app.log --json
 ```
 
 Global install:
@@ -121,15 +122,15 @@ When the question is about package distribution, use package name `aipanel-cli`.
 Recommended checks:
 
 ```bash
-npm run build
-npm pack --dry-run
-npm run verify:package
-npm run publish:check
+pnpm run build
+pnpm pack --dry-run
+pnpm run verify:package
+pnpm run publish:check
 ```
 
 Expected install checks:
 
 ```bash
-npm install -g aipanel-cli
+pnpm add -g aipanel-cli
 aipanel providers --json
 ```
