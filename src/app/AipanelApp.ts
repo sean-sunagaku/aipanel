@@ -4,7 +4,11 @@ import { ArtifactRepository } from "../artifact/ArtifactRepository.js";
 import { ComparisonEngine } from "../compare/ComparisonEngine.js";
 import { ContextCollector } from "../context/ContextCollector.js";
 import { ResultRenderer } from "../output/ResultRenderer.js";
-import { ClaudeCodeAdapter, ProviderRegistry } from "../providers/index.js";
+import {
+  ClaudeCodeAdapter,
+  CodexExecAdapter,
+  ProviderRegistry,
+} from "../providers/index.js";
 import { RunCoordinator, RunRepository } from "../run/index.js";
 import { SessionManager, SessionRepository } from "../session/index.js";
 import {
@@ -20,6 +24,7 @@ export class AipanelApp {
   readonly profileLoader: ProfileLoader;
   readonly workflowSelector: WorkflowSelector;
   readonly resultRenderer: ResultRenderer;
+  readonly providerRegistry: ProviderRegistry;
   readonly listProvidersUseCase: ListProvidersUseCase;
   readonly consultUseCase: ConsultUseCase;
   readonly followupUseCase: FollowupUseCase;
@@ -45,16 +50,16 @@ export class AipanelApp {
     });
     const runCoordinator = new RunCoordinator({ repository: runRepository });
     const contextCollector = new ContextCollector({ cwd });
-    const providerRegistry = new ProviderRegistry({
-      adapters: [new ClaudeCodeAdapter()],
+    this.providerRegistry = new ProviderRegistry({
+      adapters: [new ClaudeCodeAdapter(), new CodexExecAdapter()],
       defaultProvider: "claude-code",
     });
 
-    this.listProvidersUseCase = new ListProvidersUseCase(providerRegistry);
+    this.listProvidersUseCase = new ListProvidersUseCase(this.providerRegistry);
     this.consultUseCase = new ConsultUseCase({
       sessionManager,
       runCoordinator,
-      providerRegistry,
+      providerRegistry: this.providerRegistry,
       contextCollector,
       artifactRepository,
     });
@@ -62,7 +67,7 @@ export class AipanelApp {
     this.debugUseCase = new DebugUseCase({
       sessionManager,
       runCoordinator,
-      providerRegistry,
+      providerRegistry: this.providerRegistry,
       contextCollector,
       artifactRepository,
       comparisonEngine: new ComparisonEngine(),

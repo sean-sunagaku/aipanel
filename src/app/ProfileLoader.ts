@@ -4,7 +4,7 @@ import { pathExists, readText } from "../shared/file-system.js";
 
 export interface Profile {
   defaultProvider: string;
-  defaultModel: string;
+  defaultModel?: string;
   defaultTimeoutMs: number;
 }
 
@@ -58,7 +58,6 @@ export class ProfileLoader {
   async load(): Promise<Profile> {
     const defaults: Profile = {
       defaultProvider: "claude-code",
-      defaultModel: "sonnet",
       defaultTimeoutMs: 120000,
     };
 

@@ -30,5 +30,6 @@ export interface ProviderCallResult {
 
 export interface ProviderAdapter {
   readonly name: string;
+  readonly defaultModel?: string;
   call(plan: ProviderCallPlan): Promise<ProviderCallResult>;
 }

@@ -116,7 +116,7 @@ export class DebugUseCase {
     timeoutMs: number;
     cwd: string;
   }): Promise<DebugResult> {
-    const requestedModel = model ?? "sonnet";
+    const requestedModel = model;
     const session = await this.sessionManager.startOrResume({
       title: title ?? `Debug: ${question.slice(0, 60)}`,
       ...(sessionId ? { sessionId } : {}),
@@ -153,12 +153,12 @@ export class DebugUseCase {
     const contextText = this.contextCollector.formatForPrompt(rawContext);
     const normalizedResponses: NormalizedResponseLike[] = [];
     const details: string[] = [];
-    let resolvedModel = requestedModel;
+    let resolvedModel = requestedModel ?? "configured-default";
     let hasError = false;
 
     for (const taskSpec of DEBUG_TASKS) {
       const prompt = [
-        "You are Claude Code running under aipanel debug orchestrated mode.",
+        "You are an AI coding assistant running under aipanel debug orchestrated mode.",
         `Task focus: ${taskSpec.instruction}`,
         contextText ? `Context:\n${contextText}` : "",
         `Debug question:\n${question}`,
@@ -183,8 +183,8 @@ export class DebugUseCase {
         provider: providerName,
         prompt,
         cwd,
-        model: requestedModel,
         timeoutMs,
+        ...(requestedModel !== undefined ? { model: requestedModel } : {}),
       });
       resolvedModel = providerCall.model;
       hasError ||= providerCall.isError ?? false;
