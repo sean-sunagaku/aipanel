@@ -1,38 +1,12 @@
-import { AipanelApp } from "./AipanelApp.js";
-
-interface ParsedArgs {
-  command: string;
-  positionals: string[];
-  outputFormat: "text" | "json";
-  sessionId?: string;
-  providerName?: string;
-  model?: string;
-  timeoutMs?: number;
-  cwd?: string;
-  files: string[];
-  diffs: string[];
-  logs: string[];
-}
-
 /**
- * Flag Value を読み取る。
- * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
- *
- * @param args 処理に渡す args。
- * @param index 処理に渡す index。
- * @param flag 処理に渡す flag。
- * @returns 生成または整形した文字列。
- * @throws 入力や参照先が前提を満たさない場合。
- * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+ * CommandRouter と CLI usage 定義をまとめる。
+ * このファイルは、CLI command ごとの分岐と exit code / rendering を app 層へ集め、entrypoint が個別 use case の詳細を持たないようにするために存在する。
  */
-function readFlagValue(args: string[], index: number, flag: string): string {
-  const value = args[index];
-  if (!value) {
-    throw new Error(`\`${flag}\` requires a value.`);
-  }
 
-  return value;
-}
+import { match } from "ts-pattern";
+import { AipanelApp } from "./AipanelApp.js";
+import { parseArgs } from "../cli/parseArgs.js";
+import type { RunResultStatus } from "../domain/run.js";
 
 /**
  * Question を必須として検証する。
@@ -43,7 +17,7 @@ function readFlagValue(args: string[], index: number, flag: string): string {
  * @throws 入力や参照先が前提を満たさない場合。
  * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
  */
-function requireQuestion(positionals: string[]): string {
+function requireQuestion(positionals: readonly string[]): string {
   const question = positionals.join(" ").trim();
   if (!question) {
     throw new Error("Question is required.");
@@ -51,97 +25,23 @@ function requireQuestion(positionals: string[]): string {
 
   return question;
 }
+const usageText = [
+  "Usage:",
+  "  aipanel providers [--json]",
+  "  aipanel consult <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
+  "  aipanel followup --session <id> <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
+  "  aipanel debug <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
+  "",
+  "Notes:",
+  "  --session is only for `followup`.",
+  "  `consult` and `debug` always start from the current question.",
+].join("\n");
+
+const DEFAULT_TIMEOUT_MS = 120000;
 
 /**
- * Args を内部表現へ解釈する。
- * 入力の解釈や追跡に必要な前処理をここでまとめ、後続処理を単純に保つ。
- *
- * @param argv 処理に渡す argv。
- * @returns ParsedArgs。
- * @remarks 入力形式や分岐ごとの差異をここで揃えているため、条件分岐を変更すると後続処理の前提も変わる。
- */
-function parseArgs(argv: string[]): ParsedArgs {
-  const [command = "help", ...rest] = argv;
-  const parsed: ParsedArgs = {
-    command,
-    positionals: [],
-    outputFormat: "text",
-    files: [],
-    diffs: [],
-    logs: [],
-  };
-
-  for (let index = 0; index < rest.length; index += 1) {
-    const token = rest[index];
-    if (!token) {
-      continue;
-    }
-
-    if (token === "--json") {
-      parsed.outputFormat = "json";
-      continue;
-    }
-
-    if (token === "--session") {
-      parsed.sessionId = readFlagValue(rest, index + 1, "--session");
-      index += 1;
-      continue;
-    }
-
-    if (token === "--provider") {
-      parsed.providerName = readFlagValue(rest, index + 1, "--provider");
-      index += 1;
-      continue;
-    }
-
-    if (token === "--model") {
-      parsed.model = readFlagValue(rest, index + 1, "--model");
-      index += 1;
-      continue;
-    }
-
-    if (token === "--timeout") {
-      const timeout = Number(readFlagValue(rest, index + 1, "--timeout"));
-      index += 1;
-      if (Number.isFinite(timeout)) {
-        parsed.timeoutMs = timeout;
-      }
-      continue;
-    }
-
-    if (token === "--cwd") {
-      parsed.cwd = readFlagValue(rest, index + 1, "--cwd");
-      index += 1;
-      continue;
-    }
-
-    if (token === "--file") {
-      parsed.files.push(readFlagValue(rest, index + 1, "--file"));
-      index += 1;
-      continue;
-    }
-
-    if (token === "--diff") {
-      parsed.diffs.push(readFlagValue(rest, index + 1, "--diff"));
-      index += 1;
-      continue;
-    }
-
-    if (token === "--log") {
-      parsed.logs.push(readFlagValue(rest, index + 1, "--log"));
-      index += 1;
-      continue;
-    }
-
-    parsed.positionals.push(token);
-  }
-
-  return parsed;
-}
-
-/**
- * Command Router の責務を一箇所にまとめる。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Command の振り分け役を定義する。
+ * CLI entrypoint と use case・provider・renderer の接続責務を app 層へ集め、個々の command 実装が composition details を持たないようにする。
  */
 export class CommandRouter {
   readonly app: AipanelApp;
@@ -155,54 +55,53 @@ export class CommandRouter {
    * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
    *
    * @param argv 処理に渡す argv。
-   * @returns { output: string; exitCode: number } を解決する Promise。
-   * @throws 実行に必要な前提を満たせない場合。
-   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
+   * @returns { responseText: string; exitCode: number } を解決する Promise。
    */
-  async route(argv: string[]): Promise<{ output: string; exitCode: number }> {
+  async route(
+    argv: string[],
+  ): Promise<{ responseText: string; exitCode: number }> {
     const parsed = parseArgs(argv);
-    const profile = await this.app.profileLoader.load();
-    const providerName = parsed.providerName ?? profile.defaultProvider;
-    const shouldUseProfileModel =
-      !parsed.providerName || parsed.providerName === profile.defaultProvider;
-    const model =
-      parsed.model ??
-      (shouldUseProfileModel ? profile.defaultModel : undefined) ??
-      this.app.providerRegistry.getDefaultModel(providerName);
-    const timeoutMs = parsed.timeoutMs ?? profile.defaultTimeoutMs;
+    const selectedAdapter = this.app.providerRegistry.get(parsed.providerName);
+    const providerName = selectedAdapter.name;
+    const model = parsed.model ?? selectedAdapter.defaultModel;
+    const timeoutMs = parsed.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const toExitCode = (status: RunResultStatus): number =>
+      match(status)
+        .with("completed", () => 0)
+        .with("partial", () => 2)
+        .exhaustive();
 
-    switch (parsed.command) {
-      case "providers": {
+    return match(parsed.command)
+      .with("help", () =>
+        Promise.resolve({ responseText: usageText, exitCode: 0 }),
+      )
+      .with("providers", async () => {
         const result = await this.app.listProvidersUseCase.execute();
         const rendered = this.app.resultRenderer.render(
           result,
           parsed.outputFormat,
         );
-        return { output: rendered.text, exitCode: 0 };
-      }
-      case "consult": {
+        return { responseText: rendered.text, exitCode: 0 };
+      })
+      .with("consult", async () => {
         const result = await this.app.consultUseCase.execute({
           command: "consult",
           question: requireQuestion(parsed.positionals),
-          files: parsed.files,
-          diffs: parsed.diffs,
-          logs: parsed.logs,
           providerName,
           timeoutMs,
-          cwd: parsed.cwd ?? process.cwd(),
+          cwd: process.cwd(),
           ...(model !== undefined ? { model } : {}),
-          ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
           parsed.outputFormat,
         );
         return {
-          output: rendered.text,
-          exitCode: result.status === "partial" ? 2 : 0,
+          responseText: rendered.text,
+          exitCode: toExitCode(result.status),
         };
-      }
-      case "followup": {
+      })
+      .with("followup", async () => {
         if (!parsed.sessionId) {
           throw new Error("`followup` requires --session <id>.");
         }
@@ -210,12 +109,9 @@ export class CommandRouter {
         const result = await this.app.followupUseCase.execute({
           question: requireQuestion(parsed.positionals),
           sessionId: parsed.sessionId,
-          files: parsed.files,
-          diffs: parsed.diffs,
-          logs: parsed.logs,
           providerName,
           timeoutMs,
-          cwd: parsed.cwd ?? process.cwd(),
+          cwd: process.cwd(),
           ...(model !== undefined ? { model } : {}),
         });
         const rendered = this.app.resultRenderer.render(
@@ -223,43 +119,30 @@ export class CommandRouter {
           parsed.outputFormat,
         );
         return {
-          output: rendered.text,
-          exitCode: result.status === "partial" ? 2 : 0,
+          responseText: rendered.text,
+          exitCode: toExitCode(result.status),
         };
-      }
-      case "debug": {
+      })
+      .with("debug", async () => {
         const result = await this.app.debugUseCase.execute({
           question: requireQuestion(parsed.positionals),
-          files: parsed.files,
-          diffs: parsed.diffs,
-          logs: parsed.logs,
           providerName,
           timeoutMs,
-          cwd: parsed.cwd ?? process.cwd(),
+          cwd: process.cwd(),
           ...(model !== undefined ? { model } : {}),
-          ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
           parsed.outputFormat,
         );
         return {
-          output: rendered.text,
-          exitCode: result.status === "partial" ? 2 : 0,
+          responseText: rendered.text,
+          exitCode: toExitCode(result.status),
         };
-      }
-      case "help":
-      default:
-        return {
-          output: [
-            "Usage:",
-            "  aipanel providers [--json]",
-            "  aipanel consult <question> [--provider <name>] [--model <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
-            "  aipanel followup --session <id> <question> [--provider <name>] [--model <name>] [--json]",
-            "  aipanel debug <question> [--provider <name>] [--model <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
-          ].join("\n"),
-          exitCode: parsed.command === "help" ? 0 : 1,
-        };
-    }
+      })
+      .with("unknown", () =>
+        Promise.resolve({ responseText: usageText, exitCode: 1 }),
+      )
+      .exhaustive();
   }
 }

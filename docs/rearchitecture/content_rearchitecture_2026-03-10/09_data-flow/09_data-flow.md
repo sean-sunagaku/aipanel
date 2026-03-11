@@ -13,7 +13,7 @@
 すべてのコマンドは、概ね次の流れを共有する。
 
 1. `CommandRouter` が CLI 入力を `UserIntent` に変換する
-2. 対応するユースケースが `ProfileLoader` と `ContextCollector` を使って入力を補完する
+2. `CommandRouter` が `provider` / `model` / `timeoutMs` を補完し、必要に応じて `ContextCollector` と共にユースケースへ渡す
 3. `SessionManager` が新規 session 作成または既存 session 読み出しを行う
 4. `ProviderRegistry` が対象 provider の adapter を解決する
 5. ユースケースが `ProviderCallPlan` を組み立てる

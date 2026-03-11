@@ -97,7 +97,6 @@ error cases
 
 | 保存先 | 主な内容 |
 |---|---|
-| `.aipanel/profile.yml` | 既定 provider、project 設定 |
 | `.aipanel/sessions/<sessionId>.json` | session metadata, turns, provider refs |
 | `.aipanel/runs/<runId>.json` | plan, task status, summaries, validation results |
 | `.aipanel/artifacts/<runId>/...` | raw provider output, logs, diff bundle, exported comparison |

@@ -76,7 +76,6 @@ src/orchestrator
 src/providers
 src/compare
 src/output
-.aipanel/profile.yml
 .aipanel/sessions/
 .aipanel/runs/
 .aipanel/artifacts/

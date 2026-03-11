@@ -1,3 +1,8 @@
+/**
+ * Session と SessionTurn を定義する。
+ * このファイルは、followup の継続文脈を run から分離し、会話履歴の正本を `aipanel` 側で保持するために存在する。
+ */
+
 import {
   SCHEMA_VERSION,
   compactObject,
@@ -9,7 +14,6 @@ import {
   type IdGenerator,
   type IsoDateString,
 } from "./base.js";
-import { ProviderRef, type ProviderRefProps } from "./value-objects.js";
 
 type SessionStatus = "active";
 export type SessionTurnRole = "user" | "assistant";
@@ -24,8 +28,8 @@ interface SessionTurnProps {
 }
 
 /**
- * Session Turn の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * SessionTurn を会話履歴の 1 発話として定義する。
+ * user / assistant 発話と関連 artifact を同じ粒度で残し、followup の再構築に必要な 1 turn の境界を固定する。
  */
 export class SessionTurn {
   public readonly turnId: string;
@@ -46,7 +50,7 @@ export class SessionTurn {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns SessionTurn。
@@ -108,13 +112,12 @@ export interface SessionProps {
   status: SessionStatus;
   createdAt: IsoDateString;
   updatedAt: IsoDateString;
-  providerRefs?: ProviderRefProps[];
   turns?: SessionTurnProps[];
 }
 
 /**
- * Session の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * Session を継続会話の正本 model として定義する。
+ * 会話継続の正本を `aipanel` 側へ持たせ、provider native session に依存せず transcript を再構築できるようにする。
  */
 export class Session {
   public readonly schemaVersion: number;
@@ -123,7 +126,6 @@ export class Session {
   public status: SessionStatus;
   public readonly createdAt: IsoDateString;
   public updatedAt: IsoDateString;
-  public providerRefs: ProviderRef[];
   public turns: SessionTurn[];
 
   constructor(props: SessionProps) {
@@ -133,9 +135,6 @@ export class Session {
     this.status = props.status;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
-    this.providerRefs = ensureArray(props.providerRefs).map((item) =>
-      ProviderRef.from(item),
-    );
     this.turns = ensureArray(props.turns).map((item) =>
       SessionTurn.fromJSON(item),
     );
@@ -143,7 +142,7 @@ export class Session {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns Session。
@@ -153,7 +152,6 @@ export class Session {
       sessionId?: string;
       title?: string;
       status?: SessionStatus;
-      providerRefs?: Array<ProviderRef | ProviderRefProps>;
       turns?: Array<SessionTurn | SessionTurnProps>;
       createdAt?: IsoDateString;
       updatedAt?: IsoDateString;
@@ -172,9 +170,6 @@ export class Session {
       status: params.status ?? "active",
       createdAt,
       updatedAt,
-      providerRefs: ensureArray(params.providerRefs).map((item) =>
-        ProviderRef.from(item).toJSON(),
-      ),
       turns: ensureArray(params.turns).map((item) =>
         item instanceof SessionTurn
           ? item.toJSON()
@@ -219,7 +214,7 @@ export class Session {
 
   /**
    * Turn を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns SessionTurn。
@@ -247,32 +242,6 @@ export class Session {
     this.appendTurn(turn, turn.createdAt);
     return turn;
   }
-
-  /**
-   * Provider Ref を更新する。
-   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
-   *
-   * @param providerRef 処理に渡す provider Ref。
-   * @param updatedAt 処理に渡す updated At。
-   */
-  upsertProviderRef(
-    providerRef: ProviderRef | ProviderRefProps,
-    updatedAt: IsoDateString = defaultClock(),
-  ): void {
-    const resolved = ProviderRef.from(providerRef);
-    const index = this.providerRefs.findIndex(
-      (item) => item.provider === resolved.provider,
-    );
-
-    if (index >= 0) {
-      this.providerRefs[index] = resolved;
-    } else {
-      this.providerRefs.push(resolved);
-    }
-
-    this.updatedAt = updatedAt;
-  }
-
   /**
    * Transcript を後続処理向けに組み立てる。
    * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
@@ -299,7 +268,6 @@ export class Session {
       status: this.status,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
-      providerRefs: this.providerRefs.map((item) => item.toJSON()),
       turns: this.turns.map((item) => item.toJSON()),
     });
   }

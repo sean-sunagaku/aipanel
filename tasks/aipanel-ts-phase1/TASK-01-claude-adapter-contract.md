@@ -1,5 +1,8 @@
 # TASK-01: Lock Claude Code adapter contract
 
+## Historical Note
+このタスク記録にある `ProviderRef` / `providerSessionId` は 2026-03-11 の cleanup で削除済み。現在は provider native session tracking を保持しない。
+
 ## Status
 - Status: done
 - Owner: main
@@ -15,7 +18,7 @@
 ## Done When
 - `consult` の非対話呼び出し方法が決まっている
 - `followup` の resume 戦略が決まっている
-- `Session.providerRefs` に保存する最小 field が決まっている
+- provider native session tracking の扱いが決まっている
 - adapter の成功 / 失敗レスポンス形が決まっている
 
 ## Checklist
@@ -23,7 +26,7 @@
 - [x] `-c`, `-r`, `--session-id` のどれが followup に向くか整理する
 - [x] `--output-format` の使い方と parse 戦略を決める
 - [x] timeout, exit code, stderr の扱いを決める
-- [x] `Session.providerRefs` の最小 field を決める
+- [x] provider native session tracking の扱いを決める
 
 ## Progress Log
 - 2026-03-10 13:50 JST: タスク作成。現時点では help オプション存在まで確認済みで、実呼び出し契約は未固定
@@ -74,8 +77,9 @@
 - 2026-03-10 13:55 JST: `-r` と `-c` は同一ディレクトリ最適化または補助ヒントとしてだけ扱う
 - 2026-03-10 13:55 JST: phase 1 の `followup` は `aipanel` 側の turn 履歴再構築を基本にする
 - 2026-03-10 13:55 JST: Claude adapter の success / failure 判定は exit code だけでなく JSON `subtype` も見る
-- 2026-03-10 14:00 JST: `ProviderRef` の最小 field は `provider`, `providerSessionId`, `workingDirectory`, `lastUsedAt` とする
+- 2026-03-10 14:00 JST: 当時は `ProviderRef` の最小 field を `provider`, `providerSessionId`, `workingDirectory`, `lastUsedAt` とした
+- 2026-03-11 14:20 JST: phase 1 cleanup で provider native session tracking 自体を削除した
 - 2026-03-10 14:00 JST: provider native resume が使えなくても `aipanel` 側の turn 再構築だけで `followup` を成立させる
 
 ## Next Action
-- `TASK-02` で CLI foundation を作り、`TASK-03` で `ProviderRef` を含む schema に落とし込む
+- Closed

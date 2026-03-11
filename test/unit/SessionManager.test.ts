@@ -6,8 +6,14 @@ import test from "node:test";
 
 import { SessionManager } from "../../src/session/SessionManager.js";
 import { SessionRepository } from "../../src/session/SessionRepository.js";
+import {
+  assertRecord,
+  getArray,
+  getRecord,
+  parseJsonRecord,
+} from "../support/jsonRecord.js";
 
-test("SessionManager persists turns and provider refs", async () => {
+test("SessionManager persists turns", async () => {
   const storageRoot = await mkdtemp(path.join(os.tmpdir(), "aipanel-session-"));
 
   try {
@@ -19,12 +25,6 @@ test("SessionManager persists turns and provider refs", async () => {
     await manager.appendAssistantTurn(session, "It works like this.", [
       "artifact_1",
     ]);
-    await manager.updateProviderRef(session, {
-      provider: "claude-code",
-      providerSessionId: "provider-session-1",
-      workingDirectory: "/tmp/project",
-    });
-
     const resumed = await manager.startOrResume({
       sessionId: session.sessionId,
     });
@@ -36,20 +36,14 @@ test("SessionManager persists turns and provider refs", async () => {
 
     await access(sessionFile);
     assert.equal(resumed.turns.length, 2);
-    assert.equal(resumed.providerRefs.length, 1);
-    assert.equal(
-      resumed.providerRefs[0]?.providerSessionId,
-      "provider-session-1",
-    );
 
-    const raw = JSON.parse(await readFile(sessionFile, "utf8")) as {
-      session: {
-        turns: Array<{ role: string; content: string }>;
-      };
-    };
-
+    const raw = parseJsonRecord(await readFile(sessionFile, "utf8"));
+    const rawSession = getRecord(raw, "session");
     assert.deepEqual(
-      raw.session.turns.map((turn) => turn.role),
+      getArray(rawSession, "turns").map((turn) => {
+        assertRecord(turn);
+        return turn.role;
+      }),
       ["user", "assistant"],
     );
   } finally {

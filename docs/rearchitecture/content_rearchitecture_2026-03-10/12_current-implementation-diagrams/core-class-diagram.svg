@@ -54,7 +54,7 @@
   </g>
   <g id="app">
     <rect x="310" y="120" width="220" height="130" rx="12" ry="12" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
-    <text x="420" y="163" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#111827"><tspan x="420" dy="0">AipanelApp</tspan><tspan x="420" dy="18">profileLoader</tspan><tspan x="420" dy="18">workflowSelector</tspan><tspan x="420" dy="18">resultRenderer</tspan></text>
+    <text x="420" y="163" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#111827"><tspan x="420" dy="0">AipanelApp</tspan><tspan x="420" dy="18">composition root</tspan></text>
   </g>
   <g id="renderer">
     <rect x="310" y="280" width="220" height="96" rx="12" ry="12" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>

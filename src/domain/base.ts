@@ -1,6 +1,11 @@
+/**
+ * domain 共通の基礎定義をまとめる。
+ * このファイルは、domain entity / value object が共有する schema version・時刻・ID・serialize helper を揃え、モデルごとに基礎契約がぶれないようにするために存在する。
+ */
+
 import crypto from "node:crypto";
 
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 1;
 
 export type IsoDateString = string;
 export type Clock = () => IsoDateString;
@@ -12,7 +17,7 @@ export const defaultIdGenerator: IdGenerator = (prefix) =>
 
 /**
  * ensure Array を担当する。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
  *
  * @param value 処理に渡す value。
  * @returns 収集した T の一覧。
@@ -23,20 +28,21 @@ export function ensureArray<T>(value: T[] | null | undefined): T[] {
 
 /**
  * compact Object を担当する。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
  *
  * @param value 処理に渡す value。
  * @returns T。
  */
 export function compactObject<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, item]) => item !== undefined),
-  ) as T;
+  const serialized = JSON.stringify(value, (_, current) =>
+    current === undefined ? undefined : current,
+  );
+  return JSON.parse(serialized);
 }
 
 /**
  * optional Prop を担当する。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
  *
  * @param key 処理に渡す key。
  * @param value 処理に渡す value。
@@ -50,5 +56,7 @@ export function optionalProp<K extends string, V>(
     return {};
   }
 
-  return { [key]: value } as Partial<Record<K, V>>;
+  const result: Partial<Record<K, V>> = {};
+  result[key] = value;
+  return result;
 }

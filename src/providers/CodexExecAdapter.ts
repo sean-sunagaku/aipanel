@@ -1,3 +1,8 @@
+/**
+ * Codex Exec Adapter を定義する。
+ * このファイルは、Codex CLI の jsonl 実行結果を共通 provider response へ変換し、debug / consult が Claude と同じ面で扱えるようにするために存在する。
+ */
+
 import { spawn } from "node:child_process";
 
 import type {
@@ -5,10 +10,10 @@ import type {
   ProviderCallPlan,
   ProviderCallResult,
 } from "./ProviderAdapter.js";
+import type { ProviderName } from "../shared/commands.js";
 
 interface CodexJsonLine {
   type?: string;
-  thread_id?: string;
   message?: string;
   usage?: {
     input_tokens?: number;
@@ -36,7 +41,7 @@ function parseJsonLines(stdout: string): CodexJsonLine[] {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as CodexJsonLine);
+    .map((line) => JSON.parse(line));
 }
 
 /**
@@ -56,19 +61,6 @@ function pickLastAgentMessage(events: CodexJsonLine[]): string {
     .filter((text): text is string => Boolean(text));
 
   return messages.at(-1) ?? "";
-}
-
-/**
- * Thread Id から必要な情報だけを取り出す。
- * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
- *
- * @param events 処理に渡す events。
- * @returns string | null。
- */
-function pickThreadId(events: CodexJsonLine[]): string | null {
-  return (
-    events.find((event) => event.type === "thread.started")?.thread_id ?? null
-  );
 }
 
 /**
@@ -180,11 +172,11 @@ async function runCodex(plan: ProviderCallPlan): Promise<string> {
 }
 
 /**
- * Codex Exec との入出力差分を吸収する。
- * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+ * Codex Exec provider 境界を実装する。
+ * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
  */
 export class CodexExecAdapter implements ProviderAdapter {
-  readonly name = "codex" as const;
+  readonly name: ProviderName = "codex";
 
   /**
    * call を担当する。
@@ -192,7 +184,6 @@ export class CodexExecAdapter implements ProviderAdapter {
    *
    * @param plan 処理に渡す plan。
    * @returns ProviderCallResult を解決する Promise。
-   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
    */
   async call(plan: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runCodex(plan);
@@ -200,7 +191,6 @@ export class CodexExecAdapter implements ProviderAdapter {
     const rawText = pickLastAgentMessage(events);
     const errorMessage = pickErrorMessage(events);
     const usage = pickUsage(events);
-    const threadId = pickThreadId(events);
     const isError = Boolean(errorMessage);
 
     return {
@@ -214,15 +204,6 @@ export class CodexExecAdapter implements ProviderAdapter {
         costUsd: null,
         latencyMs: null,
       },
-      externalRefs: threadId
-        ? [
-            {
-              system: "codex",
-              id: threadId,
-              scope: "session",
-            },
-          ]
-        : [],
       citations: [],
       isError,
       subtype: isError ? "failed" : "success",

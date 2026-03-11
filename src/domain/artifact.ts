@@ -1,3 +1,8 @@
+/**
+ * Artifact と artifact kind を定義する。
+ * このファイルは、run や session に紐づく保存物を domain model として扱い、artifact metadata の正本を repository ごとに散らさないために存在する。
+ */
+
 import {
   SCHEMA_VERSION,
   compactObject,
@@ -8,36 +13,48 @@ import {
   type IdGenerator,
   type IsoDateString,
 } from "./base.js";
+import { literalTuple } from "../shared/literalTuple.js";
 
 interface ArtifactProps {
   schemaVersion?: number;
   artifactId: string;
-  kind: string;
+  kind: ArtifactKind;
   path: string;
   sessionId?: string | null;
   runId?: string | null;
   turnId?: string | null;
   createdAt: IsoDateString;
   metadataPath?: string | null;
-  mimeType?: string | null;
+  mimeType?: ArtifactMimeType | null;
   sizeBytes?: number | null;
 }
 
+export const artifactKinds = literalTuple(
+  "run-context",
+  "provider-response-json",
+  "provider-response-text",
+  "debug-task-output-json",
+  "debug-task-output-text",
+);
+
+export type ArtifactKind = (typeof artifactKinds)[number];
+export type ArtifactMimeType = `${string}/${string}`;
+
 /**
- * Artifact の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * Artifact を保存物メタデータの model として定義する。
+ * run や session に紐づく保存物を名前付きで追跡し、artifact path や MIME 情報の正本を repository ごとに散らさないようにする。
  */
 export class Artifact {
   public readonly schemaVersion: number;
   public readonly artifactId: string;
-  public readonly kind: string;
+  public readonly kind: ArtifactKind;
   public readonly path: string;
   public readonly sessionId: string | null;
   public readonly runId: string | null;
   public readonly turnId: string | null;
   public readonly createdAt: IsoDateString;
   public readonly metadataPath: string | null;
-  public readonly mimeType: string | null;
+  public readonly mimeType: ArtifactMimeType | null;
   public readonly sizeBytes: number | null;
 
   constructor(props: ArtifactProps) {
@@ -56,7 +73,7 @@ export class Artifact {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns Artifact。

@@ -1,10 +1,24 @@
 /**
+ * provider 境界の共通契約を定義する。
+ * このファイルは、provider call plan / result の共通契約を固定し、Claude Code と Codex の adapter を同じ境界で差し替えられるようにするために存在する。
+ */
+
+import type { ProviderName } from "../shared/commands.js";
+import type { CitationProps, UsageProps } from "../domain/value-objects.js";
+import { literalTuple } from "../shared/literalTuple.js";
+
+export const providerCallSubtypes = literalTuple("success", "failed");
+export type ProviderCallSubtype =
+  | (typeof providerCallSubtypes)[number]
+  | string;
+
+/**
  * プロバイダー呼び出しに必要な入力をまとめる。
  *
  * 実行系ごとの差分を上位層へ漏らさず、同じ形でアダプターを呼び出せるようにする。
  */
 export interface ProviderCallPlan {
-  provider: string;
+  provider: ProviderName;
   prompt: string;
   cwd: string;
   timeoutMs: number;
@@ -17,25 +31,14 @@ export interface ProviderCallPlan {
  * プロバイダーごとのレスポンス差分をここで吸収し、比較や保存の後続処理を単純に保つ。
  */
 export interface ProviderCallResult {
-  provider: string;
+  provider: ProviderName;
   model: string;
   rawText: string;
   rawJson: unknown;
-  usage: {
-    inputTokens?: number | null;
-    outputTokens?: number | null;
-    costUsd?: number | null;
-    latencyMs?: number | null;
-  };
-  externalRefs: Array<{ system: string; id: string; scope: string }>;
-  citations: Array<{
-    kind: string;
-    label?: string | null;
-    pathOrUrl?: string | null;
-    line?: number | null;
-  }>;
+  usage: UsageProps;
+  citations: CitationProps[];
   isError: boolean;
-  subtype: string | null;
+  subtype: ProviderCallSubtype | null;
 }
 
 /**
@@ -44,7 +47,7 @@ export interface ProviderCallResult {
  * 上位層が Claude Code と Codex の違いを意識せずに実行できるようにする。
  */
 export interface ProviderAdapter {
-  readonly name: string;
+  readonly name: ProviderName;
   readonly defaultModel?: string;
 
   /**

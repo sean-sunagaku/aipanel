@@ -1,3 +1,8 @@
+/**
+ * Run ledger を構成する model 群を定義する。
+ * このファイルは、consult / followup / debug の 1 実行を ledger として追跡するために、Run と task / response / comparison 系 model をまとめて定義するために存在する。
+ */
+
 import {
   SCHEMA_VERSION,
   compactObject,
@@ -8,42 +13,194 @@ import {
   type IdGenerator,
   type IsoDateString,
 } from "./base.js";
+import { type ProviderName } from "../shared/commands.js";
 import {
   Citation,
   ConfidenceScore,
-  DiffRef,
-  ExternalRef,
-  FileRef,
-  LogRef,
   TaskDependency,
   Usage,
   type CitationProps,
   type ConfidenceScoreProps,
-  type DiffRefProps,
-  type ExternalRefProps,
-  type FileRefProps,
-  type LogRefProps,
   type TaskDependencyProps,
   type UsageProps,
 } from "./value-objects.js";
+import { literalTuple } from "../shared/literalTuple.js";
 
-type RunStatus = "created" | "planned" | "running" | "completed" | "partial";
+export const runStatuses = literalTuple(
+  "created",
+  "planned",
+  "running",
+  "completed",
+  "partial",
+);
+export type RunStatus = (typeof runStatuses)[number];
 
-type TaskStatus =
-  | "created"
-  | "queued"
-  | "running"
-  | "completed"
-  | "failed"
-  | "skipped"
-  | "partial";
+export const taskStatuses = literalTuple(
+  "created",
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "skipped",
+  "partial",
+);
+export type TaskStatus = (typeof taskStatuses)[number];
+
+export const runCommands = literalTuple("consult", "followup", "debug");
+export type RunCommand = (typeof runCommands)[number];
+
+export const runModes = literalTuple("direct", "orchestrated");
+export type RunMode = (typeof runModes)[number];
+
+export const runTaskRoles = literalTuple(
+  "consult",
+  "followup",
+  "planner",
+  "reviewer",
+  "validator",
+);
+export type RunTaskRole = (typeof runTaskRoles)[number];
+
+export const runTaskKinds = literalTuple("provider-review");
+export type RunTaskKind = (typeof runTaskKinds)[number];
+
+export const runReviewStatuses = literalTuple("ready", "needs-review");
+export type RunReviewStatus = (typeof runReviewStatuses)[number];
+
+export const runResultStatuses = literalTuple("completed", "partial");
+export type RunResultStatus = (typeof runResultStatuses)[number];
+
+const runStatusSet = new Set<string>(runStatuses);
+const taskStatusSet = new Set<string>(taskStatuses);
+const runModeSet = new Set<string>(runModes);
+const runCommandSet = new Set<string>(runCommands);
+const runTaskRoleSet = new Set<string>(runTaskRoles);
+const runReviewStatusSet = new Set<string>(runReviewStatuses);
+const runTaskKindSet = new Set<string>(runTaskKinds);
+
+/**
+ * Run Status を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunStatus。
+ */
+export function isRunStatus(value: unknown): value is RunStatus {
+  return typeof value === "string" && runStatusSet.has(value);
+}
+
+/**
+ * Task Status を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is TaskStatus。
+ */
+export function isTaskStatus(value: unknown): value is TaskStatus {
+  return typeof value === "string" && taskStatusSet.has(value);
+}
+
+/**
+ * Run Command を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunCommand。
+ */
+export function isRunCommand(value: unknown): value is RunCommand {
+  return typeof value === "string" && runCommandSet.has(value);
+}
+
+/**
+ * Run Mode を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunMode。
+ */
+export function isRunMode(value: unknown): value is RunMode {
+  return typeof value === "string" && runModeSet.has(value);
+}
+
+/**
+ * Run Review Status を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunReviewStatus。
+ */
+export function isRunReviewStatus(value: unknown): value is RunReviewStatus {
+  return typeof value === "string" && runReviewStatusSet.has(value);
+}
+
+/**
+ * Run Task Role を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunTaskRole。
+ */
+export function isRunTaskRole(value: unknown): value is RunTaskRole {
+  return typeof value === "string" && runTaskRoleSet.has(value);
+}
+
+/**
+ * Run Task Kind を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunTaskKind。
+ */
+export function isRunTaskKind(value: unknown): value is RunTaskKind {
+  return typeof value === "string" && runTaskKindSet.has(value);
+}
+
+/**
+ * Task Role を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunTaskRole。
+ */
+export function isTaskRole(value: unknown): value is RunTaskRole {
+  return isRunTaskRole(value);
+}
+
+/**
+ * Task Kind を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunTaskKind。
+ */
+export function isTaskKind(value: unknown): value is RunTaskKind {
+  return isRunTaskKind(value);
+}
+
+/**
+ * Run Result Status を満たすか判定する。
+ * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
+ *
+ * @param value 処理に渡す value。
+ * @returns value is RunResultStatus。
+ */
+export function isRunResultStatus(value: unknown): value is RunResultStatus {
+  return (
+    typeof value === "string" && (value === "completed" || value === "partial")
+  );
+}
+
+/**
+ * Run Task の責務を一箇所にまとめる。
+ * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ */
 
 export interface RunTaskProps {
   taskId: string;
   runId: string;
-  taskKind: string;
-  role: string;
-  provider?: string | null;
+  taskKind: RunTaskKind;
+  role: RunTaskRole;
+  provider?: ProviderName | null;
   dependsOn?: TaskDependencyProps[];
   status: TaskStatus;
   input?: Record<string, unknown>;
@@ -52,15 +209,15 @@ export interface RunTaskProps {
 }
 
 /**
- * Run Task の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * RunTask を実行内の個別 task model として定義する。
+ * debug や direct 実行の途中工程を task 単位で追跡し、provider call ごとの状態遷移と入力を ledger に残す。
  */
 export class RunTask {
   public readonly taskId: string;
   public readonly runId: string;
-  public readonly taskKind: string;
-  public readonly role: string;
-  public readonly provider: string | null;
+  public readonly taskKind: RunTaskKind;
+  public readonly role: RunTaskRole;
+  public readonly provider: ProviderName | null;
   public readonly dependsOn: TaskDependency[];
   public status: TaskStatus;
   public input: Record<string, unknown>;
@@ -84,7 +241,7 @@ export class RunTask {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns RunTask。
@@ -180,8 +337,8 @@ export interface TaskResultProps {
 }
 
 /**
- * Task Result の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * TaskResult を task の要約結果 model として定義する。
+ * task ごとの要約結果と根拠 artifact を分離して保持し、最終 summary 以外の判断材料も run ledger へ残せるようにする。
  */
 export class TaskResult {
   public readonly resultId: string;
@@ -208,7 +365,7 @@ export class TaskResult {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns TaskResult。
@@ -274,70 +431,78 @@ export class TaskResult {
   }
 }
 
-export interface ContextBundleProps {
-  contextId: string;
+export interface RunContextProps {
+  runContextId: string;
   runId: string;
   summary: string;
-  files?: FileRefProps[];
-  diffs?: DiffRefProps[];
-  logs?: LogRefProps[];
-  metadata?: Record<string, unknown>;
+  question: string;
+  cwd: string;
+  collectedAt: IsoDateString;
+  artifactId?: string | null;
+  artifactPath?: string | null;
   createdAt: IsoDateString;
 }
 
 /**
- * Context Bundle の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * RunContext を実行時 context の記録 model として定義する。
+ * 質問・cwd・artifact 化した context を実行単位へ結びつけ、prompt 実行時の前提を session 履歴とは別に記録する。
  */
-export class ContextBundle {
-  public readonly contextId: string;
+export class RunContext {
+  public readonly runContextId: string;
   public readonly runId: string;
   public readonly summary: string;
-  public readonly files: FileRef[];
-  public readonly diffs: DiffRef[];
-  public readonly logs: LogRef[];
-  public readonly metadata: Record<string, unknown>;
+  public readonly question: string;
+  public readonly cwd: string;
+  public readonly collectedAt: IsoDateString;
+  public readonly artifactId: string | null;
+  public readonly artifactPath: string | null;
   public readonly createdAt: IsoDateString;
 
-  constructor(props: ContextBundleProps) {
-    this.contextId = props.contextId;
+  constructor(props: RunContextProps) {
+    this.runContextId = props.runContextId;
     this.runId = props.runId;
     this.summary = props.summary;
-    this.files = ensureArray(props.files).map((item) => FileRef.from(item));
-    this.diffs = ensureArray(props.diffs).map((item) => DiffRef.from(item));
-    this.logs = ensureArray(props.logs).map((item) => LogRef.from(item));
-    this.metadata = props.metadata ?? {};
+    this.question = props.question;
+    this.cwd = props.cwd;
+    this.collectedAt = props.collectedAt;
+    this.artifactId = props.artifactId ?? null;
+    this.artifactPath = props.artifactPath ?? null;
     this.createdAt = props.createdAt;
   }
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
-   * @returns ContextBundle。
+   * @returns RunContext。
    * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
    */
   static create(
-    params: Omit<ContextBundleProps, "contextId" | "createdAt"> & {
-      contextId?: string;
+    params: Omit<RunContextProps, "runContextId" | "createdAt"> & {
+      runContextId?: string;
       createdAt?: IsoDateString;
       clock?: Clock;
       idGenerator?: IdGenerator;
     },
-  ): ContextBundle {
+  ): RunContext {
     const clock = params.clock ?? defaultClock;
     const idGenerator = params.idGenerator ?? defaultIdGenerator;
 
-    return new ContextBundle({
-      contextId: params.contextId ?? idGenerator("context"),
+    return new RunContext({
+      runContextId: params.runContextId ?? idGenerator("runctx"),
       runId: params.runId,
       summary: params.summary,
+      question: params.question,
+      cwd: params.cwd,
+      collectedAt: params.collectedAt,
       createdAt: params.createdAt ?? clock(),
-      ...(params.files !== undefined ? { files: params.files } : {}),
-      ...(params.diffs !== undefined ? { diffs: params.diffs } : {}),
-      ...(params.logs !== undefined ? { logs: params.logs } : {}),
-      ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+      ...(params.artifactId !== undefined
+        ? { artifactId: params.artifactId }
+        : {}),
+      ...(params.artifactPath !== undefined
+        ? { artifactPath: params.artifactPath }
+        : {}),
     });
   }
 
@@ -346,27 +511,28 @@ export class ContextBundle {
    * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
    *
    * @param input この処理に渡す入力。
-   * @returns ContextBundle。
+   * @returns RunContext。
    */
-  static fromJSON(input: ContextBundleProps): ContextBundle {
-    return new ContextBundle(input);
+  static fromJSON(input: RunContextProps): RunContext {
+    return new RunContext(input);
   }
 
   /**
    * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
    * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
    *
-   * @returns ContextBundleProps。
+   * @returns RunContextProps。
    */
-  toJSON(): ContextBundleProps {
+  toJSON(): RunContextProps {
     return compactObject({
-      contextId: this.contextId,
+      runContextId: this.runContextId,
       runId: this.runId,
       summary: this.summary,
-      files: this.files.map((item) => item.toJSON()),
-      diffs: this.diffs.map((item) => item.toJSON()),
-      logs: this.logs.map((item) => item.toJSON()),
-      metadata: this.metadata,
+      question: this.question,
+      cwd: this.cwd,
+      collectedAt: this.collectedAt,
+      artifactId: this.artifactId,
+      artifactPath: this.artifactPath,
       createdAt: this.createdAt,
     });
   }
@@ -375,30 +541,28 @@ export class ContextBundle {
 export interface ProviderResponseProps {
   responseId: string;
   taskId: string;
-  provider: string;
+  provider: ProviderName;
   model: string;
   rawTextRef?: string | null;
   rawJsonRef?: string | null;
   usage?: UsageProps | null;
   latencyMs?: number | null;
-  externalRefs?: ExternalRefProps[];
   createdAt: IsoDateString;
 }
 
 /**
- * Provider Response の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * ProviderResponse を provider 生応答の記録 model として定義する。
+ * provider の raw text/json と usage を保存用 model として固定し、比較や debug で生応答参照先を一貫して扱えるようにする。
  */
 export class ProviderResponse {
   public readonly responseId: string;
   public readonly taskId: string;
-  public readonly provider: string;
+  public readonly provider: ProviderName;
   public readonly model: string;
   public readonly rawTextRef: string | null;
   public readonly rawJsonRef: string | null;
   public readonly usage: Usage | null;
   public readonly latencyMs: number | null;
-  public readonly externalRefs: ExternalRef[];
   public readonly createdAt: IsoDateString;
 
   constructor(props: ProviderResponseProps) {
@@ -410,15 +574,12 @@ export class ProviderResponse {
     this.rawJsonRef = props.rawJsonRef ?? null;
     this.usage = Usage.from(props.usage);
     this.latencyMs = props.latencyMs ?? null;
-    this.externalRefs = ensureArray(props.externalRefs).map((item) =>
-      ExternalRef.from(item),
-    );
     this.createdAt = props.createdAt;
   }
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns ProviderResponse。
@@ -451,9 +612,6 @@ export class ProviderResponse {
       ...(params.latencyMs !== undefined
         ? { latencyMs: params.latencyMs }
         : {}),
-      ...(params.externalRefs !== undefined
-        ? { externalRefs: params.externalRefs }
-        : {}),
     });
   }
 
@@ -484,7 +642,6 @@ export class ProviderResponse {
       rawJsonRef: this.rawJsonRef,
       usage: this.usage?.toJSON() ?? null,
       latencyMs: this.latencyMs,
-      externalRefs: this.externalRefs.map((item) => item.toJSON()),
       createdAt: this.createdAt,
     });
   }
@@ -493,7 +650,7 @@ export class ProviderResponse {
 export interface NormalizedResponseProps {
   normalizedResponseId: string;
   taskId: string;
-  provider: string;
+  provider: ProviderName;
   summary: string;
   findings?: string[];
   suggestions?: string[];
@@ -503,13 +660,13 @@ export interface NormalizedResponseProps {
 }
 
 /**
- * Normalized Response の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * NormalizedResponse を比較向け正規化応答の model として定義する。
+ * provider 差分を吸収した summary / findings / suggestions を保持し、comparison と render が共通の内部表現を扱えるようにする。
  */
 export class NormalizedResponse {
   public readonly normalizedResponseId: string;
   public readonly taskId: string;
-  public readonly provider: string;
+  public readonly provider: ProviderName;
   public readonly summary: string;
   public readonly findings: string[];
   public readonly suggestions: string[];
@@ -533,7 +690,7 @@ export class NormalizedResponse {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns NormalizedResponse。
@@ -617,8 +774,8 @@ export interface ComparisonReportProps {
 }
 
 /**
- * Comparison Report の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * ComparisonReport を応答比較結果の model として定義する。
+ * 複数 normalized response の一致点・差分・推奨を独立 model として残し、debug の最終判断を run ledger に保存できるようにする。
  */
 export class ComparisonReport {
   public readonly reportId: string;
@@ -643,7 +800,7 @@ export class ComparisonReport {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns ComparisonReport。
@@ -715,39 +872,39 @@ export interface RunProps {
   schemaVersion?: number;
   runId: string;
   sessionId?: string | null;
-  command: string;
-  mode: string;
+  command: RunCommand;
+  mode: RunMode;
   status: RunStatus;
   createdAt: IsoDateString;
   updatedAt: IsoDateString;
   finalSummary?: string | null;
-  validationStatus?: string | null;
+  reviewStatus?: RunReviewStatus | null;
   tasks?: RunTaskProps[];
   taskResults?: TaskResultProps[];
-  contextBundles?: ContextBundleProps[];
+  runContexts?: RunContextProps[];
   providerResponses?: ProviderResponseProps[];
   normalizedResponses?: NormalizedResponseProps[];
   comparisonReports?: ComparisonReportProps[];
 }
 
 /**
- * Run の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * Run を 1 実行の ledger model として定義する。
+ * consult / followup / debug の 1 実行に紐づく状態遷移と子要素を一箇所で保持し、session と execution tracking を分離する。
  */
 export class Run {
   public readonly schemaVersion: number;
   public readonly runId: string;
   public readonly sessionId: string | null;
-  public readonly command: string;
-  public readonly mode: string;
+  public readonly command: RunCommand;
+  public readonly mode: RunMode;
   public status: RunStatus;
   public readonly createdAt: IsoDateString;
   public updatedAt: IsoDateString;
   public finalSummary: string | null;
-  public validationStatus: string | null;
+  public reviewStatus: RunReviewStatus | null;
   public tasks: RunTask[];
   public taskResults: TaskResult[];
-  public contextBundles: ContextBundle[];
+  public runContexts: RunContext[];
   public providerResponses: ProviderResponse[];
   public normalizedResponses: NormalizedResponse[];
   public comparisonReports: ComparisonReport[];
@@ -762,13 +919,13 @@ export class Run {
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
     this.finalSummary = props.finalSummary ?? null;
-    this.validationStatus = props.validationStatus ?? null;
+    this.reviewStatus = props.reviewStatus ?? null;
     this.tasks = ensureArray(props.tasks).map((item) => RunTask.fromJSON(item));
     this.taskResults = ensureArray(props.taskResults).map((item) =>
       TaskResult.fromJSON(item),
     );
-    this.contextBundles = ensureArray(props.contextBundles).map((item) =>
-      ContextBundle.fromJSON(item),
+    this.runContexts = ensureArray(props.runContexts).map((item) =>
+      RunContext.fromJSON(item),
     );
     this.providerResponses = ensureArray(props.providerResponses).map((item) =>
       ProviderResponse.fromJSON(item),
@@ -783,7 +940,7 @@ export class Run {
 
   /**
    * 新しい値 を生成して返す。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param params この処理に渡す入力。
    * @returns Run。
@@ -791,8 +948,8 @@ export class Run {
   static create(params: {
     runId?: string;
     sessionId?: string | null;
-    command: string;
-    mode?: string;
+    command: RunCommand;
+    mode?: RunMode;
     status?: RunStatus;
     createdAt?: IsoDateString;
     updatedAt?: IsoDateString;
@@ -843,7 +1000,7 @@ export class Run {
 
   /**
    * add Task を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param task 処理に渡す task。
    * @param updatedAt 処理に渡す updated At。
@@ -863,7 +1020,7 @@ export class Run {
 
   /**
    * add Task Result を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param taskResult 処理に渡す task Result。
    * @param updatedAt 処理に渡す updated At。
@@ -877,31 +1034,31 @@ export class Run {
   }
 
   /**
-   * add Context Bundle を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * add Run Context を担当する。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
-   * @param contextBundle 処理に渡す context Bundle。
+   * @param runContext 処理に渡す run Context。
    * @param updatedAt 処理に渡す updated At。
    * @throws 処理を継続できない状態を検出した場合。
    * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
    */
-  addContextBundle(
-    contextBundle: ContextBundle,
+  addRunContext(
+    runContext: RunContext,
     updatedAt: IsoDateString = defaultClock(),
   ): void {
-    if (contextBundle.runId !== this.runId) {
+    if (runContext.runId !== this.runId) {
       throw new Error(
-        `Context bundle ${contextBundle.contextId} does not belong to run ${this.runId}`,
+        `Run context ${runContext.runContextId} does not belong to run ${this.runId}`,
       );
     }
 
-    this.contextBundles.push(contextBundle);
+    this.runContexts.push(runContext);
     this.updatedAt = updatedAt;
   }
 
   /**
    * add Provider Response を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param providerResponse 処理に渡す provider Response。
    * @param updatedAt 処理に渡す updated At。
@@ -916,7 +1073,7 @@ export class Run {
 
   /**
    * add Normalized Response を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param normalizedResponse 処理に渡す normalized Response。
    * @param updatedAt 処理に渡す updated At。
@@ -931,7 +1088,7 @@ export class Run {
 
   /**
    * add Comparison Report を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param comparisonReport 処理に渡す comparison Report。
    * @param updatedAt 処理に渡す updated At。
@@ -969,10 +1126,10 @@ export class Run {
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       finalSummary: this.finalSummary,
-      validationStatus: this.validationStatus,
+      reviewStatus: this.reviewStatus,
       tasks: this.tasks.map((item) => item.toJSON()),
       taskResults: this.taskResults.map((item) => item.toJSON()),
-      contextBundles: this.contextBundles.map((item) => item.toJSON()),
+      runContexts: this.runContexts.map((item) => item.toJSON()),
       providerResponses: this.providerResponses.map((item) => item.toJSON()),
       normalizedResponses: this.normalizedResponses.map((item) =>
         item.toJSON(),

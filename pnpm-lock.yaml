@@ -6,6 +6,10 @@ settings:
 
 importers:
   .:
+    dependencies:
+      ts-pattern:
+        specifier: ^5.7.4
+        version: 5.9.0
     devDependencies:
       "@eslint/js":
         specifier: ^9.22.0
@@ -1063,6 +1067,12 @@ packages:
         integrity: sha512-fhUhgeljcrdZ+9DZND1De1029PrE+cMkIP7ooqkLRTrRLTqcki2AstsyJm0vRNbTbVCNJ0idGlbBrfqc7/nA8w==,
       }
 
+  ts-pattern@5.9.0:
+    resolution:
+      {
+        integrity: sha512-6s5V71mX8qBUmlgbrfL33xDUwO0fq48rxAu2LBE11WBeGdpCPOsXksQbZJHvHwhrd3QjUusd3mAOM5Gg0mFBLg==,
+      }
+
   tsx@4.21.0:
     resolution:
       {
@@ -1696,6 +1706,8 @@ snapshots:
     dependencies:
       "@ts-morph/common": 0.28.1
       code-block-writer: 13.0.3
+
+  ts-pattern@5.9.0: {}
 
   tsx@4.21.0:
     dependencies:

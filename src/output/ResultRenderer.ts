@@ -1,5 +1,12 @@
+/**
+ * ResultRenderer を定義する。
+ * このファイルは、use case 結果の text/json 表示差分を renderer に閉じ込め、command 側が出力文字列を都度組み立てないようにするために存在する。
+ */
+
 import type { ConsultationResult } from "../usecases/ConsultUseCase.js";
 import type { DebugResult } from "../usecases/DebugUseCase.js";
+import type { OutputFormat } from "../shared/commands.js";
+import { match } from "ts-pattern";
 
 type RenderedOutput = {
   text: string;
@@ -12,8 +19,8 @@ type RenderableResult =
   | DebugResult;
 
 /**
- * Result を表示向けの形へ整える。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Result を表示整形役として定義する。
+ * use case 結果の text/json 出力差分を renderer に集め、command 側で表示文字列の組み立てを重複させないようにする。
  */
 export class ResultRenderer {
   /**
@@ -26,48 +33,41 @@ export class ResultRenderer {
    */
   render(
     result: RenderableResult,
-    outputFormat: "text" | "json" = "text",
+    outputFormat: OutputFormat = "text",
   ): RenderedOutput {
-    const rendered = (() => {
-      switch (result.kind) {
-        case "providers":
-          return {
-            text: result.providers.join("\n"),
-            json: {
-              kind: result.kind,
-              providers: result.providers,
-            },
-          };
-        case "consultation":
-          return {
-            text: [
-              `session: ${result.sessionId}`,
-              `run: ${result.runId}`,
-              `provider: ${result.provider}`,
-              `model: ${result.model}`,
-              `status: ${result.status}`,
-              "",
-              result.answer,
-            ].join("\n"),
-            json: { ...result },
-          };
-        case "debug":
-          return {
-            text: [
-              `session: ${result.sessionId}`,
-              `run: ${result.runId}`,
-              `provider: ${result.provider}`,
-              `model: ${result.model}`,
-              `status: ${result.status}`,
-              "",
-              `summary: ${result.summary}`,
-              "",
-              result.details.join("\n\n"),
-            ].join("\n"),
-            json: { ...result },
-          };
-      }
-    })();
+    const rendered = match(result)
+      .with({ kind: "providers" }, ({ providers }) => ({
+        text: providers.join("\n"),
+        json: { kind: "providers", providers },
+      }))
+      .with({ kind: "consultation" }, (r) => ({
+        text: [
+          `session: ${r.sessionId}`,
+          `run: ${r.runId}`,
+          `provider: ${r.provider}`,
+          `model: ${r.model}`,
+          `status: ${r.status}`,
+          `review: ${r.reviewStatus}`,
+          "",
+          r.answer,
+        ].join("\n"),
+        json: { ...r },
+      }))
+      .with({ kind: "debug" }, (r) => ({
+        text: [
+          `session: ${r.sessionId}`,
+          `run: ${r.runId}`,
+          `provider: ${r.provider}`,
+          `model: ${r.model}`,
+          `status: ${r.status}`,
+          "",
+          `summary: ${r.summary}`,
+          "",
+          r.details.join("\n\n"),
+        ].join("\n"),
+        json: { ...r },
+      }))
+      .exhaustive();
 
     if (outputFormat === "json") {
       return {

@@ -1,34 +1,32 @@
+/**
+ * Claude Code Adapter を定義する。
+ * このファイルは、Claude Code CLI の実行方法と JSON 解析差分を provider adapter に閉じ込め、上位層が共通 contract だけで扱えるようにするために存在する。
+ */
+
 import { spawn } from "node:child_process";
+import { match } from "ts-pattern";
 
 import type {
   ProviderAdapter,
   ProviderCallPlan,
   ProviderCallResult,
+  ProviderCallSubtype,
 } from "./ProviderAdapter.js";
-
-interface ClaudeJsonResponse {
-  result?: string;
-  model?: string;
-  session_id?: string;
-  subtype?: string;
-  is_error?: boolean;
-  total_cost_usd?: number;
-  duration_ms?: number;
-  usage?: {
-    input_tokens?: number;
-    output_tokens?: number;
-  };
-}
+import type { ProviderName } from "../shared/commands.js";
 
 /**
- * Success Subtype を満たすか判定する。
- * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ * Subtype から必要な情報だけを取り出す。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
  *
- * @param subtype 処理に渡す subtype。
- * @returns 条件を満たす場合は `true`。
+ * @param value 処理に渡す value。
+ * @returns ProviderCallSubtype | null。
  */
-function isSuccessSubtype(subtype: string | undefined): boolean {
-  return subtype === "success";
+function pickSubtype(value: unknown): ProviderCallSubtype | null {
+  return match(value)
+    .returnType<ProviderCallSubtype | null>()
+    .with("success", () => "success")
+    .with("failed", () => "failed")
+    .otherwise(() => null);
 }
 
 /**
@@ -107,12 +105,12 @@ async function runClaude(plan: ProviderCallPlan): Promise<string> {
 }
 
 /**
- * Claude Code との入出力差分を吸収する。
- * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+ * Claude Code provider 境界を実装する。
+ * Claude Code と Codex の CLI 差分を provider 境界で吸収し、上位層が共通 contract だけを見れば済むようにする。
  */
 export class ClaudeCodeAdapter implements ProviderAdapter {
-  readonly name = "claude-code" as const;
-  readonly defaultModel = "sonnet" as const;
+  readonly name: ProviderName = "claude-code";
+  readonly defaultModel = "sonnet";
 
   /**
    * call を担当する。
@@ -123,21 +121,13 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
    */
   async call(input: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runClaude(input);
-    const parsed = JSON.parse(stdout) as ClaudeJsonResponse;
+    const parsed = JSON.parse(stdout);
     const model = parsed.model ?? input.model ?? "sonnet";
-    const subtype = parsed.subtype ?? null;
-    const isError =
-      parsed.is_error === true || !isSuccessSubtype(parsed.subtype);
-    const externalRefs = parsed.session_id
-      ? [
-          {
-            system: "claude-code",
-            id: parsed.session_id,
-            scope: "session",
-          },
-        ]
-      : [];
-
+    const subtype = pickSubtype(parsed.subtype);
+    const isErrorBySubtype = match(subtype)
+      .with("success", () => false)
+      .otherwise(() => true);
+    const hasFailure = parsed.is_error === true || isErrorBySubtype;
     return {
       provider: this.name,
       model,
@@ -149,9 +139,8 @@ export class ClaudeCodeAdapter implements ProviderAdapter {
         costUsd: parsed.total_cost_usd ?? null,
         latencyMs: parsed.duration_ms ?? null,
       },
-      externalRefs,
       citations: [],
-      isError,
+      isError: hasFailure,
       subtype,
     };
   }

@@ -887,7 +887,7 @@
             "y": 120,
             "width": 220,
             "height": 130,
-            "label": "AipanelApp\nprofileLoader\nworkflowSelector\nresultRenderer",
+            "label": "AipanelApp\ncomposition root",
             "styleType": "app"
           },
           {

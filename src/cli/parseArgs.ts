@@ -1,0 +1,127 @@
+/**
+ * CLI 引数の解析ルールを定義する。
+ * このファイルは、argv を `aipanel` 内部の不変 command 入力へ変換し、後続層でフラグ解釈を再実装しないようにするために存在する。
+ */
+
+import {
+  type CliCommand,
+  isCliCommand,
+  isProviderName,
+  type ParsedCommand,
+  type ProviderName,
+  type OutputFormat,
+} from "../shared/commands.js";
+
+export type { OutputFormat };
+export type { CliCommand };
+export type { ParsedCommand };
+
+export interface ParsedArgs {
+  readonly command: ParsedCommand;
+  readonly positionals: readonly string[];
+  readonly outputFormat: OutputFormat;
+  readonly sessionId: string | undefined;
+  readonly providerName: ProviderName | undefined;
+  readonly model: string | undefined;
+  readonly timeoutMs: number | undefined;
+}
+
+/**
+ * Flag Value を読み取る。
+ * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+ *
+ * @param args 処理に渡す args。
+ * @param index 処理に渡す index。
+ * @param flag 処理に渡す flag。
+ * @returns 生成または整形した文字列。
+ * @throws 入力や参照先が前提を満たさない場合。
+ * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+ */
+function readFlagValue(args: string[], index: number, flag: string): string {
+  const value = args[index];
+  if (!value) {
+    throw new Error(`\`${flag}\` requires a value.`);
+  }
+
+  return value;
+}
+
+/**
+ * Args を内部表現へ解釈する。
+ * 入力の解釈や追跡に必要な前処理をここでまとめ、後続処理を単純に保つ。
+ *
+ * @param argv 処理に渡す argv。
+ * @returns ParsedArgs。
+ * @throws 入力や参照先が前提を満たさない場合。
+ * @remarks 入力形式や分岐ごとの差異をここで揃えているため、条件分岐を変更すると後続処理の前提も変わる。
+ */
+export function parseArgs(argv: string[]): ParsedArgs {
+  const [command = "help", ...rest] = argv;
+  const parsedCommand: ParsedCommand = isCliCommand(command)
+    ? command
+    : "unknown";
+
+  const positionals: string[] = [];
+
+  let sessionId: string | undefined;
+  let providerName: ProviderName | undefined;
+  let model: string | undefined;
+  let timeoutMs: number | undefined;
+  let outputFormat: OutputFormat = "text";
+
+  for (let index = 0; index < rest.length; index += 1) {
+    const token = rest[index];
+    if (!token) {
+      continue;
+    }
+
+    if (token === "--json") {
+      outputFormat = "json";
+      continue;
+    }
+
+    if (token === "--session") {
+      sessionId = readFlagValue(rest, index + 1, "--session");
+      index += 1;
+      continue;
+    }
+
+    if (token === "--provider") {
+      const candidate = readFlagValue(rest, index + 1, "--provider");
+      if (!isProviderName(candidate)) {
+        throw new Error(`Unknown provider: ${candidate}`);
+      }
+
+      providerName = candidate;
+      index += 1;
+      continue;
+    }
+
+    if (token === "--model") {
+      model = readFlagValue(rest, index + 1, "--model");
+      index += 1;
+      continue;
+    }
+
+    if (token === "--timeout") {
+      const timeout = Number(readFlagValue(rest, index + 1, "--timeout"));
+      index += 1;
+      if (Number.isFinite(timeout)) {
+        timeoutMs = timeout;
+      }
+      continue;
+    }
+
+    positionals.push(token);
+  }
+
+  return Object.freeze({
+    command: parsedCommand,
+    positionals: Object.freeze(positionals),
+    outputFormat,
+    sessionId,
+    providerName,
+    model,
+    timeoutMs,
+  });
+}

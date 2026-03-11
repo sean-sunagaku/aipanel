@@ -7,7 +7,7 @@ This note captures improvements discovered while using `aipanel` itself to valid
 ## Confirmed Good Changes
 
 - `--model` now flows from the CLI through `consult`, `followup`, and `debug`
-- `.aipanel/profile.yml` can now provide `defaultModel`
+- provider default selection is resolved from CLI args and adapter defaults; `profile.yml` is not used in phase 1
 - JSON output now shows the resolved `model`
 - persisted `Run` records now keep `providerResponses[].model`
 
@@ -32,17 +32,10 @@ Two possible improvements:
 - print a short note in `help` output or `README`
 - add a separate `--run-timeout` in the future if total budget control matters
 
-### 3. Add profile bootstrap guidance
+### 3. Add provider bootstrap guidance
 
-Now that `defaultModel` exists, a small helper like `aipanel profile init` or a documented example generator would reduce setup friction.
-
-Even a simple printed template would help:
-
-```yaml
-defaultProvider: claude-code
-defaultModel: sonnet
-defaultTimeoutMs: 120000
-```
+`providers --json` に default model / native resume 支援情報を含めると、初回利用時の設定判断がやりやすくなる。  
+phase 1 では専用 bootstrap コマンドは未導入。
 
 ### 4. Show requested vs resolved model in debug mode
 

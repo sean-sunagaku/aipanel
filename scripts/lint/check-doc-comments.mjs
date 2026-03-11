@@ -1,8 +1,13 @@
+import path from "node:path";
+
 import {
+  REPO_ROOT,
   collectDeclarations,
   listTypeScriptFiles,
   loadSource,
+  normalizePath,
   validateDeclaration,
+  validateFileOverview,
 } from "./comment-contract.mjs";
 
 const files = await listTypeScriptFiles();
@@ -11,6 +16,11 @@ let checkedCount = 0;
 
 for (const filePath of files) {
   const { text, sourceFile } = await loadSource(filePath);
+  const relativePath = normalizePath(path.relative(REPO_ROOT, filePath));
+  const fileOverviewErrors = validateFileOverview(filePath, text);
+  for (const error of fileOverviewErrors) {
+    violations.push(`${relativePath}:1 [file] - ${error}`);
+  }
   const declarations = collectDeclarations(filePath, sourceFile, text);
 
   for (const declaration of declarations) {

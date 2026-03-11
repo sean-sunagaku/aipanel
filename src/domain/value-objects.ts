@@ -1,55 +1,16 @@
-import { compactObject, type IsoDateString } from "./base.js";
-
-export interface ProviderRefProps {
-  provider: string;
-  providerSessionId: string;
-  workingDirectory?: string | null;
-  lastUsedAt?: IsoDateString | null;
-}
-
 /**
- * Provider Ref の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * domain で再利用する value object 群を定義する。
+ * このファイルは、usage・citation・confidence などの小さな付随値を再利用し、run 系 model が同じ概念を重複定義しないようにするために存在する。
  */
-export class ProviderRef {
-  public readonly provider: string;
-  public readonly providerSessionId: string;
-  public readonly workingDirectory: string | null;
-  public readonly lastUsedAt: IsoDateString | null;
 
-  constructor(props: ProviderRefProps) {
-    this.provider = props.provider;
-    this.providerSessionId = props.providerSessionId;
-    this.workingDirectory = props.workingDirectory ?? null;
-    this.lastUsedAt = props.lastUsedAt ?? null;
-  }
+import { compactObject } from "./base.js";
+import { literalTuple } from "../shared/literalTuple.js";
 
-  /**
-   * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
-   *
-   * @param input この処理に渡す入力。
-   * @returns ProviderRef。
-   */
-  static from(input: ProviderRef | ProviderRefProps): ProviderRef {
-    return input instanceof ProviderRef ? input : new ProviderRef(input);
-  }
+export const confidenceLevels = literalTuple("low", "medium", "high");
+export type ConfidenceLevel = (typeof confidenceLevels)[number];
 
-  /**
-   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
-   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
-   *
-   * @returns ProviderRefProps。
-   */
-  toJSON(): ProviderRefProps {
-    return compactObject({
-      provider: this.provider,
-      providerSessionId: this.providerSessionId,
-      workingDirectory: this.workingDirectory,
-      lastUsedAt: this.lastUsedAt,
-    });
-  }
-}
+export const citationKinds = literalTuple("file");
+export type CitationKind = (typeof citationKinds)[number] | (string & {});
 
 export interface UsageProps {
   inputTokens?: number | null;
@@ -59,8 +20,8 @@ export interface UsageProps {
 }
 
 /**
- * Usage の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * Usage を provider 利用量の value object として定義する。
+ * provider 呼び出しごとの token / cost / latency を小さな値型で共有し、response ごとに同じ shape を保てるようにする。
  */
 export class Usage {
   public readonly inputTokens: number | null;
@@ -77,7 +38,7 @@ export class Usage {
 
   /**
    * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param input この処理に渡す入力。
    * @returns Usage | null。
@@ -108,18 +69,18 @@ export class Usage {
 }
 
 export interface CitationProps {
-  kind: string;
+  kind: CitationKind;
   label?: string | null;
   pathOrUrl?: string | null;
   line?: number | null;
 }
 
 /**
- * Citation の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * Citation を根拠参照の value object として定義する。
+ * 応答の根拠参照を小さな値型で共有し、normalized response や task result が同じ citation 形を使えるようにする。
  */
 export class Citation {
-  public readonly kind: string;
+  public readonly kind: CitationKind;
   public readonly label: string | null;
   public readonly pathOrUrl: string | null;
   public readonly line: number | null;
@@ -133,7 +94,7 @@ export class Citation {
 
   /**
    * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param input この処理に渡す入力。
    * @returns Citation。
@@ -164,8 +125,8 @@ export interface TaskDependencyProps {
 }
 
 /**
- * Task Dependency の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * TaskDependency を task 間依存の value object として定義する。
+ * task 間の依存関係を値型として切り出し、debug orchestrated flow の前後関係を run task 自体から分離して表せるようにする。
  */
 export class TaskDependency {
   public readonly taskId: string;
@@ -178,7 +139,7 @@ export class TaskDependency {
 
   /**
    * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param input この処理に渡す入力。
    * @returns TaskDependency。
@@ -201,158 +162,17 @@ export class TaskDependency {
   }
 }
 
-export interface FileRefProps {
-  path: string;
-  purpose?: string | null;
-  checksum?: string | null;
-}
-
-/**
- * File Ref の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
- */
-export class FileRef {
-  public readonly path: string;
-  public readonly purpose: string | null;
-  public readonly checksum: string | null;
-
-  constructor(props: FileRefProps) {
-    this.path = props.path;
-    this.purpose = props.purpose ?? null;
-    this.checksum = props.checksum ?? null;
-  }
-
-  /**
-   * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
-   *
-   * @param input この処理に渡す入力。
-   * @returns FileRef。
-   */
-  static from(input: FileRef | FileRefProps): FileRef {
-    return input instanceof FileRef ? input : new FileRef(input);
-  }
-
-  /**
-   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
-   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
-   *
-   * @returns FileRefProps。
-   */
-  toJSON(): FileRefProps {
-    return compactObject({
-      path: this.path,
-      purpose: this.purpose,
-      checksum: this.checksum,
-    });
-  }
-}
-
-export interface DiffRefProps {
-  path: string;
-  range?: string | null;
-  summary?: string | null;
-}
-
-/**
- * Diff Ref の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
- */
-export class DiffRef {
-  public readonly path: string;
-  public readonly range: string | null;
-  public readonly summary: string | null;
-
-  constructor(props: DiffRefProps) {
-    this.path = props.path;
-    this.range = props.range ?? null;
-    this.summary = props.summary ?? null;
-  }
-
-  /**
-   * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
-   *
-   * @param input この処理に渡す入力。
-   * @returns DiffRef。
-   */
-  static from(input: DiffRef | DiffRefProps): DiffRef {
-    return input instanceof DiffRef ? input : new DiffRef(input);
-  }
-
-  /**
-   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
-   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
-   *
-   * @returns DiffRefProps。
-   */
-  toJSON(): DiffRefProps {
-    return compactObject({
-      path: this.path,
-      range: this.range,
-      summary: this.summary,
-    });
-  }
-}
-
-export interface LogRefProps {
-  path: string;
-  source?: string | null;
-  capturedAt?: IsoDateString | null;
-}
-
-/**
- * Log Ref の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
- */
-export class LogRef {
-  public readonly path: string;
-  public readonly source: string | null;
-  public readonly capturedAt: IsoDateString | null;
-
-  constructor(props: LogRefProps) {
-    this.path = props.path;
-    this.source = props.source ?? null;
-    this.capturedAt = props.capturedAt ?? null;
-  }
-
-  /**
-   * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
-   *
-   * @param input この処理に渡す入力。
-   * @returns LogRef。
-   */
-  static from(input: LogRef | LogRefProps): LogRef {
-    return input instanceof LogRef ? input : new LogRef(input);
-  }
-
-  /**
-   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
-   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
-   *
-   * @returns LogRefProps。
-   */
-  toJSON(): LogRefProps {
-    return compactObject({
-      path: this.path,
-      source: this.source,
-      capturedAt: this.capturedAt,
-    });
-  }
-}
-
 export interface ConfidenceScoreProps {
-  level: string;
+  level: ConfidenceLevel;
   reason?: string | null;
 }
 
 /**
- * Confidence Score の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+ * ConfidenceScore を確信度の value object として定義する。
+ * summary や recommendation の確信度を値型で共有し、normalized response と task result で同じ意味付けを使えるようにする。
  */
 export class ConfidenceScore {
-  public readonly level: string;
+  public readonly level: ConfidenceLevel;
   public readonly reason: string | null;
 
   constructor(props: ConfidenceScoreProps) {
@@ -362,7 +182,7 @@ export class ConfidenceScore {
 
   /**
    * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
+   * session / run / artifact の正本 model を domain 層に置き、この repo が保持する状態境界を固定する。
    *
    * @param input この処理に渡す入力。
    * @returns ConfidenceScore | null。
@@ -390,53 +210,6 @@ export class ConfidenceScore {
     return compactObject({
       level: this.level,
       reason: this.reason,
-    });
-  }
-}
-
-export interface ExternalRefProps {
-  system: string;
-  id: string;
-  scope?: string | null;
-}
-
-/**
- * External Ref の責務を一箇所にまとめる。
- * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
- */
-export class ExternalRef {
-  public readonly system: string;
-  public readonly id: string;
-  public readonly scope: string | null;
-
-  constructor(props: ExternalRefProps) {
-    this.system = props.system;
-    this.id = props.id;
-    this.scope = props.scope ?? null;
-  }
-
-  /**
-   * from を担当する。
-   * 値オブジェクトや集約の変換規則を散らさず、永続化や比較の整合性を保つ。
-   *
-   * @param input この処理に渡す入力。
-   * @returns ExternalRef。
-   */
-  static from(input: ExternalRef | ExternalRefProps): ExternalRef {
-    return input instanceof ExternalRef ? input : new ExternalRef(input);
-  }
-
-  /**
-   * 現在の値を保存しやすいプレーンオブジェクトへ変換する。
-   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
-   *
-   * @returns ExternalRefProps。
-   */
-  toJSON(): ExternalRefProps {
-    return compactObject({
-      system: this.system,
-      id: this.id,
-      scope: this.scope,
     });
   }
 }

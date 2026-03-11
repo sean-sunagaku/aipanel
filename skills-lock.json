@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "use-aipanel-cli": {
+      "source": "/Users/babashunsuke/Repository/aipanel/skills/use-aipanel-cli",
+      "sourceType": "local",
+      "computedHash": "e74f9db141ae325278a8c15d770bbcf54caaf47a73e9eb6a042ed5d23e6f43b5"
+    }
+  }
+}
