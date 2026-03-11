@@ -262,11 +262,9 @@ make audit
 
 ## Repo Skill
 
-- repo-local Codex skill は [.agent/skills/aipanel/SKILL.md](./.agent/skills/aipanel/SKILL.md) にあります
-- install / build / command usage / storage inspection / tests / E2E の入口を 1 本にまとめています
-- アーキテクチャ図の再生成用 Skill は [.agent/skills/aipanel-diagrams/SKILL.md](./.agent/skills/aipanel-diagrams/SKILL.md) にあります
-- Skill の参照ドキュメントは [docs/skills/aipanel-diagrams/00_overview.md](./docs/skills/aipanel-diagrams/00_overview.md) にあります
-- draw.io 専用 sub-agent 定義は [drawio-diagrammer.yaml](./docs/skills/aipanel-diagrams/subagents/drawio-diagrammer.yaml) にあります
+- 公開用の `aipanel-cli` 利用ガイド Skill は [skills/use-aipanel-cli/SKILL.md](./skills/use-aipanel-cli/SKILL.md) にあります
+- `npx skills add sean-sunagaku/aipanel --skill use-aipanel-cli` で install できます
+- install / build / command usage / TypeScript import / storage layout の入口を 1 本にまとめています
 
 ## Architecture Docs
 

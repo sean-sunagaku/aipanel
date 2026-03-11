@@ -103,6 +103,7 @@
     "lint:fix": "eslint . --fix",
     "fmt": "prettier . --write",
     "fmt:check": "prettier . --check",
+    "check:agent-skills": "node scripts/validate-agent-skills.mjs",
     "smoke": "npm run build && node dist/bin/aipanel.js providers --json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "audit": "npm audit --audit-level=low",

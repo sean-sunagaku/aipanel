@@ -36,10 +36,7 @@
   "readingGuide": [
     {
       "filename": "architecture-overview",
-      "points": [
-        "この図で何を伝えるか",
-        "どの境界が重要か"
-      ]
+      "points": ["この図で何を伝えるか", "どの境界が重要か"]
     }
   ],
   "dataStructureNotes": [
