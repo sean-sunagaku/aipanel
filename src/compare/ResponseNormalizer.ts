@@ -30,6 +30,13 @@ export interface NormalizedResponseLike {
   };
 }
 
+/**
+ * Lines を抽出する。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+ *
+ * @param text 処理対象のテキスト。
+ * @returns 収集した string の一覧。
+ */
 function extractLines(text: string): string[] {
   return text
     .split("\n")
@@ -37,10 +44,24 @@ function extractLines(text: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Summary を抽出する。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+ *
+ * @param lines 処理に渡す lines。
+ * @returns 生成または整形した文字列。
+ */
 function extractSummary(lines: string[]): string {
   return lines.slice(0, 3).join(" ").trim();
 }
 
+/**
+ * Findings を抽出する。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+ *
+ * @param lines 処理に渡す lines。
+ * @returns 収集した string の一覧。
+ */
 function extractFindings(lines: string[]): string[] {
   const bulletLike = lines.filter((line) => /^([-*]|\d+\.)\s+/.test(line));
   if (bulletLike.length > 0) {
@@ -52,13 +73,32 @@ function extractFindings(lines: string[]): string[] {
   return lines.slice(0, 5);
 }
 
+/**
+ * Suggestions を抽出する。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+ *
+ * @param lines 処理に渡す lines。
+ * @returns 収集した string の一覧。
+ */
 function extractSuggestions(lines: string[]): string[] {
   return lines
     .filter((line) => /suggest|recommend|consider|should/i.test(line))
     .slice(0, 5);
 }
 
+/**
+ * Response Normalizer の責務を一箇所にまとめる。
+ * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ */
 export class ResponseNormalizer {
+  /**
+   * 入力 を安定した内部表現へ正規化する。
+   * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+   *
+   * @param options この宣言に必要なオプション。
+   * @returns NormalizedResponseLike。
+   * @remarks 入力形式や分岐ごとの差異をここで揃えているため、条件分岐を変更すると後続処理の前提も変わる。
+   */
   normalize({
     taskId,
     providerResponse,

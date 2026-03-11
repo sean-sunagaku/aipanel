@@ -27,6 +27,10 @@ interface RunCoordinatorOptions {
   idGenerator?: IdGenerator;
 }
 
+/**
+ * Run Coordinator の責務を一箇所にまとめる。
+ * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ */
 export class RunCoordinator {
   private readonly repository: RunRepository;
   private readonly clock: Clock;
@@ -38,6 +42,14 @@ export class RunCoordinator {
     this.idGenerator = options.idGenerator ?? defaultIdGenerator;
   }
 
+  /**
+   * Run を生成して返す。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param params この処理に渡す入力。
+   * @returns Run を解決する Promise。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   async createRun(params: {
     sessionId?: string | null;
     command: string;
@@ -56,6 +68,14 @@ export class RunCoordinator {
     return this.repository.save(run);
   }
 
+  /**
+   * Task を生成して返す。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param run 処理に渡す run。
+   * @param params この処理に渡す入力。
+   * @returns RunTask。
+   */
   createTask(
     run: Run,
     params: Omit<RunTaskProps, "taskId" | "runId" | "createdAt" | "updatedAt">,
@@ -71,6 +91,14 @@ export class RunCoordinator {
     return task;
   }
 
+  /**
+   * Context Bundle を生成して返す。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param run 処理に渡す run。
+   * @param params この処理に渡す入力。
+   * @returns ContextBundle。
+   */
   createContextBundle(
     run: Run,
     params: Omit<ContextBundleProps, "contextId" | "runId" | "createdAt">,
@@ -86,6 +114,14 @@ export class RunCoordinator {
     return contextBundle;
   }
 
+  /**
+   * Provider Response を生成して返す。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param run 処理に渡す run。
+   * @param params この処理に渡す入力。
+   * @returns ProviderResponse。
+   */
   createProviderResponse(
     run: Run,
     params: Omit<ProviderResponseProps, "responseId" | "createdAt">,
@@ -100,6 +136,14 @@ export class RunCoordinator {
     return providerResponse;
   }
 
+  /**
+   * Normalized Response を生成して返す。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param run 処理に渡す run。
+   * @param params この処理に渡す入力。
+   * @returns NormalizedResponse。
+   */
   createNormalizedResponse(
     run: Run,
     params: Omit<NormalizedResponseProps, "normalizedResponseId" | "createdAt">,
@@ -114,6 +158,14 @@ export class RunCoordinator {
     return normalizedResponse;
   }
 
+  /**
+   * Task Result を生成して返す。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param run 処理に渡す run。
+   * @param params この処理に渡す入力。
+   * @returns TaskResult。
+   */
   createTaskResult(
     run: Run,
     params: Omit<TaskResultProps, "resultId" | "createdAt">,
@@ -128,6 +180,14 @@ export class RunCoordinator {
     return taskResult;
   }
 
+  /**
+   * Comparison Report を生成して返す。
+   * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+   *
+   * @param run 処理に渡す run。
+   * @param params この処理に渡す入力。
+   * @returns ComparisonReport。
+   */
   createComparisonReport(
     run: Run,
     params: Omit<ComparisonReportProps, "reportId" | "runId" | "createdAt">,
@@ -143,6 +203,13 @@ export class RunCoordinator {
     return comparisonReport;
   }
 
+  /**
+   * 対象 を永続化する。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param run 処理に渡す run。
+   * @returns Run を解決する Promise。
+   */
   async save(run: Run): Promise<Run> {
     return this.repository.save(run);
   }

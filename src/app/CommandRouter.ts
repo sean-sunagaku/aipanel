@@ -14,6 +14,17 @@ interface ParsedArgs {
   logs: string[];
 }
 
+/**
+ * Flag Value を読み取る。
+ * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+ *
+ * @param args 処理に渡す args。
+ * @param index 処理に渡す index。
+ * @param flag 処理に渡す flag。
+ * @returns 生成または整形した文字列。
+ * @throws 入力や参照先が前提を満たさない場合。
+ * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+ */
 function readFlagValue(args: string[], index: number, flag: string): string {
   const value = args[index];
   if (!value) {
@@ -23,6 +34,15 @@ function readFlagValue(args: string[], index: number, flag: string): string {
   return value;
 }
 
+/**
+ * Question を必須として検証する。
+ * 入力の解釈や追跡に必要な前処理をここでまとめ、後続処理を単純に保つ。
+ *
+ * @param positionals 処理に渡す positionals。
+ * @returns 生成または整形した文字列。
+ * @throws 入力や参照先が前提を満たさない場合。
+ * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+ */
 function requireQuestion(positionals: string[]): string {
   const question = positionals.join(" ").trim();
   if (!question) {
@@ -32,6 +52,14 @@ function requireQuestion(positionals: string[]): string {
   return question;
 }
 
+/**
+ * Args を内部表現へ解釈する。
+ * 入力の解釈や追跡に必要な前処理をここでまとめ、後続処理を単純に保つ。
+ *
+ * @param argv 処理に渡す argv。
+ * @returns ParsedArgs。
+ * @remarks 入力形式や分岐ごとの差異をここで揃えているため、条件分岐を変更すると後続処理の前提も変わる。
+ */
 function parseArgs(argv: string[]): ParsedArgs {
   const [command = "help", ...rest] = argv;
   const parsed: ParsedArgs = {
@@ -111,6 +139,10 @@ function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
+/**
+ * Command Router の責務を一箇所にまとめる。
+ * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ */
 export class CommandRouter {
   readonly app: AipanelApp;
 
@@ -118,6 +150,15 @@ export class CommandRouter {
     this.app = app;
   }
 
+  /**
+   * 入力 に応じて処理先を振り分ける。
+   * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
+   *
+   * @param argv 処理に渡す argv。
+   * @returns { output: string; exitCode: number } を解決する Promise。
+   * @throws 実行に必要な前提を満たせない場合。
+   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
+   */
   async route(argv: string[]): Promise<{ output: string; exitCode: number }> {
     const parsed = parseArgs(argv);
     const profile = await this.app.profileLoader.load();

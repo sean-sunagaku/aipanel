@@ -24,6 +24,10 @@ interface ArtifactWriteParams {
   mimeType?: string | null;
 }
 
+/**
+ * Artifact の保存と復元を担当する。
+ * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+ */
 export class ArtifactRepository {
   private readonly storageRoot: string;
   private readonly clock: Clock;
@@ -36,6 +40,14 @@ export class ArtifactRepository {
     this.idGenerator = options.idGenerator ?? defaultIdGenerator;
   }
 
+  /**
+   * Text Artifact を書き出す。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns Artifact を解決する Promise。
+   * @remarks 条件分岐や制御の意図が後続処理の前提になるため、分岐を変更するときは呼び出し側への影響も確認する。
+   */
   async writeTextArtifact(params: ArtifactWriteParams): Promise<Artifact> {
     const artifactId = this.idGenerator("artifact");
     const runDirectory = path.join(
@@ -82,6 +94,13 @@ export class ArtifactRepository {
     });
   }
 
+  /**
+   * Json Artifact を書き出す。
+   * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+   *
+   * @param params この処理に渡す入力。
+   * @returns Artifact を解決する Promise。
+   */
   async writeJsonArtifact(
     params: Omit<ArtifactWriteParams, "content" | "extension" | "mimeType"> & {
       content: unknown;

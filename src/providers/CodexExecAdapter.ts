@@ -24,6 +24,13 @@ interface CodexJsonLine {
   };
 }
 
+/**
+ * Json Lines を内部表現へ解釈する。
+ * 入力の解釈や追跡に必要な前処理をここでまとめ、後続処理を単純に保つ。
+ *
+ * @param stdout 処理対象のテキスト。
+ * @returns 収集した CodexJsonLine の一覧。
+ */
 function parseJsonLines(stdout: string): CodexJsonLine[] {
   return stdout
     .split("\n")
@@ -32,6 +39,13 @@ function parseJsonLines(stdout: string): CodexJsonLine[] {
     .map((line) => JSON.parse(line) as CodexJsonLine);
 }
 
+/**
+ * Last Agent Message から必要な情報だけを取り出す。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+ *
+ * @param events 処理に渡す events。
+ * @returns 生成または整形した文字列。
+ */
 function pickLastAgentMessage(events: CodexJsonLine[]): string {
   const messages = events
     .filter((event) => event.type === "item.completed")
@@ -44,16 +58,37 @@ function pickLastAgentMessage(events: CodexJsonLine[]): string {
   return messages.at(-1) ?? "";
 }
 
+/**
+ * Thread Id から必要な情報だけを取り出す。
+ * 永続化形式や I/O の都合を呼び出し側へ漏らさず、一箇所で整合性を保つ。
+ *
+ * @param events 処理に渡す events。
+ * @returns string | null。
+ */
 function pickThreadId(events: CodexJsonLine[]): string | null {
   return (
     events.find((event) => event.type === "thread.started")?.thread_id ?? null
   );
 }
 
+/**
+ * Usage から必要な情報だけを取り出す。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+ *
+ * @param events 処理に渡す events。
+ * @returns CodexJsonLine["usage"] | null。
+ */
 function pickUsage(events: CodexJsonLine[]): CodexJsonLine["usage"] | null {
   return events.find((event) => event.type === "turn.completed")?.usage ?? null;
 }
 
+/**
+ * Error Message から必要な情報だけを取り出す。
+ * 後続の比較・保存・表示が同じ前提で動けるように、入力差分をここで吸収する。
+ *
+ * @param events 処理に渡す events。
+ * @returns string | null。
+ */
 function pickErrorMessage(events: CodexJsonLine[]): string | null {
   const eventError =
     events.find((event) => event.type === "turn.failed")?.error?.message ??
@@ -62,6 +97,13 @@ function pickErrorMessage(events: CodexJsonLine[]): string | null {
   return eventError?.trim() ? eventError.trim() : null;
 }
 
+/**
+ * Codex を実行して結果を受け取る。
+ * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+ *
+ * @param plan 処理に渡す plan。
+ * @returns string を解決する Promise。
+ */
 async function runCodex(plan: ProviderCallPlan): Promise<string> {
   return new Promise((resolve, reject) => {
     const args = [
@@ -137,9 +179,21 @@ async function runCodex(plan: ProviderCallPlan): Promise<string> {
   });
 }
 
+/**
+ * Codex Exec との入出力差分を吸収する。
+ * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+ */
 export class CodexExecAdapter implements ProviderAdapter {
   readonly name = "codex" as const;
 
+  /**
+   * call を担当する。
+   * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+   *
+   * @param plan 処理に渡す plan。
+   * @returns ProviderCallResult を解決する Promise。
+   * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
+   */
   async call(plan: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runCodex(plan);
     const events = parseJsonLines(stdout);

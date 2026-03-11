@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import sourceCommentPlugin from "./scripts/lint/source-comment-contract-rule.mjs";
 
 export default tseslint.config(
   {
@@ -35,4 +36,13 @@ export default tseslint.config(
       ...config.languageOptions,
     },
   })),
+  {
+    files: ["src/**/*.ts"],
+    plugins: {
+      "source-comments": sourceCommentPlugin,
+    },
+    rules: {
+      "source-comments/source-comment-contract": "error",
+    },
+  },
 );

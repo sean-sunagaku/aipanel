@@ -20,10 +20,24 @@ interface ClaudeJsonResponse {
   };
 }
 
+/**
+ * Success Subtype を満たすか判定する。
+ * 責務をここに閉じ込め、周辺コードが詳細を持たずに済むようにする。
+ *
+ * @param subtype 処理に渡す subtype。
+ * @returns 条件を満たす場合は `true`。
+ */
 function isSuccessSubtype(subtype: string | undefined): boolean {
   return subtype === "success";
 }
 
+/**
+ * Claude を実行して結果を受け取る。
+ * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+ *
+ * @param plan 処理に渡す plan。
+ * @returns string を解決する Promise。
+ */
 async function runClaude(plan: ProviderCallPlan): Promise<string> {
   return new Promise((resolve, reject) => {
     const args = [
@@ -92,10 +106,21 @@ async function runClaude(plan: ProviderCallPlan): Promise<string> {
   });
 }
 
+/**
+ * Claude Code との入出力差分を吸収する。
+ * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+ */
 export class ClaudeCodeAdapter implements ProviderAdapter {
   readonly name = "claude-code" as const;
   readonly defaultModel = "sonnet" as const;
 
+  /**
+   * call を担当する。
+   * 外部ツールごとの差分を吸収し、上位層が同じ呼び出し方で扱えるようにする。
+   *
+   * @param input この処理に渡す入力。
+   * @returns ProviderCallResult を解決する Promise。
+   */
   async call(input: ProviderCallPlan): Promise<ProviderCallResult> {
     const stdout = await runClaude(input);
     const parsed = JSON.parse(stdout) as ClaudeJsonResponse;

@@ -50,6 +50,9 @@
     "fmt": "prettier . --write",
     "fmt:check": "prettier . --check",
     "check:agent-skills": "node scripts/validate-agent-skills.mjs",
+    "check:docs": "node scripts/lint/check-doc-comments.mjs",
+    "check:usage": "node scripts/lint/generate-symbol-context.mjs --fail-on-delete-now",
+    "docs:context": "node scripts/lint/generate-symbol-context.mjs",
     "smoke": "npm run build && node dist/bin/aipanel.js providers --json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "audit": "npm audit --audit-level=low",
@@ -70,8 +73,9 @@
     "eslint": "^9.22.0",
     "globals": "^16.0.0",
     "prettier": "^3.5.3",
+    "ts-morph": "^27.0.2",
     "tsx": "^4.19.0",
-    "typescript-eslint": "^8.26.1",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.26.1"
   }
 }
