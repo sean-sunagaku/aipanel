@@ -3,20 +3,19 @@
  * このファイルは、use case 結果の text/json 表示差分を renderer に閉じ込め、command 側が出力文字列を都度組み立てないようにするために存在する。
  */
 
-import type { ConsultationResult } from "../usecases/ConsultUseCase.js";
-import type { DebugResult } from "../usecases/DebugUseCase.js";
-import type { OutputFormat } from "../shared/commands.js";
 import { match } from "ts-pattern";
+import type { OutputFormat } from "../shared/commands.js";
+import type {
+  BatchPayload,
+  BatchResult,
+  BatchResultOutput,
+  CliJsonPayload,
+} from "../shared/cli-contract.js";
 
 type RenderedOutput = {
   text: string;
-  json: Record<string, unknown>;
+  json: CliJsonPayload;
 };
-
-type RenderableResult =
-  | { kind: "providers"; providers: string[] }
-  | ConsultationResult
-  | DebugResult;
 
 /**
  * Result を表示整形役として定義する。
@@ -32,40 +31,18 @@ export class ResultRenderer {
    * @returns RenderedOutput。
    */
   render(
-    result: RenderableResult,
+    result: CliJsonPayload,
     outputFormat: OutputFormat = "text",
   ): RenderedOutput {
     const rendered = match(result)
-      .with({ kind: "providers" }, ({ providers }) => ({
-        text: providers.join("\n"),
-        json: { kind: "providers", providers },
+      .returnType<RenderedOutput>()
+      .with({ kind: "providers" }, (payload) => ({
+        text: payload.providers.join("\n"),
+        json: payload,
       }))
-      .with({ kind: "consultation" }, (r) => ({
-        text: [
-          `session: ${r.sessionId}`,
-          `run: ${r.runId}`,
-          `provider: ${r.provider}`,
-          `model: ${r.model}`,
-          `status: ${r.status}`,
-          `review: ${r.reviewStatus}`,
-          "",
-          r.answer,
-        ].join("\n"),
-        json: { ...r },
-      }))
-      .with({ kind: "debug" }, (r) => ({
-        text: [
-          `session: ${r.sessionId}`,
-          `run: ${r.runId}`,
-          `provider: ${r.provider}`,
-          `model: ${r.model}`,
-          `status: ${r.status}`,
-          "",
-          `summary: ${r.summary}`,
-          "",
-          r.details.join("\n\n"),
-        ].join("\n"),
-        json: { ...r },
+      .with({ kind: "batch" }, (payload) => ({
+        text: this.#renderBatchText(payload),
+        json: payload,
       }))
       .exhaustive();
 
@@ -77,5 +54,75 @@ export class ResultRenderer {
     }
 
     return rendered;
+  }
+
+  /**
+   * batch payload を text 表示へ整形する。
+   * JSON contract と同じ情報を CLI で読みやすい一覧へ落とし込み、command 側が表示整形を重複実装しないようにする。
+   *
+   * @param payload 表示対象の batch payload。
+   * @returns 表示向け text。
+   */
+  #renderBatchText(payload: BatchPayload): string {
+    const sections = [
+      `run: ${payload.runId}`,
+      `command: ${payload.command}`,
+      `status: ${payload.status}`,
+      ...(payload.reviewStatus !== undefined
+        ? [`review: ${payload.reviewStatus}`]
+        : []),
+      "",
+      ...payload.results.flatMap((result, index) =>
+        this.#renderBatchResult(result, index),
+      ),
+    ];
+
+    return sections.join("\n");
+  }
+
+  /**
+   * 個別 result を text 行へ展開する。
+   * provider ごとの回答と状態を一貫した順序で表示し、複数 reviewer 実行でも見比べやすく保つ。
+   *
+   * @param result 表示対象の個別 result。
+   * @param index 表示順。
+   * @returns 表示向け text 行。
+   * @remarks batch output の kind ごとに整形が分かれるため、新しい output を追加するときはここへ text 変換も足す。
+   */
+  #renderBatchResult(result: BatchResult, index: number): readonly string[] {
+    const outputLines = match(result.output)
+      .returnType<readonly string[]>()
+      .with(
+        { kind: "consultation" },
+        ({ answer }: Extract<BatchResultOutput, { kind: "consultation" }>) =>
+          answer.length > 0 ? [answer] : [],
+      )
+      .with(
+        { kind: "debug" },
+        ({
+          summary,
+          details,
+        }: Extract<BatchResultOutput, { kind: "debug" }>) => [
+          `summary: ${summary}`,
+          ...(details.length > 0 ? ["", details.join("\n\n")] : []),
+        ],
+      )
+      .exhaustive();
+
+    return [
+      `[${index + 1}] provider: ${result.provider}`,
+      ...(result.sessionId !== undefined
+        ? [`session: ${result.sessionId}`]
+        : []),
+      `status: ${result.status}`,
+      ...(result.reviewStatus !== undefined
+        ? [`review: ${result.reviewStatus}`]
+        : []),
+      ...(result.errorMessage !== undefined
+        ? [`error: ${result.errorMessage}`]
+        : []),
+      ...(outputLines.length > 0 ? ["", ...outputLines] : []),
+      "",
+    ];
   }
 }

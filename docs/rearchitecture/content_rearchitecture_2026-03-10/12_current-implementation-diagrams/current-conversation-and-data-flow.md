@@ -175,7 +175,7 @@ sequenceDiagram
     participant COMP as ComparisonEngine
     participant RENDER as ResultRenderer
 
-    U->>ROUTER: aipanel debug "<question>" --file ... --log ...
+    U->>ROUTER: aipanel debug "<question>"
     ROUTER->>DEBUG: execute(input)
     DEBUG->>SESSION: startOrResume()
     DEBUG->>SESSION: appendUserTurn(question)

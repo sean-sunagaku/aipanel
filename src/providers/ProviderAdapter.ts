@@ -32,7 +32,6 @@ export interface ProviderCallPlan {
  */
 export interface ProviderCallResult {
   provider: ProviderName;
-  model: string;
   rawText: string;
   rawJson: unknown;
   usage: UsageProps;
@@ -48,7 +47,6 @@ export interface ProviderCallResult {
  */
 export interface ProviderAdapter {
   readonly name: ProviderName;
-  readonly defaultModel?: string;
 
   /**
    * 共通の呼び出し計画を実際のプロバイダー実行へ変換して結果を返す。

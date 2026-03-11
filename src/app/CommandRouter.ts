@@ -7,6 +7,7 @@ import { match } from "ts-pattern";
 import { AipanelApp } from "./AipanelApp.js";
 import { parseArgs } from "../cli/parseArgs.js";
 import type { RunResultStatus } from "../domain/run.js";
+import type { ProviderSpec } from "../shared/commands.js";
 
 /**
  * Question を必須として検証する。
@@ -28,12 +29,14 @@ function requireQuestion(positionals: readonly string[]): string {
 const usageText = [
   "Usage:",
   "  aipanel providers [--json]",
-  "  aipanel consult <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
-  "  aipanel followup --session <id> <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
-  "  aipanel debug <question> [--provider <name>] [--model <name>] [--timeout <ms>] [--json]",
+  "  aipanel consult <question> [--provider <provider[:model]>]... [--timeout <ms>] [--json]",
+  "  aipanel followup --session <id> <question> [--provider <provider[:model]>] [--timeout <ms>] [--json]",
+  "  aipanel debug <question> [--provider <provider[:model]>]... [--timeout <ms>] [--json]",
   "",
   "Notes:",
   "  --session is only for `followup`.",
+  "  Repeat `--provider` to run multiple reviewers, including the same provider more than once.",
+  "  Add `:model` inside `--provider` to override a provider's model without restoring public `--model`.",
   "  `consult` and `debug` always start from the current question.",
 ].join("\n");
 
@@ -61,9 +64,8 @@ export class CommandRouter {
     argv: string[],
   ): Promise<{ responseText: string; exitCode: number }> {
     const parsed = parseArgs(argv);
-    const selectedAdapter = this.app.providerRegistry.get(parsed.providerName);
-    const providerName = selectedAdapter.name;
-    const model = parsed.model ?? selectedAdapter.defaultModel;
+    const providers = this.#resolveProviders(parsed.providers);
+
     const timeoutMs = parsed.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const toExitCode = (status: RunResultStatus): number =>
       match(status)
@@ -87,10 +89,9 @@ export class CommandRouter {
         const result = await this.app.consultUseCase.execute({
           command: "consult",
           question: requireQuestion(parsed.positionals),
-          providerName,
+          providers,
           timeoutMs,
           cwd: process.cwd(),
-          ...(model !== undefined ? { model } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
@@ -105,14 +106,16 @@ export class CommandRouter {
         if (!parsed.sessionId) {
           throw new Error("`followup` requires --session <id>.");
         }
+        if (providers.length > 1) {
+          throw new Error("`followup` supports at most one `--provider`.");
+        }
 
         const result = await this.app.followupUseCase.execute({
           question: requireQuestion(parsed.positionals),
           sessionId: parsed.sessionId,
-          providerName,
+          providers,
           timeoutMs,
           cwd: process.cwd(),
-          ...(model !== undefined ? { model } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
@@ -126,10 +129,9 @@ export class CommandRouter {
       .with("debug", async () => {
         const result = await this.app.debugUseCase.execute({
           question: requireQuestion(parsed.positionals),
-          providerName,
+          providers,
           timeoutMs,
           cwd: process.cwd(),
-          ...(model !== undefined ? { model } : {}),
         });
         const rendered = this.app.resultRenderer.render(
           result,
@@ -144,5 +146,22 @@ export class CommandRouter {
         Promise.resolve({ responseText: usageText, exitCode: 1 }),
       )
       .exhaustive();
+  }
+
+  /**
+   * reviewer 指定の既定値を補完する。
+   * provider 指定が無い command でも既定 provider で実行できるようにし、router 以外へ default 解決責務を漏らさない。
+   *
+   * @param providers 処理に渡す provider 指定。
+   * @returns 解決済み provider 指定一覧。
+   */
+  #resolveProviders(
+    providers: readonly ProviderSpec[],
+  ): readonly ProviderSpec[] {
+    if (providers.length > 0) {
+      return providers;
+    }
+
+    return Object.freeze([{ name: this.app.providerRegistry.get().name }]);
   }
 }

@@ -542,7 +542,6 @@ export interface ProviderResponseProps {
   responseId: string;
   taskId: string;
   provider: ProviderName;
-  model: string;
   rawTextRef?: string | null;
   rawJsonRef?: string | null;
   usage?: UsageProps | null;
@@ -558,7 +557,6 @@ export class ProviderResponse {
   public readonly responseId: string;
   public readonly taskId: string;
   public readonly provider: ProviderName;
-  public readonly model: string;
   public readonly rawTextRef: string | null;
   public readonly rawJsonRef: string | null;
   public readonly usage: Usage | null;
@@ -569,7 +567,6 @@ export class ProviderResponse {
     this.responseId = props.responseId;
     this.taskId = props.taskId;
     this.provider = props.provider;
-    this.model = props.model;
     this.rawTextRef = props.rawTextRef ?? null;
     this.rawJsonRef = props.rawJsonRef ?? null;
     this.usage = Usage.from(props.usage);
@@ -600,7 +597,6 @@ export class ProviderResponse {
       responseId: params.responseId ?? idGenerator("provider_response"),
       taskId: params.taskId,
       provider: params.provider,
-      model: params.model,
       createdAt: params.createdAt ?? clock(),
       ...(params.rawTextRef !== undefined
         ? { rawTextRef: params.rawTextRef }
@@ -637,7 +633,6 @@ export class ProviderResponse {
       responseId: this.responseId,
       taskId: this.taskId,
       provider: this.provider,
-      model: this.model,
       rawTextRef: this.rawTextRef,
       rawJsonRef: this.rawJsonRef,
       usage: this.usage?.toJSON() ?? null,

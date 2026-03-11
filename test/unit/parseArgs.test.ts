@@ -11,7 +11,7 @@ test("parseArgs defaults to help and uses text output by default", () => {
   assert.deepEqual(parsed.positionals, []);
 });
 
-test("parseArgs parses command and flags into an immutable object", () => {
+test("parseArgs parses repeatable providers and common flags into an immutable object", () => {
   const parsed = parseArgs([
     "consult",
     "Why",
@@ -20,9 +20,9 @@ test("parseArgs parses command and flags into an immutable object", () => {
     "happening?",
     "--json",
     "--provider",
-    "claude-code",
-    "--model",
-    "opus",
+    "claude-code:claude-sonnet-4-5",
+    "--provider",
+    "codex:codex-reviewer",
     "--session",
     "sid-1",
     "--timeout",
@@ -32,10 +32,31 @@ test("parseArgs parses command and flags into an immutable object", () => {
   assert.equal(parsed.command, "consult");
   assert.equal(parsed.outputFormat, "json");
   assert.equal(parsed.positionals.join(" "), "Why is this happening?");
-  assert.equal(parsed.providerName, "claude-code");
-  assert.equal(parsed.model, "opus");
+  assert.deepEqual(parsed.providers, [
+    { name: "claude-code", model: "claude-sonnet-4-5" },
+    { name: "codex", model: "codex-reviewer" },
+  ]);
   assert.equal(parsed.sessionId, "sid-1");
   assert.equal(parsed.timeoutMs, 3000);
+});
+
+test("parseArgs rejects unknown flags", () => {
+  assert.throws(
+    () => parseArgs(["consult", "Why", "--bogus"]),
+    /Unknown option/,
+  );
+  assert.throws(
+    () => parseArgs(["consult", "Why", "--another-bogus"]),
+    /Unknown option/,
+  );
+  assert.throws(
+    () => parseArgs(["consult", "Why", "--provider", "unknown-provider"]),
+    /Unknown provider/,
+  );
+  assert.throws(
+    () => parseArgs(["consult", "Why", "--provider", "codex:"]),
+    /Invalid provider spec/,
+  );
 });
 
 test("parseArgs marks unknown command as unknown", () => {

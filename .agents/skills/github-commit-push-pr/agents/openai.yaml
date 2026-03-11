@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub commit PR"
+  short_description: "Validate, commit, push, and open a GitHub PR"
+  default_prompt: "Use $github-commit-push-pr to validate the current changes, commit them, push the branch, and create a GitHub PR with a concise title and body."
