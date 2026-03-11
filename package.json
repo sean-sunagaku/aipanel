@@ -1,6 +1,6 @@
 {
   "name": "aipanel-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "CLI broker and orchestrator for consult, followup, and debug workflows with Claude Code and Codex.",
   "private": false,
   "license": "MIT",
