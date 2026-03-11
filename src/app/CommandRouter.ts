@@ -155,11 +155,11 @@ export class CommandRouter {
    * 処理順序や状態更新の責務を一箇所に閉じ込め、呼び出し側の分岐を増やさない。
    *
    * @param argv 処理に渡す argv。
-   * @returns { output: string; exitCode: number } を解決する Promise。
+   * @returns { responseText: string; exitCode: number } を解決する Promise。
    * @throws 実行に必要な前提を満たせない場合。
    * @remarks 入力条件ごとの差分をここで吸収しているため、分岐を削るときは呼び出し側へ責務を漏らさないか確認する。
    */
-  async route(argv: string[]): Promise<{ output: string; exitCode: number }> {
+  async route(argv: string[]): Promise<{ responseText: string; exitCode: number }> {
     const parsed = parseArgs(argv);
     const profile = await this.app.profileLoader.load();
     const providerName = parsed.providerName ?? profile.defaultProvider;
@@ -178,7 +178,7 @@ export class CommandRouter {
           result,
           parsed.outputFormat,
         );
-        return { output: rendered.text, exitCode: 0 };
+        return { responseText: rendered.text, exitCode: 0 };
       }
       case "consult": {
         const result = await this.app.consultUseCase.execute({
@@ -198,7 +198,7 @@ export class CommandRouter {
           parsed.outputFormat,
         );
         return {
-          output: rendered.text,
+          responseText: rendered.text,
           exitCode: result.status === "partial" ? 2 : 0,
         };
       }
@@ -223,7 +223,7 @@ export class CommandRouter {
           parsed.outputFormat,
         );
         return {
-          output: rendered.text,
+          responseText: rendered.text,
           exitCode: result.status === "partial" ? 2 : 0,
         };
       }
@@ -244,14 +244,14 @@ export class CommandRouter {
           parsed.outputFormat,
         );
         return {
-          output: rendered.text,
+          responseText: rendered.text,
           exitCode: result.status === "partial" ? 2 : 0,
         };
       }
       case "help":
       default:
         return {
-          output: [
+          responseText: [
             "Usage:",
             "  aipanel providers [--json]",
             "  aipanel consult <question> [--provider <name>] [--model <name>] [--file <path>] [--diff <path>] [--log <path>] [--json]",
