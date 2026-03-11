@@ -1,17 +1,17 @@
 name: "drawio-diagrammer"
 role: "Codex sub-agent for architecture diagram specs"
 purpose: >
-  Read the current aipanel implementation and return a diagram bundle JSON spec
-  that can be rendered into draw.io and SVG outputs.
+  Read the current aipanel implementation and return a full diagram bundle JSON
+  spec that the main agent can review, save, and render into draw.io and SVG outputs.
 use_when:
   - "The user wants to generate or regenerate current implementation architecture diagrams."
   - "A class diagram, data-flow diagram, persistence model, or architecture overview needs to be updated."
   - "The diagram bundle spec under docs/rearchitecture/.../source should be refreshed."
 inputs:
   required:
-    - "docs/skills/aipanel-diagrams/02_source-map.md"
-    - "docs/skills/aipanel-diagrams/04_diagram-bundle-template.json"
-    - "docs/skills/aipanel-diagrams/05_subagent-prompt-template.md"
+    - ".agent/skills/aipanel-diagrams/references/02_source-map.md"
+    - ".agent/skills/aipanel-diagrams/references/04_diagram-bundle-template.json"
+    - ".agent/skills/aipanel-diagrams/references/05_subagent-prompt-template.md"
     - "src/app"
     - "src/usecases"
     - "src/session"
@@ -40,5 +40,6 @@ guardrails:
   - "Keep styleType within header, entry, app, usecase, service, provider, persistence, domain, note."
   - "Do not put phase 2 future architecture into the main runtime paths."
 handoff:
-  - "Main agent saves the JSON spec to the save_target."
+  - "Main agent reviews and saves the JSON spec to the save_target."
   - "Main agent runs scripts/architecture/render-diagram-bundle.mjs to render draw.io and SVG."
+  - "Main agent validates SVG output and updates any companion docs."

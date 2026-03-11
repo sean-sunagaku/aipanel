@@ -1,4 +1,0 @@
-interface:
-  display_name: "AIPanel"
-  short_description: "Use and troubleshoot the AIPanel CLI safely"
-  default_prompt: "Use $aipanel to explain or verify how to operate the aipanel CLI in this repository."

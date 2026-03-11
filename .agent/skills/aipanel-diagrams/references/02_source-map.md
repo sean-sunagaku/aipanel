@@ -19,9 +19,12 @@ diagram bundle spec の canonical path:
 
 - `docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams/source/current-implementation-diagrams.spec.json`
 
+この spec JSON を一次成果物として扱い、`.drawio` と `.svg` は renderer で再生成する。
+
 ## Diagram Intent
 
 ### architecture-overview
+
 - CLI entrypoint、app wiring、use case、provider boundary、repository、persistence root を示す
 - 主ソース:
   - `src/app/AipanelApp.ts`
@@ -30,6 +33,7 @@ diagram bundle spec の canonical path:
   - `src/providers/ClaudeCodeAdapter.ts`
 
 ### direct-mode-data-flow
+
 - `consult / followup` の実行フローを示す
 - 主ソース:
   - `src/usecases/ConsultUseCase.ts`
@@ -40,6 +44,7 @@ diagram bundle spec の canonical path:
   - `src/artifact/ArtifactRepository.ts`
 
 ### debug-orchestrated-data-flow
+
 - `debug` の role-based task flow と merge を示す
 - 主ソース:
   - `src/usecases/DebugUseCase.ts`
@@ -48,6 +53,7 @@ diagram bundle spec の canonical path:
   - `src/providers/ClaudeCodeAdapter.ts`
 
 ### core-class-diagram
+
 - application class、coordination / infrastructure class、domain entity を示す
 - 主ソース:
   - `src/app/AipanelApp.ts`
@@ -58,6 +64,7 @@ diagram bundle spec の canonical path:
   - `src/domain/*.ts`
 
 ### persistence-data-model
+
 - `.aipanel` layout と `Session / Run / Artifact` を中心にした保存構造を示す
 - 主ソース:
   - `src/domain/session.ts`
@@ -72,3 +79,4 @@ diagram bundle spec の canonical path:
 - phase 2 構想は補足 note にとどめ、primary box / edge は現行 code に合わせる
 - class diagram が密になりすぎる場合、value object は note へ逃がす
 - direct flow と orchestrated flow は混ぜずに別図にする
+- `persistence-data-model` を更新するときは、必要に応じて `core-class-diagram` も同時に見直す

@@ -3,7 +3,7 @@
 以下をそのまま出発点として使う。
 
 ```text
-現行 aipanel 実装の architecture diagram spec JSON を作成してください。
+現行 aipanel 実装の full architecture diagram bundle spec JSON を作成してください。
 
 対象図:
 - architecture-overview
@@ -51,11 +51,12 @@ styleType は header, entry, app, usecase, service, provider, persistence, domai
 - src/providers
 - src/domain
 - docs/rearchitecture/content_rearchitecture_2026-03-10/12_current-implementation-diagrams
-- docs/skills/aipanel-diagrams/02_source-map.md
+- .agent/skills/aipanel-diagrams/references/02_source-map.md
 
 guardrails:
 - phase 2 構想を primary box に入れない
 - direct と orchestrated は別図
 - persistence-data-model では Session / Run / Artifact と artifact link を明示
+- data structure の変更がある場合は core-class-diagram との整合も取る
 - 説明文やコードフェンスは付けない
 ```
